@@ -249,6 +249,25 @@ const EQUIPMENT: [RegExp, string][] = [
 
 export const exerciseEquipment = (exercise: string) => firstMatch(exercise, EQUIPMENT, '');
 
+/** Nombres de sesión que se sugieren al armar el split. */
+export const SESSION_NAMES = ['Torso', 'Pierna', 'Empuje', 'Tracción', 'Full body', 'Brazos', 'Glúteo', 'Pecho / espalda', 'Hombro / brazo'];
+
+/** Color de una sesión según lo que entrena; así los días se distinguen de un vistazo. */
+export function sessionTone(session: string | null | undefined): Tone {
+  return firstMatch<Tone>(
+    session ?? '',
+    [
+      [/descanso/, 'slate'],
+      [/pierna|gluteo|inferior|cuadriceps|femoral|isquio/, 'amber'],
+      [/traccion|espalda|dorsal|pull|jalon/, 'emerald'],
+      [/empuje|pecho|push|hombro|torso|superior/, 'steel'],
+      [/brazo|biceps|triceps/, 'coral'],
+      [/full|completo|cuerpo|circuito/, 'teal'],
+    ],
+    'emerald',
+  );
+}
+
 /** Zonas del cuerpo en que se clasifican los músculos; cada una tiene su color. */
 export const MUSCLE_REGIONS: { key: MuscleRegion; label: string; tone: Tone }[] = [
   { key: 'push', label: 'Empuje · tren superior', tone: 'steel' },

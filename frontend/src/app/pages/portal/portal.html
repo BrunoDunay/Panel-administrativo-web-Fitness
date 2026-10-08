@@ -26,7 +26,7 @@
         <p class="eyebrow">Tu plan personalizado</p>
         <h1>Hola, {{ firstName() }}</h1>
       </div>
-      <nav class="tabs no-print" role="tablist" aria-label="Secciones de tu plan">
+      <nav class="tabs" role="tablist" aria-label="Secciones de tu plan">
         @for (item of tabs; track item.key) {
           <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" (click)="tab.set(item.key)">
             <app-icon [name]="item.icon" [size]="16" />{{ item.label }}
@@ -35,11 +35,18 @@
       </nav>
     </section>
 
+    @if (paymentAlert(); as alert) {
+      <section [class]="'card card--tint card--edge pay-alert icon-hover tone--' + (alert.overdue ? 'coral' : 'steel')" role="status">
+        <span class="tile-icon tile-icon--solid"><app-icon [name]="alert.overdue ? 'alert' : 'calendar'" [size]="22" /></span>
+        <p><b>{{ alert.title }}</b>{{ alert.text }}</p>
+      </section>
+    }
+
     @switch (tab()) {
       @case ('summary') {
         <div class="stack">
           @if (!weighedToday() || checkinPending()) {
-            <section class="todo no-print">
+            <section class="todo">
               @if (!weighedToday()) {
                 <button type="button" class="todo__item" (click)="tab.set('tracking')">
                   <app-icon name="scale" /><span><b>Registra tu peso de hoy</b>En ayunas, al despertar.</span><app-icon name="arrowRight" [size]="18" />
@@ -102,9 +109,8 @@
                     <button type="button" class="tab" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">Semana {{ item.number }}</button>
                   }
                 </div>
-                <button type="button" class="chip no-print" (click)="print()">Imprimir / PDF</button>
               </div>
-              <details class="details no-print">
+              <details class="details">
                 <summary>Simbología</summary>
                 <div class="details__body">
                   <dl class="dl">
@@ -131,10 +137,7 @@
       @case ('nutrition') {
         @if (store.nutrition()?.computed; as computed) {
           <div class="stack">
-            <div class="row row--between no-print">
-              <p class="card__hint">Los gramos son peso neto: lo que te comes, ya sin cáscara ni hueso.</p>
-              <button type="button" class="chip" (click)="print()">Imprimir / PDF</button>
-            </div>
+            <p class="card__hint">Los gramos son <b>peso neto</b>: lo que te comes, ya sin cáscara ni hueso.</p>
             <app-nutrition-plan-view [computed]="computed" />
           </div>
         } @else {
@@ -153,7 +156,7 @@
   }
 </main>
 
-<footer class="foot no-print">
+<footer class="foot">
   <p>Fitness by Evidence · Germain Camarillo</p>
   <p>Este enlace es personal: no lo compartas.</p>
 </footer>

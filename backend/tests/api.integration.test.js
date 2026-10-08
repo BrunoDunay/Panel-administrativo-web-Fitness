@@ -231,6 +231,84 @@ describe.skipIf(!enabled)('API', () => {
     expect(list[0]).toMatchObject({ fullName: 'Cliente ejemplo', hasTraining: true, goal: 'Definición' });
   });
 
+  it('pagos: registrar un pago tardío recorre el vencimiento y el cliente recibe el aviso', async () => {
+    const base = `/api/clients/${client.id}`;
+    const portal = `/api/portal/${code}`;
+    const { today } = (await auth(request(app).get(base))).body;
+    const shift = (days) => new Date(Date.parse(`${today}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10);
+
+    // Sin fecha de pago no hay aviso.
+    expect((await request(app).get(portal)).body.payment).toMatchObject({ state: 'none', periodMonths: 1 });
+
+    // El coach fija un vencimiento que ya pasó: vencido para el coach, para el cliente y en el resumen.
+    const due = shift(-3);
+    expect((await auth(request(app).put(`${base}/payments/due-date`)).send({ dueDate: due })).status).toBe(204);
+    const overdue = (await request(app).get(portal)).body;
+    expect(overdue.payment).toMatchObject({ state: 'overdue', dueDate: due, days: -3 });
+    expect(overdue.payments).toBeUndefined();
+    const dashboard = (await auth(request(app).get('/api/dashboard'))).body;
+    expect(dashboard.payments[0]).toMatchObject({ clientId: client.id, overdue: true, days: -3, date: due });
+
+    // El cliente no puede registrar pagos.
+    expect((await request(app).post(`${portal}/payments`).send({ paidOn: today })).status).toBe(403);
+
+    // Paga hoy (3 días tarde): el siguiente vencimiento sale del anterior, no del día del pago.
+    const paid = await auth(request(app).post(`${base}/payments`)).send({ paidOn: today, amount: 1500, method: 'Transferencia' });
+    expect(paid.status).toBe(201);
+    expect(paid.body).toMatchObject({ dueDate: due, delayDays: 3, amount: 1500 });
+    const next = paid.body.nextDueDate;
+    expect(next > today).toBe(true);
+
+    const after = (await auth(request(app).get(base))).body;
+    expect(after.payment).toMatchObject({ state: 'ok', dueDate: next });
+    expect(after.client.profile.logistics.paymentDate).toBe(next);
+    expect(after.payments).toHaveLength(1);
+    expect((await auth(request(app).get('/api/dashboard'))).body.payments).toHaveLength(0);
+
+    // Un pago adelantado con la fecha siguiente elegida a mano.
+    const early = await auth(request(app).post(`${base}/payments`)).send({ paidOn: today, nextDueDate: shift(90) });
+    expect(early.body.delayDays).toBeLessThan(0);
+    expect((await auth(request(app).get(base))).body.payment.dueDate).toBe(shift(90));
+
+    // Borrar el último pago regresa el vencimiento al que ese pago cubría.
+    expect((await auth(request(app).delete(`${base}/payments/${early.body.id}`))).status).toBe(204);
+    const restored = (await auth(request(app).get(base))).body;
+    expect(restored.payment.dueDate).toBe(next);
+    expect(restored.payments).toHaveLength(1);
+  });
+
+  it('un cliente nuevo puede pautar su primera semana aunque el split esté vacío', async () => {
+    const created = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente nuevo' });
+    const base = `/api/clients/${created.body.id}`;
+
+    // "Nueva semana" sin plan previo: crea el plan con todos los días en descanso.
+    const week = await auth(request(app).post(`${base}/training/weeks`));
+    expect(week.status).toBe(201);
+    let training = (await auth(request(app).get(base))).body.training;
+    expect(training.split.every((session) => session === 'Descanso')).toBe(true);
+    expect(training.weeks[0].days).toHaveLength(7);
+
+    // El editor guarda primero el nombre de la sesión y luego los ejercicios de ese día.
+    const split = ['Torso', 'Descanso', 'Descanso', 'Descanso', 'Descanso', 'Descanso', 'Descanso'];
+    expect((await auth(request(app).put(`${base}/training`)).send({ split })).status).toBe(204);
+    const saved = await auth(request(app).put(`${base}/training/weeks/${week.body.id}`)).send({
+      exercises: [{ day: 1, muscle: 'Pectoral', exercise: 'Press de banca plano con barra', sets: 3, reps: '8 a 10', rir: 2 }],
+    });
+    expect(saved.status).toBe(204);
+
+    training = (await auth(request(app).get(base))).body.training;
+    expect(training.split[0]).toBe('Torso');
+    expect(training.name).toBeTruthy();
+    expect(training.weeks[0].days[0].exercises[0]).toMatchObject({ exercise: 'Press de banca plano con barra', sets: 3 });
+
+    // Se eliminan todas las semanas y se vuelve a empezar: la semana nueva sigue siendo editable.
+    expect((await auth(request(app).delete(`${base}/training/weeks/${week.body.id}`))).status).toBe(204);
+    const again = await auth(request(app).post(`${base}/training/weeks`));
+    expect(again.body.number).toBe(1);
+    expect((await auth(request(app).put(`${base}/training/weeks/${again.body.id}`)).send({ exercises: [{ day: 3, muscle: 'Dorsal', exercise: 'Dominadas', sets: 4 }] })).status).toBe(204);
+    await auth(request(app).delete(base));
+  });
+
   it('un enlace regenerado invalida el anterior', async () => {
     expect((await request(app).get('/api/portal/AAAAAAAAAAAAAAAAAAAA')).status).toBe(404);
     const res = await auth(request(app).post(`/api/clients/${client.id}/access-code`));

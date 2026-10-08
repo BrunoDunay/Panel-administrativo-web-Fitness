@@ -82,6 +82,21 @@ export const checkinBody = z.object({
 
 export const weightBody = z.object({ weightKg: number(25, 350), waistCm: number(30, 250) });
 
+// ---- Pagos (solo coach) ----
+
+export const paymentParams = z.object({ paymentId: z.uuid() });
+
+export const dueDateBody = z.object({ dueDate: optionalDate });
+
+export const paymentBody = z.object({
+  paidOn: isoDate,
+  amount: number(0, 1000000),
+  method: text(40),
+  notes: text(500),
+  // Vacío = se calcula con el tipo de plan.
+  nextDueDate: optionalDate,
+});
+
 export const measurementBody = z.object({
   values: z.record(z.string().max(30), number(0, 500)).default({}),
   photosLink: text(500),

@@ -25,6 +25,35 @@ export function formatPercent(value: number | null | undefined, decimals = 0): s
   return value === null || value === undefined ? '—' : `${formatNumber(value * 100, decimals)} %`;
 }
 
+const MONEY = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 });
+
+export function formatMoney(value: number | null | undefined): string {
+  return value === null || value === undefined ? '—' : MONEY.format(value);
+}
+
+/** Suma meses conservando el día; si el mes destino es más corto, usa su último día. */
+export function addMonths(iso: string, months: number): string {
+  const [year = 0, month = 1, day = 1] = iso.split('-').map(Number);
+  const lastDay = new Date(Date.UTC(year, month - 1 + months + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1 + months, Math.min(day, lastDay))).toISOString().slice(0, 10);
+}
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+/** "Vence en 3 días", "Vence hoy", "Venció hace 2 días". */
+export function dueLabel(days: number | null | undefined): string {
+  if (days === null || days === undefined) return 'Sin fecha de pago';
+  if (days === 0) return 'Vence hoy';
+  return days > 0 ? `Vence en ${plural(days, 'día')}` : `Venció hace ${plural(-days, 'día')}`;
+}
+
+/** Puntualidad de un pago: "A tiempo", "3 días antes", "5 días tarde". */
+export function delayLabel(days: number | null | undefined): string {
+  if (days === null || days === undefined) return '—';
+  if (days === 0) return 'A tiempo';
+  return days > 0 ? `${plural(days, 'día')} tarde` : `${plural(-days, 'día')} antes`;
+}
+
 /** Valor de un <input type="number">: vacío o inválido = null. */
 export function toNumber(value: unknown): number | null {
   if (value === '' || value === null || value === undefined) return null;

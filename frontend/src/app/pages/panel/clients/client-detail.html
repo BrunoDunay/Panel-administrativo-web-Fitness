@@ -8,10 +8,11 @@
     @if (client.status !== 'active') { <span class="badge badge--warning">{{ client.status === 'paused' ? 'En pausa' : 'Archivado' }}</span> }
   </app-page-header>
 
-  <nav class="tabs main-tabs no-print" role="tablist" aria-label="Secciones del expediente">
+  <nav class="tabs main-tabs" role="tablist" aria-label="Secciones del expediente">
     @for (item of tabs; track item.key) {
       <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" (click)="tab.set(item.key)">
         <app-icon [name]="item.icon" [size]="16" />{{ item.label }}
+        @if (item.key === 'payments' && paymentBadge(); as badge) { <span class="tab__dot" [class.tab__dot--danger]="badge === 'overdue'" aria-hidden="true"></span> }
       </button>
     }
   </nav>
@@ -19,8 +20,9 @@
   @switch (tab()) {
     @case ('summary') {
       <div class="stack">
-        <section class="card card--vivid tone--slate link">
-          <div>
+        <section class="card card--vivid tone--slate link icon-hover">
+          <span class="tile-icon"><app-icon name="link" [size]="22" /></span>
+          <div class="link__text">
             <p class="link__eyebrow">Enlace privado del cliente</p>
             <p class="link__url">{{ client.portalUrl }}</p>
             <p class="link__hint">
@@ -82,11 +84,20 @@
               <span class="stat__note">Sin cuestionarios contestados</span>
             }
           </button>
+          @if (store.payment(); as payment) {
+            <button type="button" [class]="'card card--tint stat tile tone--' + paymentTone[payment.state]" (click)="tab.set('payments')">
+              <span class="tile-icon tile-icon--solid"><app-icon name="dollar" [size]="20" /></span>
+              <span class="stat__label">Próximo pago · {{ payment.planType || 'plan sin definir' }}</span>
+              <span class="stat__value">{{ payment.dueDate ? date(payment.dueDate, true) : 'Sin fecha' }}</span>
+              <span class="stat__note"><b>{{ payment.state === 'ok' ? 'Al corriente' : due(payment.days) }}</b> · registrar pago</span>
+            </button>
+          }
         </div>
 
         @if (lastCheckin(); as checkin) {
           <section class="card">
-            <header class="card__head">
+            <header class="card__head card__head--icon icon-hover">
+              <span class="tile-icon tone--coral"><app-icon name="clipboard" [size]="20" /></span>
               <h2 class="card__title">Cuestionario de la semana {{ checkin.weekNumber }}</h2>
               <span class="card__hint">{{ date(checkin.date) }}</span>
             </header>
@@ -112,14 +123,15 @@
         }
 
         <section class="card">
-          <header class="card__head">
+          <header class="card__head card__head--icon icon-hover">
+            <span class="tile-icon tone--steel"><app-icon name="user" [size]="20" /></span>
             <h2 class="card__title">Contacto y notas</h2>
-            <button appBtn type="button" variant="soft" size="sm" (click)="tab.set('profile')">Editar expediente</button>
+            <button appBtn type="button" variant="soft" size="sm" (click)="tab.set('profile')"><app-icon name="edit" [size]="14" />Editar expediente</button>
           </header>
           <dl class="dl">
             <dt>Teléfono</dt><dd>{{ client.phone || '—' }}</dd>
             <dt>Email</dt><dd>{{ client.email || '—' }}</dd>
-            <dt>Plan</dt><dd>{{ client.profile.logistics?.planType || '—' }} · pago: {{ date(client.profile.logistics?.paymentDate) }}</dd>
+            <dt>Plan</dt><dd>{{ client.profile.logistics?.planType || '—' }}</dd>
             <dt>Lesiones</dt><dd>{{ client.profile.health?.injuries || '—' }}</dd>
             <dt>Notas del coach</dt><dd class="pre">{{ client.coachNotes || '—' }}</dd>
           </dl>
@@ -143,18 +155,22 @@
       </div>
     }
 
+    @case ('payments') {
+      <app-client-payments />
+    }
+
     @case ('training') {
       @if (!catalog()) {
         <app-skeleton-dashboard />
       } @else if (store.training(); as plan) {
         <div class="stack">
-          <div class="row row--between no-print">
-            <div class="tabs" role="tablist" aria-label="Vista de entrenamiento">
-              <button type="button" class="tab" role="tab" [attr.aria-selected]="trainingView() === 'plan'" (click)="trainingView.set('plan')">Plan y split</button>
-              <button type="button" class="tab" role="tab" [attr.aria-selected]="trainingView() === 'weeks'" (click)="trainingView.set('weeks')">Semanas</button>
-              <button type="button" class="tab" role="tab" [attr.aria-selected]="trainingView() === 'reports'" (click)="trainingView.set('reports')">Volumen y progreso</button>
-            </div>
-            <button type="button" class="chip" (click)="print()">Imprimir / PDF</button>
+          <div class="steps" role="tablist" aria-label="Pasos del entrenamiento">
+            @for (step of trainingSteps; track step.key; let i = $index) {
+              <button type="button" class="step icon-hover" role="tab" [attr.aria-selected]="trainingView() === step.key" (click)="trainingView.set(step.key)">
+                <span class="step__icon"><app-icon [name]="step.icon" [size]="20" /></span>
+                <span class="step__text"><small>Paso {{ i + 1 }}</small><b>{{ step.label }}</b><span>{{ step.hint }}</span></span>
+              </button>
+            }
           </div>
 
           @switch (trainingView()) {
@@ -162,25 +178,31 @@
               <app-training-plan-editor [plan]="plan" [catalog]="catalog()!" />
             }
             @case ('weeks') {
-              <div class="row row--between no-print">
-                <div class="tabs" role="tablist" aria-label="Semana">
+              <section class="card weekbar">
+                <div class="weekbar__weeks" role="tablist" aria-label="Semana">
                   @for (item of plan.weeks; track item.id) {
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">Semana {{ item.number }}</button>
+                    <button type="button" class="weekbar__week" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">
+                      <small>Semana</small><b>{{ item.number }}</b>
+                    </button>
                   }
+                  <button type="button" class="weekbar__week weekbar__week--new icon-hover" (click)="addWeek()" [attr.aria-label]="plan.weeks.length ? 'Crear la semana siguiente' : 'Crear la semana 1'">
+                    <app-icon name="plus" [size]="18" /><small>{{ plan.weeks.length ? 'Nueva' : 'Crear semana 1' }}</small>
+                  </button>
                 </div>
-                <button appBtn type="button" variant="soft" (click)="addWeek()"><app-icon name="plus" [size]="16" />Nueva semana</button>
-              </div>
+                @if (week(); as current) {
+                  <div class="weekbar__tools">
+                    <div class="tabs tabs--solid" role="tablist" aria-label="Modo">
+                      <button type="button" class="tab" role="tab" [attr.aria-selected]="weekMode() === 'prescription'" (click)="weekMode.set('prescription')"><app-icon name="edit" [size]="15" />Pauta del coach</button>
+                      <button type="button" class="tab" role="tab" [attr.aria-selected]="weekMode() === 'log'" (click)="weekMode.set('log')"><app-icon name="clipboard" [size]="15" />Registro del cliente</button>
+                    </div>
+                    @if (isLastWeek()) {
+                      <button appBtn type="button" variant="ghost" size="sm" (click)="deleteWeek()"><app-icon name="trash" [size]="16" />Eliminar semana {{ current.number }}</button>
+                    }
+                  </div>
+                }
+              </section>
 
               @if (week(); as current) {
-                <div class="row row--between no-print">
-                  <div class="tabs tabs--solid" role="tablist" aria-label="Modo">
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="weekMode() === 'prescription'" (click)="weekMode.set('prescription')">Pauta del coach</button>
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="weekMode() === 'log'" (click)="weekMode.set('log')">Registro del cliente</button>
-                  </div>
-                  @if (isLastWeek()) {
-                    <button appBtn type="button" variant="ghost" size="sm" (click)="deleteWeek()"><app-icon name="trash" [size]="16" />Eliminar semana {{ current.number }}</button>
-                  }
-                </div>
                 @if (weekMode() === 'prescription') {
                   <app-week-prescription-editor [week]="current" [catalog]="catalog()!" />
                 } @else {
@@ -188,9 +210,10 @@
                 }
               } @else {
                 <section class="card empty">
+                  <span class="tile-icon tile-icon--solid tone--emerald"><app-icon name="calendar" [size]="22" /></span>
                   <h3>Aún no hay semanas</h3>
-                  <p>Crea la semana 1 y pauta los ejercicios. Las siguientes heredan la pauta con un clic.</p>
-                  <button appBtn type="button" (click)="addWeek()">Crear semana 1</button>
+                  <p>Crea la <b>semana 1</b> y pauta los ejercicios de cada día. Las siguientes <b>heredan la pauta</b> con un clic.</p>
+                  <button appBtn type="button" (click)="addWeek()"><app-icon name="plus" [size]="16" />Crear semana 1</button>
                 </section>
               }
             }
@@ -201,10 +224,16 @@
           }
         </div>
       } @else {
-        <section class="card empty">
+        <section class="card card--vivid tone--emerald start icon-hover">
+          <span class="tile-icon"><app-icon name="dumbbell" [size]="26" /></span>
           <h3>Este cliente todavía no tiene plan de entrenamiento</h3>
-          <p>Empieza por el objetivo, el split semanal y las prioridades. Después pautas los ejercicios semana por semana.</p>
-          <button appBtn type="button" (click)="startTraining()">Crear plan de entrenamiento</button>
+          <p>Se arma en <b>dos pasos</b>: primero el objetivo y el split de la semana; después los ejercicios de cada día.</p>
+          <ol class="start__steps">
+            <li><b>1</b> Objetivo, bloque y split</li>
+            <li><b>2</b> Ejercicios por semana</li>
+            <li><b>3</b> Volumen y progreso (se llena solo)</li>
+          </ol>
+          <button appBtn type="button" variant="light" size="lg" (click)="startTraining()"><app-icon name="plus" [size]="18" />Crear plan de entrenamiento</button>
         </section>
       }
     }
@@ -212,14 +241,9 @@
     @case ('nutrition') {
       @if (catalog() && store.nutrition(); as view) {
         <div class="stack">
-          <div class="row row--between no-print">
-            <div class="tabs" role="tablist" aria-label="Vista de nutrición">
-              <button type="button" class="tab" role="tab" [attr.aria-selected]="nutritionView() === 'edit'" (click)="nutritionView.set('edit')">Armar plan</button>
-              <button type="button" class="tab" role="tab" [attr.aria-selected]="nutritionView() === 'client'" (click)="nutritionView.set('client')">Como lo ve el cliente</button>
-            </div>
-            @if (nutritionView() === 'client') {
-              <button type="button" class="chip" (click)="print()">Imprimir / PDF</button>
-            }
+          <div class="tabs" role="tablist" aria-label="Vista de nutrición">
+            <button type="button" class="tab" role="tab" [attr.aria-selected]="nutritionView() === 'edit'" (click)="nutritionView.set('edit')"><app-icon name="edit" [size]="15" />Armar plan</button>
+            <button type="button" class="tab" role="tab" [attr.aria-selected]="nutritionView() === 'client'" (click)="nutritionView.set('client')"><app-icon name="eye" [size]="15" />Como lo ve el cliente</button>
           </div>
           @if (nutritionView() === 'edit') {
             <app-nutrition-editor [view]="view" [catalog]="catalog()!" />

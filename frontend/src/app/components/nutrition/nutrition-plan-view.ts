@@ -15,7 +15,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
     @let target = c.cycle[kind()];
     @let totals = c.dayTotals[kind()];
 
-    <div class="row row--between no-print">
+    <div class="row row--between">
       <div class="tabs tabs--solid" role="tablist" aria-label="Tipo de día">
         <button type="button" class="tab" role="tab" [attr.aria-selected]="kind() === 'training'" (click)="kind.set('training')">Día de entreno</button>
         <button type="button" class="tab" role="tab" [attr.aria-selected]="kind() === 'rest'" (click)="kind.set('rest')">Día de descanso</button>
@@ -105,7 +105,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
       <section class="card">
         <header class="card__head">
           <h3 class="card__title">Lista del súper</h3>
-          <label class="row weeks no-print">
+          <label class="row weeks">
             <span class="card__hint">Semanas</span>
             <select class="cell-input" [value]="weeks()" (change)="weeks.set(+$any($event.target).value)">
               @for (n of [1, 2, 3, 4]; track n) {

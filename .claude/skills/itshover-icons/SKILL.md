@@ -47,8 +47,14 @@ Dibújalo en `custom-icons.ts` con las mismas reglas, para que no se note la dif
 
 ## Elegir la animación
 
-En `icon.ts`, el mapa `MOTION` asigna a cada icono cómo se mueve cuando el cursor entra al
-enlace, botón o elemento `.icon-hover` que lo contiene. Si no está en el mapa, usa `draw`.
+En `icon.ts`, el mapa `MOTION` asigna a cada icono cómo se mueve. Si no está en el mapa, usa `draw`.
+
+La animación se dispara sola, sin marcar nada en la plantilla:
+
+- al pasar el cursor (o tocar) el enlace, botón, pestaña, etiqueta o elemento `.icon-hover` que
+  contiene al icono; si no hay ninguno, su fila (`li`, `tr`, `.card__head`, `.notice`) o el propio icono;
+- una vez al entrar en pantalla, si el icono es decorativo: está en una insignia (`.tile-icon`,
+  `.card__badge`) o fuera de botones y enlaces.
 
 | Animación | Qué hace | Para qué |
 |---|---|---|
@@ -62,11 +68,17 @@ enlace, botón o elemento `.icon-hover` que lo contiene. Si no está en el mapa,
 
 Reglas que ya respeta el componente y hay que conservar:
 
-- Solo anima con cursor real (`hover: hover` y `pointer: fine`). No se apaga con "reducir movimiento": es un movimiento pequeño que el usuario provoca, y en Windows esa opción suele estar activa sin que la persona lo sepa.
-- Dentro de una insignia (`.tile-icon`) el ícono se dibuja una vez al aparecer.
+- No se apaga con "reducir movimiento": es un movimiento pequeño que el usuario provoca, y en Windows esa opción suele estar activa sin que la persona lo sepa.
+- El disparador se resuelve en el navegador (`afterNextRender`), así que el HTML del servidor no cambia.
 - Dura menos de 650 ms y usa curvas de salida fuertes; no se repite en bucle.
 - La animación debe **decir algo del icono** (una flecha avanza, un bote se sacude). Si no hay un
   movimiento que venga al caso, se queda en `draw`.
 
-Para que un contenedor que no es enlace ni botón dispare la animación de sus iconos, ponle la
-clase `icon-hover`.
+Para que una tarjeta completa (y no solo la fila del icono) dispare la animación de sus iconos,
+ponle la clase `icon-hover`.
+
+## Dibujos de ejercicios
+
+Los dibujos animados de los ejercicios no son iconos: viven en
+`frontend/src/app/components/visual/` (`figure-rig.ts`, `exercise-figures.ts`). Para agregar o
+corregir uno se edita su par de posturas en `exercise-figures.ts`.

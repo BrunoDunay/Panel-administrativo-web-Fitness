@@ -6,8 +6,12 @@ import { todayInAppTz } from '../utils/dates-mx.js';
 import { ageOn } from '../services/calculations/training.js';
 import { loadCatalog } from '../services/catalog.service.js';
 import { buildNutritionView, findActiveNutritionPlan } from '../services/nutrition.service.js';
+import { clientPaymentStatus, deletePayment, listPayments, registerPayment, setDueDate } from '../services/payments.service.js';
 import { buildTrackingView } from '../services/tracking.service.js';
 import { buildTrainingView, findActivePlan } from '../services/training.service.js';
+
+/** El resumen avisa de los pagos que vencen dentro de estos días. */
+const PAYMENT_WINDOW_DAYS = 10;
 
 const portalUrl = (client) => `${env.PUBLIC_SITE_URL.replace(/\/$/, '')}/mi-plan/${client.accessCode}`;
 
@@ -44,6 +48,7 @@ export async function list(req, res) {
   if (status !== 'all') where.status = status;
   if (search) where.fullName = { [Op.iLike]: `%${search.replace(/[%_\\]/g, '\\$&')}%` };
 
+  const today = todayInAppTz();
   const clients = await Client.findAll({
     where,
     order: [['fullName', 'ASC']],
@@ -67,6 +72,7 @@ export async function list(req, res) {
       hasNutrition: client.nutritionPlans.length > 0,
       planType: client.profile?.logistics?.planType ?? null,
       paymentDate: client.profile?.logistics?.paymentDate ?? null,
+      paymentState: clientPaymentStatus(client, today).state,
       createdAt: client.createdAt,
     })),
   );
@@ -87,14 +93,21 @@ export async function overview(req, res) {
   if (!isCoach && nutrition?.computed && !nutrition.allowClientSwaps) {
     for (const meal of nutrition.computed.meals) for (const item of meal.items) item.swaps = [];
   }
-  const tracking = await buildTrackingView(client.id, { weeklyChangeKg: nutrition?.computed?.weeklyChangeKg ?? null });
+  const today = todayInAppTz();
+  const [tracking, payments] = await Promise.all([
+    buildTrackingView(client.id, { weeklyChangeKg: nutrition?.computed?.weeklyChangeKg ?? null }),
+    // El historial de pagos es solo para el coach; el cliente recibe el estado (para su aviso).
+    isCoach ? listPayments(client.id) : null,
+  ]);
 
   res.json({
     client: serializeClient(client, { forCoach: isCoach }),
     training: buildTrainingView(trainingPlan, catalog),
     nutrition,
     tracking,
-    today: todayInAppTz(),
+    payment: clientPaymentStatus(client, today),
+    ...(isCoach ? { payments } : {}),
+    today,
   });
 }
 
@@ -105,6 +118,21 @@ export async function update(req, res) {
 
 export async function remove(req, res) {
   await req.client.destroy();
+  res.status(204).end();
+}
+
+export async function addPayment(req, res) {
+  res.status(201).json(await registerPayment(req.client, req.valid.body));
+}
+
+/** Cambia a mano la fecha del próximo pago (por ejemplo, si se acordó una prórroga). */
+export async function setPaymentDueDate(req, res) {
+  await setDueDate(req.client, req.valid.body.dueDate);
+  res.status(204).end();
+}
+
+export async function removePayment(req, res) {
+  await deletePayment(req.client, req.valid.params.paymentId);
   res.status(204).end();
 }
 
@@ -140,13 +168,12 @@ export async function dashboard(_req, res) {
     .sort((a, b) => b.at - a.at)
     .slice(0, 10);
 
-  // Pagos próximos: fecha de pago de la historia clínica dentro de los siguientes 10 días (o vencida).
-  const limit = new Date(Date.parse(`${today}T00:00:00Z`) + 10 * 864e5).toISOString().slice(0, 10);
+  // Pagos por cobrar: vencidos o que vencen dentro de los siguientes 10 días.
   const payments = clients
-    .map((c) => ({ clientId: c.id, clientName: c.fullName, date: c.profile?.logistics?.paymentDate ?? null, planType: c.profile?.logistics?.planType ?? null }))
-    .filter((p) => p.date && p.date <= limit)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((p) => ({ ...p, overdue: p.date < today }));
+    .map((c) => ({ clientId: c.id, clientName: c.fullName, ...clientPaymentStatus(c, today) }))
+    .filter((p) => p.dueDate && p.days <= PAYMENT_WINDOW_DAYS)
+    .sort((a, b) => a.days - b.days)
+    .map(({ dueDate, state, ...p }) => ({ ...p, date: dueDate, overdue: state === 'overdue' }));
 
   res.json({
     today,

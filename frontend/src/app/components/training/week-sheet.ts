@@ -3,8 +3,8 @@ import { SYMBOLS } from '../../core/config/tracking-lists';
 import { ClientStore } from '../../core/services/client-store';
 import { CardioDay, LoggedSet, REST, TrainingWeek, WeekDay, WeekExercise } from '../../core/types/training.model';
 import { formatNumber, toNumber } from '../../core/utils/format';
-import { exerciseEquipment, movementPattern, muscleTone } from '../../core/utils/visuals';
-import { MovementFigure } from '../visual/movement-figure';
+import { exerciseEquipment, muscleTone } from '../../core/utils/visuals';
+import { ExerciseFigure } from '../visual/exercise-figure';
 
 /**
  * Hoja de la semana: la pauta del coach y el registro de carga y reps por serie.
@@ -12,7 +12,7 @@ import { MovementFigure } from '../visual/movement-figure';
  */
 @Component({
   selector: 'app-week-sheet',
-  imports: [MovementFigure],
+  imports: [ExerciseFigure],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (day of trainingDays(); track day.day) {
@@ -34,14 +34,10 @@ import { MovementFigure } from '../visual/movement-figure';
           </div>
         </header>
 
-        @for (exercise of day.exercises; track exercise.id; let i = $index) {
+        @for (exercise of day.exercises; track exercise.id) {
           <section [class]="'exercise icon-hover tone--' + tone(exercise.muscle)">
             <div class="exercise__head">
-              @if (pattern(exercise.exercise, exercise.muscle, exercise.movement); as p) {
-                <span class="thumb thumb--lg figure"><app-movement-figure [pattern]="p" [size]="44" /></span>
-              } @else {
-                <span class="exercise__index">{{ i + 1 }}</span>
-              }
+              <span class="thumb figure"><app-exercise-figure [exercise]="exercise.exercise" [muscle]="exercise.muscle" [figure]="exercise.movement" [size]="62" /></span>
               <div class="exercise__name">
                 <strong>{{ exercise.exercise }}</strong>
                 <span><b class="muscle">{{ exercise.muscle }}</b>@if (equipment(exercise.exercise)) { · {{ equipment(exercise.exercise) }} }</span>
@@ -150,7 +146,7 @@ import { MovementFigure } from '../visual/movement-figure';
     .muscle { color: var(--tone-ink); }
     .how { background: var(--color-surface); }
     .how p { white-space: pre-line; }
-    .figure { --figure-accent: var(--tone); --figure-surface: var(--tone-soft); }
+    .figure { width: 4.5rem; height: 4.5rem; --figure-accent: var(--tone); --figure-surface: var(--tone-soft); }
     .pauta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
     .pauta dt { font-size: var(--text-xs); color: var(--color-text-muted); }
     .pauta dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -188,7 +184,6 @@ export class WeekSheet {
 
   protected fmt = formatNumber;
   protected readonly tone = muscleTone;
-  protected readonly pattern = movementPattern;
   protected readonly equipment = exerciseEquipment;
   protected hint = (symbol: string) => SYMBOLS.find((s) => s.symbol === symbol)?.hint ?? '';
   protected symbolLabel = (symbol: string) => SYMBOLS.find((s) => s.symbol === symbol)?.label ?? '';

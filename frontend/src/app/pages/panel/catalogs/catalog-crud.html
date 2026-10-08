@@ -1,4 +1,4 @@
-<div class="toolbar no-print">
+<div class="toolbar">
   <label class="search">
     <app-icon name="search" [size]="18" />
     <span class="visually-hidden">Buscar</span>
@@ -8,17 +8,17 @@
   <button appBtn type="button" (click)="start()"><app-icon name="plus" [size]="18" />{{ addLabel() }}</button>
 </div>
 
-<!-- La leyenda va arriba del listado: explica los colores antes de leerlos. -->
-<ng-content select="[legend]" />
-
 @if (filterOptions().length > 1) {
-  <div class="chips no-print" role="group" [attr.aria-label]="'Filtrar por ' + filterLabel()">
+  <div class="chips" role="group" [attr.aria-label]="'Filtrar por ' + filterLabel()">
     <button type="button" class="chip" [attr.aria-pressed]="filter() === null" (click)="filter.set(null)">Todos</button>
     @for (option of filterOptions(); track option) {
       <button type="button" class="chip" [attr.aria-pressed]="filter() === option" (click)="filter.set(option)">{{ option }}</button>
     }
   </div>
 }
+
+<!-- La leyenda va pegada al listado: explica los colores justo antes de leerlos. -->
+<ng-content select="[legend]" />
 
 @if (editing(); as row) {
   @let preview = visual()?.(row);

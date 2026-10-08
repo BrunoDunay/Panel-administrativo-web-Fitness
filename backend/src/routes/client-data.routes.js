@@ -3,7 +3,7 @@ import * as clients from '../controllers/clients.controller.js';
 import * as plans from '../controllers/plans.controller.js';
 import { coachOnly } from '../middlewares/load-client.js';
 import { validate } from '../middlewares/validate.js';
-import { checkinBody, checkinParams, clientBody, dateParams, measurementBody, weightBody } from '../validators/client.schemas.js';
+import { checkinBody, checkinParams, clientBody, dateParams, dueDateBody, measurementBody, paymentBody, paymentParams, weightBody } from '../validators/client.schemas.js';
 import { nutritionPlanBody } from '../validators/nutrition.schemas.js';
 import { exerciseLogBody, trainingPlanBody, weekLogBody, weekPrescriptionBody } from '../validators/training.schemas.js';
 
@@ -19,6 +19,11 @@ export function clientDataRoutes() {
       .put('/', coachOnly, validate({ body: clientBody }), clients.update)
       .delete('/', coachOnly, clients.remove)
       .post('/access-code', coachOnly, clients.regenerateAccessCode)
+
+      // Pagos
+      .put('/payments/due-date', coachOnly, validate({ body: dueDateBody }), clients.setPaymentDueDate)
+      .post('/payments', coachOnly, validate({ body: paymentBody }), clients.addPayment)
+      .delete('/payments/:paymentId', coachOnly, validate({ params: paymentParams }), clients.removePayment)
 
       // Entrenamiento
       .put('/training', coachOnly, validate({ body: trainingPlanBody }), plans.saveTrainingPlan)

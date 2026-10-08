@@ -11,7 +11,7 @@ import { WeekSheet } from '../../components/training/week-sheet';
 import { SYMBOLS } from '../../core/config/tracking-lists';
 import { ClientStore } from '../../core/services/client-store';
 import { SeoService } from '../../core/services/seo.service';
-import { formatNumber, formatSigned } from '../../core/utils/format';
+import { dueLabel, formatDate, formatNumber, formatSigned } from '../../core/utils/format';
 import { PanelUiStyles } from '../panel/shared/panel-ui-styles';
 
 type Tab = 'summary' | 'training' | 'nutrition' | 'tracking';
@@ -79,6 +79,16 @@ export class Portal {
     return (this.store.tracking()?.weight.weeks ?? []).some((week) => week.days.some((day) => day.date === today && day.weightKg !== null));
   });
 
+  /** Aviso cuando el pago está cerca o ya venció. */
+  protected readonly paymentAlert = computed(() => {
+    const payment = this.store.payment();
+    if (!payment?.dueDate || (payment.state !== 'soon' && payment.state !== 'overdue')) return null;
+    const date = formatDate(payment.dueDate);
+    return payment.state === 'overdue'
+      ? { overdue: true, title: `Tu pago venció el ${date}`, text: `${dueLabel(payment.days)}. Ponte al corriente con tu coach para seguir con tu plan.` }
+      : { overdue: false, title: `Tu próximo pago es el ${date}`, text: `${dueLabel(payment.days)}. Si ya lo hiciste, avísale a tu coach para que lo registre.` };
+  });
+
   protected readonly checkinPending = computed(() => {
     const number = this.store.training()?.weeks.at(-1)?.number;
     return number !== undefined && !(this.store.tracking()?.checkins ?? []).some((c) => c.weekNumber === number);
@@ -91,9 +101,5 @@ export class Portal {
 
   protected selectWeek(id: string): void {
     this.selectedWeek.set(id);
-  }
-
-  protected print(): void {
-    window.print();
   }
 }

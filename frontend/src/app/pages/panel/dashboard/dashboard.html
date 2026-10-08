@@ -27,7 +27,7 @@
         <span class="tile-icon tile-icon--solid"><app-icon name="calendar" [size]="22" /></span>
         <span class="stat__label">Pagos próximos o vencidos</span>
         <span class="stat__value">{{ d.payments.length }}</span>
-        <span class="stat__note">En los siguientes <b>10 días</b></span>
+        <span class="stat__note"><b>{{ overdue() }}</b> vencido(s) · resto en los siguientes <b>10 días</b></span>
       </div>
     </div>
 
@@ -76,17 +76,18 @@
           @if (d.payments.length) {
             <ul class="feed">
               @for (payment of d.payments; track payment.clientId) {
-                <li>
+                <li class="pay">
                   <a [routerLink]="['/panel/clients', payment.clientId]">
                     <span class="avatar">{{ initials(payment.clientName) }}</span>
-                    <span class="feed__text"><b>{{ payment.clientName }}</b>{{ payment.planType || 'Plan' }}</span>
-                    <span class="badge" [class.badge--danger]="payment.overdue" [class.badge--warning]="!payment.overdue">{{ payment.overdue ? 'Vencido' : 'Próximo' }} · {{ date(payment.date, true) }}</span>
+                    <span class="feed__text"><b>{{ payment.clientName }}</b>{{ payment.planType || 'Plan' }} · {{ date(payment.date, true) }}</span>
+                    <span class="badge" [class.badge--danger]="payment.overdue" [class.badge--steel]="!payment.overdue">{{ due(payment.days) }}</span>
                   </a>
+                  <button appBtn type="button" variant="soft" size="sm" (click)="paying.set(payment)"><app-icon name="dollar" [size]="14" />Registrar pago</button>
                 </li>
               }
             </ul>
           } @else {
-            <p class="text-muted">Sin pagos por cobrar en los próximos días. La <b>fecha de pago</b> se captura en el expediente.</p>
+            <p class="text-muted">Sin pagos por cobrar en los próximos días. Los pagos se registran aquí o en la pestaña <b>Pagos</b> de cada cliente.</p>
           }
         </section>
 
@@ -130,6 +131,19 @@
       </div>
     </div>
   </div>
+  @if (paying(); as payment) {
+    <div class="modal-backdrop" (click)="paying.set(null)"></div>
+    <div class="modal fade-up" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+      <header class="modal__head icon-hover">
+        <span class="tile-icon tile-icon--solid tone--emerald"><app-icon name="dollar" [size]="20" /></span>
+        <div>
+          <h2 id="pay-title">Registrar pago</h2>
+          <p class="card__hint">{{ payment.clientName }} · plan {{ payment.planType || 'sin definir' }}</p>
+        </div>
+      </header>
+      <app-payment-form [today]="d.today" [dueDate]="payment.date" [periodMonths]="payment.periodMonths" [planType]="payment.planType" [saving]="savingPayment()" (save)="pay(payment, $event)" (cancel)="paying.set(null)" />
+    </div>
+  }
 } @else {
   <app-skeleton-dashboard />
 }

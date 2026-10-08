@@ -45,6 +45,19 @@ a.tile:active {
   transition: background-color var(--duration-fast);
 }
 
+/* Pago por cobrar: el renglón lleva al expediente y el botón registra el pago ahí mismo. */
+.pay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pay a {
+  flex: 1;
+  min-width: min(100%, 16rem);
+}
+
 .feed__text {
   display: grid;
   flex: 1;

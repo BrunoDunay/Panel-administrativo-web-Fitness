@@ -19,6 +19,8 @@ export const CHECKIN_RATINGS = [
   { key: 'injury', label: 'Vulnerabilidad a lesiones', options: ['Cero molestias', 'Molestia leve que no limita', 'Molestia que ajusto en algún ejercicio', 'Dolor que me limita en varios ejercicios', 'Dolor que me impide entrenar'] },
 ];
 
+export const PAYMENT_METHODS = ['Transferencia', 'Efectivo', 'Tarjeta', 'Depósito', 'Otro'];
+
 export const CHECKIN_QUESTIONS = [
   { key: 'discomfort', label: 'Si marcaste molestias: ¿dónde las percibes, desde cuándo y en qué movimientos?' },
   { key: 'nutrition', label: '¿Cómo fue tu alimentación esta semana?' },

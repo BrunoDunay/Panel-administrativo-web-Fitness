@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, finalize, tap } from 'rxjs';
 import { API_URL } from '../config/api.config';
-import { ClientOverview } from '../types/client.model';
+import { ClientOverview, Payment, PaymentDraft } from '../types/client.model';
 import { ApiError } from '../types/common.model';
 import { NutritionDraft, NutritionView } from '../types/nutrition.model';
 import { LoggedSet, PrescriptionRow, WeekExercise } from '../types/training.model';
@@ -32,6 +32,8 @@ export class ClientStore {
   readonly training = computed(() => this.data()?.training ?? null);
   readonly nutrition = computed(() => this.data()?.nutrition ?? null);
   readonly tracking = computed(() => this.data()?.tracking ?? null);
+  readonly payment = computed(() => this.data()?.payment ?? null);
+  readonly payments = computed(() => this.data()?.payments ?? []);
   readonly today = computed(() => this.data()?.today ?? new Date().toISOString().slice(0, 10));
 
   init(base: string, isCoach: boolean): void {
@@ -79,6 +81,19 @@ export class ClientStore {
 
   regenerateLink() {
     return this.mutate(this.http.post<{ portalUrl: string }>(`${this.base}/access-code`, {}), 'Enlace nuevo generado. El anterior ya no funciona.');
+  }
+
+  // ---- Pagos (solo coach) ----
+  addPayment(body: PaymentDraft) {
+    return this.mutate(this.http.post<Payment>(`${this.base}/payments`, body), 'Pago registrado.');
+  }
+
+  deletePayment(paymentId: string) {
+    return this.mutate(this.http.delete(`${this.base}/payments/${paymentId}`), 'Pago eliminado.');
+  }
+
+  setPaymentDueDate(dueDate: string | null) {
+    return this.mutate(this.http.put(`${this.base}/payments/due-date`, { dueDate }), 'Fecha de pago actualizada.');
   }
 
   // ---- Entrenamiento ----

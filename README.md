@@ -11,8 +11,8 @@ Panel de trabajo del coach, portal del cliente y landing pública. Sustituye las
 
 ## Qué hace
 
-- **Panel del coach** (`/panel`): clientes con su historia clínica, plan de entrenamiento (bloques, split, prioridades, semanas con pauta por ejercicio, cardio y calentamiento), plan de nutrición (gasto, macros, reparto por comida, gramos automáticos, cambios, lista del súper, hidratación y suplementos), seguimiento y catálogos editables.
-- **Portal del cliente** (`/mi-plan/<código>`): cada cliente recibe un enlace privado, sin contraseña. Ahí ve su plan y registra carga y reps por serie, minutos de cardio, peso diario, cuestionario semanal y mediciones. El coach ve y puede corregir lo mismo desde el expediente.
+- **Panel del coach** (`/panel`): clientes con su historia clínica, plan de entrenamiento (bloques, split, prioridades, semanas con pauta por ejercicio, cardio y calentamiento), plan de nutrición (gasto, macros, reparto por comida, gramos automáticos, cambios, lista del súper, hidratación y suplementos), seguimiento, **pagos** y catálogos editables.
+- **Portal del cliente** (`/mi-plan/<código>`): cada cliente recibe un enlace privado, sin contraseña. Ahí ve su plan y registra carga y reps por serie, minutos de cardio, peso diario, cuestionario semanal y mediciones. El coach ve y puede corregir lo mismo desde el expediente. Si su pago está por vencer o ya venció, ve un aviso.
 - **Landing** (`/`): servicios, método, coach y contacto. Todo el texto se edita desde el panel.
 
 ## Requisitos
@@ -76,6 +76,18 @@ Las fórmulas de las plantillas están en `backend/src/services/calculations/` c
 | `training.js` | Series hechas, e1RM (Epley), tonelaje, volumen por músculo, fechas de bloques, pasos, cumplimiento de cardio |
 
 El frontend no repite ninguna fórmula: mientras el coach edita el plan de nutrición, el borrador se recalcula en el servidor con el mismo motor que verá el cliente.
+
+## Pagos
+
+La fecha del **próximo pago** de cada cliente está en su expediente. Cuando el coach registra un pago (pestaña **Pagos** del cliente o desde el resumen), el vencimiento se recorre solo según el tipo de plan (mensual, trimestral, semestral o anual) y el pago queda en el historial con su puntualidad: a tiempo, días antes o días tarde. El siguiente vencimiento se calcula a partir del vencimiento anterior, no del día en que se pagó; el coach puede cambiarlo a mano. El cliente ve un aviso en su portal desde 7 días antes y mientras el pago esté vencido. Las reglas están en `backend/src/services/calculations/payments.js`.
+
+## Dibujos de los ejercicios
+
+Cada ejercicio del catálogo tiene un dibujo animado propio que muestra el movimiento y el equipo (barra, Smith, mancuernas, polea o máquina). No son imágenes: cada dibujo son dos posturas de un esqueleto articulado y la animación se calcula entre ambas.
+
+- `frontend/src/app/components/visual/figure-rig.ts`: el esqueleto y el equipo.
+- `frontend/src/app/components/visual/exercise-figures.ts`: las posturas de cada ejercicio.
+- `frontend/src/app/components/visual/figure-resolve.ts`: qué dibujo le toca a cada ejercicio. Uno nuevo toma el del ejercicio de nombre más parecido; el coach puede elegir otro al editarlo.
 
 ## Contenido provisional
 

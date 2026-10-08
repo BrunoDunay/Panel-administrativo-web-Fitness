@@ -16,15 +16,19 @@ import { PanelApi } from '../../../core/services/api/panel-api.service';
 import { ClientStore } from '../../../core/services/client-store';
 import { ToastService } from '../../../core/services/toast.service';
 import { ApiError } from '../../../core/types/common.model';
-import { formatDate, formatNumber, formatSigned, initials, whatsappLink } from '../../../core/utils/format';
+import { PaymentState } from '../../../core/types/client.model';
+import { dueLabel, formatDate, formatNumber, formatSigned, initials, whatsappLink } from '../../../core/utils/format';
+import { Tone } from '../../../core/utils/visuals';
 import { ConfirmService } from '../shared/confirm.service';
 import { PageHeader } from '../shared/page-header';
 import { ClientFormValue, ClientProfileForm } from './client-profile-form';
 import { NutritionEditor } from './nutrition/nutrition-editor';
+import { ClientPayments } from './payments/client-payments';
 import { TrainingPlanEditor } from './training/training-plan-editor';
 import { WeekPrescriptionEditor } from './training/week-prescription-editor';
 
-type Tab = 'summary' | 'profile' | 'training' | 'nutrition' | 'tracking';
+type Tab = 'summary' | 'profile' | 'training' | 'nutrition' | 'tracking' | 'payments';
+type TrainingView = 'plan' | 'weeks' | 'reports';
 
 const TABS: { key: Tab; label: string; icon: IconName }[] = [
   { key: 'summary', label: 'Resumen', icon: 'home' },
@@ -32,7 +36,17 @@ const TABS: { key: Tab; label: string; icon: IconName }[] = [
   { key: 'training', label: 'Entrenamiento', icon: 'dumbbell' },
   { key: 'nutrition', label: 'Nutrición', icon: 'food' },
   { key: 'tracking', label: 'Seguimiento', icon: 'chart' },
+  { key: 'payments', label: 'Pagos', icon: 'dollar' },
 ];
+
+/** El entrenamiento se arma en orden: primero el plan, luego las semanas; los reportes salen solos. */
+const TRAINING_STEPS: { key: TrainingView; label: string; hint: string; icon: IconName }[] = [
+  { key: 'plan', label: 'Plan y split', hint: 'Objetivo, bloque y días', icon: 'target' },
+  { key: 'weeks', label: 'Semanas', hint: 'Ejercicios de cada día', icon: 'calendar' },
+  { key: 'reports', label: 'Volumen y progreso', hint: 'Se calcula solo', icon: 'chart' },
+];
+
+const PAYMENT_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', overdue: 'coral', none: 'slate' };
 
 /** Expediente del cliente: todo su trabajo en un solo lugar (lo que antes era un Excel por persona). */
 @Component({
@@ -53,6 +67,7 @@ const TABS: { key: Tab; label: string; icon: IconName }[] = [
     WeightTracker,
     CheckinForm,
     MeasurementsPanel,
+    ClientPayments,
   ],
   providers: [ClientStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,7 +86,10 @@ export class ClientDetail {
 
   protected readonly tabs = TABS;
   protected readonly tab = signal<Tab>('summary');
-  protected readonly trainingView = signal<'plan' | 'weeks' | 'reports'>('weeks');
+  protected readonly trainingSteps = TRAINING_STEPS;
+  protected readonly paymentTone = PAYMENT_TONE;
+  protected readonly due = dueLabel;
+  protected readonly trainingView = signal<TrainingView>('weeks');
   protected readonly weekMode = signal<'prescription' | 'log'>('prescription');
   protected readonly nutritionView = signal<'edit' | 'client'>('edit');
   protected readonly savingProfile = signal(false);
@@ -95,6 +113,12 @@ export class ClientDetail {
     const client = this.store.client();
     if (!client?.portalUrl) return null;
     return whatsappLink(client.phone, `Hola ${client.fullName.split(' ')[0]}, este es el enlace a tu plan personalizado. Guárdalo, es solo para ti: ${client.portalUrl}`);
+  });
+
+  /** Punto de aviso en la pestaña de pagos cuando el pago está cerca o vencido. */
+  protected readonly paymentBadge = computed(() => {
+    const state = this.store.payment()?.state;
+    return state === 'soon' || state === 'overdue' ? state : null;
   });
 
   protected readonly lastCheckin = computed(() => this.store.tracking()?.checkins.at(-1) ?? null);
@@ -183,9 +207,5 @@ export class ClientDetail {
       this.toast.success('Cliente eliminado.');
       void this.router.navigate(['/panel/clients']);
     });
-  }
-
-  protected print(): void {
-    window.print();
   }
 }

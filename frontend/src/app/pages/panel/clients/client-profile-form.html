@@ -89,7 +89,7 @@
           </select>
         </label>
         <label class="field"><span class="field__label">Fecha de inicio</span><input class="field__control" type="date" name="startDate" [(ngModel)]="v.profile.logistics.startDate" /></label>
-        <label class="field"><span class="field__label">Fecha de pago</span><input class="field__control" type="date" name="paymentDate" [(ngModel)]="v.profile.logistics.paymentDate" /></label>
+        <label class="field"><span class="field__label">Próximo pago</span><input class="field__control" type="date" name="paymentDate" [(ngModel)]="v.profile.logistics.paymentDate" /></label>
         <label class="field">
           <span class="field__label">Días disponibles / semana</span>
           <select class="field__control" name="daysPerWeek" [(ngModel)]="v.profile.logistics.daysPerWeek">
@@ -198,7 +198,7 @@
     </section>
   </div>
 
-  <div class="actions no-print">
+  <div class="actions">
     <ng-content />
     <button appBtn type="submit" [loading]="saving()" [disabled]="saving()">{{ submitLabel() }}</button>
   </div>

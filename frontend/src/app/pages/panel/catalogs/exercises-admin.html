@@ -22,25 +22,19 @@
   @for (item of regions; track item.key) {
     <span><i [class]="'dot tone--' + item.tone"></i><b>{{ item.label }}</b></span>
   }
-  <span>Pasa el cursor sobre un ejercicio para ver el movimiento.</span>
+  <span>Cada ejercicio tiene su dibujo: <b>pasa el cursor</b> (o tócalo) para ver el movimiento y el equipo.</span>
 </p>
 
 @if (editing(); as draft) {
   @let muscle = editingMuscle();
   <form id="exercise-editor" class="editor" (ngSubmit)="saveExercise()" novalidate>
     <aside [class]="'card card--vivid card--badge preview tone--' + tone(muscle?.name ?? '', muscle?.region)">
-      <span class="card__badge">
-        @if (previewPattern(); as p) { <app-movement-figure [pattern]="p" [size]="40" [autoplay]="true" /> } @else { <app-icon name="movement" [size]="28" /> }
-      </span>
+      <span class="card__badge"><app-icon name="dumbbell" [size]="26" /></span>
       <p class="preview__eyebrow">{{ draft.id ? 'Editando ejercicio' : 'Ejercicio nuevo' }} · {{ muscle?.name }}</p>
       <h3 class="preview__name">{{ draft.name || 'Sin nombre todavía' }}</h3>
       <div class="preview__stage">
-        @if (previewPattern(); as p) {
-          <app-movement-figure [pattern]="p" [size]="150" [autoplay]="true" />
-          <p>{{ labels[p] }}</p>
-        } @else {
-          <p>Elige un tipo de movimiento para ver el dibujo.</p>
-        }
+        <app-exercise-figure [exercise]="draft.name" [muscle]="muscle?.name ?? ''" [figure]="draft.movement" [size]="168" [autoplay]="true" />
+        <p>{{ draft.movement ? 'Dibujo elegido' : 'Dibujo automático' }}: <b>{{ previewFigure()?.name }}</b></p>
       </div>
     </aside>
 
@@ -65,14 +59,22 @@
 
       <div class="picker">
         <div class="row row--between">
-          <span class="picker__label">Tipo de movimiento (define el dibujo)</span>
+          <div>
+            <span class="picker__label">Dibujo del ejercicio</span>
+            <p class="card__hint">En automático se usa el que corresponde al nombre. Si no coincide, elige el que más se parezca.</p>
+          </div>
           <button type="button" class="picker__option picker__option--auto" [attr.aria-pressed]="draft.movement === null" (click)="patch({ movement: null })">Automático</button>
         </div>
-        <div class="picker__grid">
-          @for (option of patterns; track option) {
-            <button type="button" class="picker__option picker__option--figure icon-hover" [attr.aria-pressed]="draft.movement === option" (click)="patch({ movement: option })">
-              <app-movement-figure [pattern]="option" [size]="44" />
-              {{ labels[option] }}
+        <div class="chips" role="group" aria-label="Grupo de dibujos">
+          @for (group of figureGroups; track group.group) {
+            <button type="button" class="chip chip--sm" [attr.aria-pressed]="pickerGroup() === group.group" (click)="pickerGroup.set(group.group)">{{ group.group }}</button>
+          }
+        </div>
+        <div class="picker__grid figures">
+          @for (option of pickerItems(); track option.key) {
+            <button type="button" class="picker__option picker__option--figure icon-hover" [attr.aria-pressed]="draft.movement === option.key" (click)="patch({ movement: option.key })">
+              <app-exercise-figure [figure]="option.key" [size]="56" [intro]="false" />
+              {{ option.name }}
             </button>
           }
         </div>
@@ -87,6 +89,7 @@
 }
 
 @if (catalog()) {
+  <!-- Columnas tipo mosaico: cada tarjeta se acomoda bajo la anterior sin dejar huecos. -->
   <div class="muscles">
     @for (muscle of muscles(); track muscle.id) {
       <section [class]="'card card--edge muscle tone--' + tone(muscle.name, muscle.region)">
@@ -109,11 +112,9 @@
         </header>
 
         <ul>
-          @for (exercise of muscle.exercises; track exercise.id) {
+          @for (exercise of shown(muscle); track exercise.id) {
             <li class="icon-hover">
-              <span class="thumb thumb--lg figure">
-                @if (pattern(exercise.name, muscle.name, exercise.movement); as p) { <app-movement-figure [pattern]="p" [size]="46" /> } @else { <app-icon name="movement" [size]="26" /> }
-              </span>
+              <span class="thumb figure"><app-exercise-figure [exercise]="exercise.name" [muscle]="muscle.name" [figure]="exercise.movement" [size]="56" /></span>
               <span class="exercise">
                 <b>{{ exercise.name }}</b>
                 <small>{{ meta(exercise, muscle) }}</small>
@@ -126,7 +127,16 @@
             </li>
           }
         </ul>
-        <button appBtn type="button" variant="soft" size="sm" (click)="startExercise(muscle)"><app-icon name="plus" [size]="16" />Agregar ejercicio</button>
+
+        <div class="row row--between muscle__foot">
+          <button appBtn type="button" variant="soft" size="sm" (click)="startExercise(muscle)"><app-icon name="plus" [size]="16" />Agregar ejercicio</button>
+          @if (!searching() && muscle.exercises.length > visible) {
+            <button type="button" class="more" [attr.aria-expanded]="expanded().has(muscle.id)" (click)="toggle(muscle)">
+              {{ expanded().has(muscle.id) ? 'Ver menos' : 'Ver los ' + muscle.exercises.length }}
+              <app-icon name="chevronDown" [size]="16" />
+            </button>
+          }
+        </div>
       </section>
     } @empty {
       <div class="card empty"><h3>Sin resultados</h3><p>Ningún ejercicio coincide con la búsqueda.</p></div>

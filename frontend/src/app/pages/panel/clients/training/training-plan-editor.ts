@@ -6,6 +6,7 @@ import { ClientStore } from '../../../../core/services/client-store';
 import { Catalog } from '../../../../core/types/catalog.model';
 import { MacroBlock, PriorityNote, REST, TrainingView, WEEK_DAYS } from '../../../../core/types/training.model';
 import { formatDate, formatNumber } from '../../../../core/utils/format';
+import { SESSION_NAMES, Tone, sessionTone } from '../../../../core/utils/visuals';
 
 type Level = 'p1' | 'p2' | 'p3' | 'maintenance';
 
@@ -24,13 +25,12 @@ interface Draft {
 }
 
 const DAY_MS = 864e5;
-const LEVELS: { key: Level; label: string }[] = [
-  { key: 'p1', label: 'Prioridad 1' },
-  { key: 'p2', label: 'Prioridad 2' },
-  { key: 'p3', label: 'Prioridad 3' },
-  { key: 'maintenance', label: 'Mantenimiento' },
+const LEVELS: { key: Level; label: string; tone: Tone }[] = [
+  { key: 'p1', label: 'Prioridad 1', tone: 'coral' },
+  { key: 'p2', label: 'Prioridad 2', tone: 'amber' },
+  { key: 'p3', label: 'Prioridad 3', tone: 'steel' },
+  { key: 'maintenance', label: 'Mantenimiento', tone: 'slate' },
 ];
-const SESSIONS = ['Descanso', 'Torso', 'Pierna', 'Empuje', 'Tracción', 'Full body', 'Brazos', 'Glúteo', 'Pecho / espalda', 'Hombro / brazo'];
 
 function emptyDraft(): Draft {
   return {
@@ -56,11 +56,28 @@ function emptyDraft(): Draft {
   templateUrl: './training-plan-editor.html',
   styles: `
     form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-    .split { display: grid; grid-template-columns: repeat(7, minmax(7.5rem, 1fr)); gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }
-    .levels { display: grid; gap: var(--space-4); }
-    .level { display: grid; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: var(--hairline); }
-    .level:last-child { padding-bottom: 0; border-bottom: 0; }
-    .level__notes { display: grid; grid-template-columns: 8rem 8rem 1fr; gap: var(--space-2); }
+    .center { justify-content: center; text-align: center; }
+    .computed--tone { background: var(--tone-soft); color: var(--tone-ink); }
+
+    /* Split: un mosaico por día, con el color de la sesión. */
+    .split { display: grid; grid-template-columns: repeat(7, minmax(7rem, 1fr)); gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }
+    .split__day { display: grid; gap: var(--space-2); padding: var(--space-3); border-top: 4px solid var(--tone); border-radius: var(--radius-md); background: var(--tone-soft); transition: background-color var(--duration); }
+    .split__day.is-rest { border-top-color: var(--color-border-strong); background: var(--color-background); }
+    .split__name { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--tone-ink); }
+    .split__input { width: 100%; min-height: 2.5rem; padding: 0.3rem 0.55rem; border: 1px solid transparent; border-radius: var(--radius-sm); background: var(--color-surface); font-size: 1rem; font-weight: 700; }
+    .split__input::placeholder { font-weight: 500; color: var(--color-text-muted); }
+    .split__input:focus { outline: none; border-color: var(--tone); box-shadow: 0 0 0 3px var(--tone-soft); }
+
+    /* Prioridades: cada nivel con su color. */
+    .levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--space-3); }
+    .level { display: grid; align-content: start; gap: var(--space-3); padding: var(--space-4); border-left: 4px solid var(--tone); border-radius: var(--radius-md); background: var(--tone-soft); }
+    .level__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+    .level__tag { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--tone-ink); }
+    .level__notes { display: grid; grid-template-columns: 7rem 7rem 1fr; gap: var(--space-2); }
+    .chip--tone[aria-pressed='true'] { border-color: var(--tone); background: var(--tone); }
+
+    .daycell { display: flex; align-items: center; gap: var(--space-2); }
+    .daycell small { display: block; font-weight: 400; color: var(--color-text-muted); }
     .actions { position: sticky; bottom: var(--space-3); z-index: 2; display: flex; justify-content: flex-end; }
     .actions button { box-shadow: var(--shadow-md); }
     .icon-btn { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); }
@@ -75,14 +92,15 @@ export class TrainingPlanEditor {
 
   protected readonly days = WEEK_DAYS;
   protected readonly levels = LEVELS;
-  protected readonly sessions = SESSIONS;
+  protected readonly sessions = SESSION_NAMES;
+  protected readonly sessionTone = sessionTone;
   protected readonly date = formatDate;
   protected readonly num = formatNumber;
   protected readonly draft = signal<Draft>(emptyDraft());
   protected readonly saving = signal(false);
 
   protected readonly muscles = computed(() => this.catalog().muscles.map((muscle) => muscle.name));
-  protected readonly trainingDays = computed(() => this.draft().split.filter((session) => session && session !== REST).length);
+  protected readonly trainingDays = computed(() => this.draft().split.filter((session) => this.isTraining(session)).length);
   protected readonly blockEnd = computed(() => this.endOf(this.draft().blockStart, this.draft().blockWeeks));
   protected readonly weeklySteps = computed(() => {
     const { trainingDay, restDay } = this.draft().steps;
@@ -140,6 +158,15 @@ export class TrainingPlanEditor {
 
   protected warmupProtocol(name: string | null) {
     return this.catalog().warmupProtocols.find((p) => p.name === name) ?? null;
+  }
+
+  protected isTraining(session: string | null | undefined): boolean {
+    return !!session?.trim() && session !== REST;
+  }
+
+  protected setSession(index: number, value: string): void {
+    this.draft().split[index] = value;
+    this.refresh();
   }
 
   /** Los campos escriben directo en el borrador; esto avisa a lo calculado. */

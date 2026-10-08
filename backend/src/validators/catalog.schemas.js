@@ -8,7 +8,7 @@ export const catalogSchemas = {
   exercises: z.object({
     muscleId: z.number().int().positive(),
     name: requiredText(160, 'Escribe el nombre del ejercicio'),
-    movement: text(20),
+    movement: text(60),
     description: text(2000),
   }),
   'cardio-protocols': z.object({

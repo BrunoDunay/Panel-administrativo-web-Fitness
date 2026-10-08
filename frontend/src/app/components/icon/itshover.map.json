@@ -66,5 +66,16 @@
   "eye": "eye-icon",
   "lock": "lock-icon",
   "shield": "shield-check",
-  "bookmark": "bookmark-icon"
+  "bookmark": "bookmark-icon",
+  "dollar": "currency-dollar-icon",
+  "wallet": "wallet-icon",
+  "card": "credit-card",
+  "moon": "moon-icon",
+  "save": "save-icon",
+  "message": "message-circle-icon",
+  "camera": "camera-icon",
+  "like": "like-icon",
+  "doubleCheck": "double-check-icon",
+  "upload": "upload-icon",
+  "world": "world-icon"
 }

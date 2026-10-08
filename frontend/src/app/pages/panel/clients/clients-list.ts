@@ -62,7 +62,13 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
                       @if (client.hasNutrition) { <span class="badge badge--steel">{{ client.goal || 'Activo' }}</span> } @else { <span class="badge badge--warning">Por armar</span> }
                     </td>
                     <td>{{ client.planType || '—' }}</td>
-                    <td>{{ date(client.paymentDate, true) }}</td>
+                    <td>
+                      @if (client.paymentDate) {
+                        <span class="badge" [class.badge--danger]="client.paymentState === 'overdue'" [class.badge--steel]="client.paymentState === 'soon'" [class.badge--success]="client.paymentState === 'ok'">{{ date(client.paymentDate, true) }}{{ client.paymentState === 'overdue' ? ' · vencido' : '' }}</span>
+                      } @else {
+                        —
+                      }
+                    </td>
                   </tr>
                 }
               </tbody>

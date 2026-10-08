@@ -62,6 +62,7 @@ export interface ClientListItem {
   hasNutrition: boolean;
   planType: string | null;
   paymentDate: string | null;
+  paymentState: PaymentState;
   createdAt: string;
 }
 
@@ -111,13 +112,59 @@ export interface TrackingView {
   weight: { weeklyChangeKg: number | null; latest: number | null; weeks: WeightWeek[] };
 }
 
+export type PaymentState = 'none' | 'ok' | 'soon' | 'overdue';
+
+/** Estado del pago hoy. `days` = días que faltan para el vencimiento (negativo si ya venció). */
+export interface PaymentStatus {
+  state: PaymentState;
+  dueDate: string | null;
+  days: number | null;
+  planType: string | null;
+  /** Meses que cubre el tipo de plan: sirve para proponer el siguiente vencimiento. */
+  periodMonths: number;
+}
+
+export interface Payment {
+  id: string;
+  paidOn: string;
+  amount: number | null;
+  method: string | null;
+  notes: string | null;
+  /** Vencimiento que cubrió y fecha en que quedó el siguiente. */
+  dueDate: string | null;
+  nextDueDate: string | null;
+  /** Días entre el vencimiento y el pago: positivo = pagó tarde, negativo = pagó antes. */
+  delayDays: number | null;
+}
+
+export interface PaymentDraft {
+  paidOn: string;
+  amount: number | null;
+  method: string | null;
+  notes: string | null;
+  nextDueDate: string | null;
+}
+
 /** Todo lo de un cliente: lo consumen el expediente del coach y el portal. */
 export interface ClientOverview {
   client: Client;
   training: TrainingView | null;
   nutrition: NutritionView | null;
   tracking: TrackingView;
+  payment: PaymentStatus;
+  /** Historial de pagos: solo llega al coach. */
+  payments?: Payment[];
   today: string;
+}
+
+export interface DashboardPayment {
+  clientId: string;
+  clientName: string;
+  date: string;
+  days: number;
+  overdue: boolean;
+  planType: string | null;
+  periodMonths: number;
 }
 
 export interface Dashboard {
@@ -125,5 +172,5 @@ export interface Dashboard {
   counts: { active: number; paused: number; withTraining: number; withNutrition: number; withoutTraining: number; withoutNutrition: number };
   recentClients: { id: string; fullName: string; createdAt: string }[];
   activity: { clientId: string; clientName: string; type: 'checkin' | 'weight'; label: string; at: string }[];
-  payments: { clientId: string; clientName: string; date: string; planType: string | null; overdue: boolean }[];
+  payments: DashboardPayment[];
 }

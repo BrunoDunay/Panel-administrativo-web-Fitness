@@ -141,8 +141,24 @@
   }
 }
 
-@media print {
-  .topbar {
-    position: static;
-  }
+/* Aviso de pago próximo o vencido. */
+.pay-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+}
+
+.pay-alert p {
+  flex: 1;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--tone-ink);
+}
+
+.pay-alert b {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--color-text);
 }

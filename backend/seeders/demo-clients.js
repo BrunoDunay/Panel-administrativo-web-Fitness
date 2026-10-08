@@ -5,7 +5,7 @@
 //   npm run seed:demo -- --reset borra los de ejemplo y los vuelve a crear
 import { Op } from 'sequelize';
 import { sequelize } from '../src/config/database.js';
-import { Client, Food, Supplement, WeekExercise } from '../src/models/index.js';
+import { Client, Food, Payment, Supplement, WeekExercise } from '../src/models/index.js';
 import { saveNutritionPlan } from '../src/services/nutrition.service.js';
 import { saveCheckin, saveMeasurement, saveWeight } from '../src/services/tracking.service.js';
 import { addWeek, findActivePlan, logWeek, savePlan, saveWeekPrescription } from '../src/services/training.service.js';
@@ -16,6 +16,9 @@ const DOMAIN = '@demo.fbe';
 const today = todayInAppTz();
 const daysAgo = (n) => addDays(today, -n);
 const REST = 'Descanso';
+
+/** Cuota de ejemplo por tipo de plan, para que el historial de pagos tenga montos. */
+const FEES = { Mensual: 1500, Trimestral: 4000, Semestral: 7500, Anual: 14000 };
 
 const none = { protocol: null, moment: null, notes: null };
 const cardioWeek = (map) => Array.from({ length: 7 }, (_, i) => ({ ...none, ...(map[i + 1] ?? {}) }));
@@ -262,6 +265,12 @@ async function createDemo(spec, foods, supplements) {
     if (!found) throw new Error(`Alimento no encontrado en el catálogo: ${name}`);
     return found;
   };
+
+  // El pago con el que arrancó: deja el siguiente vencimiento en la fecha de pago del expediente.
+  const { planType, startDate, paymentDate } = spec.client.profile?.logistics ?? {};
+  if (startDate && paymentDate && startDate < today) {
+    await Payment.create({ clientId: client.id, paidOn: startDate, amount: FEES[planType] ?? null, method: 'Transferencia', dueDate: null, nextDueDate: paymentDate, notes: 'Pago inicial' });
+  }
 
   if (spec.training) {
     const weeksBack = spec.weeks - 1;

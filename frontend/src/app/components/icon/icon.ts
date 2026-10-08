@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input } from '@angular/core';
 import { CUSTOM_ICONS } from './custom-icons';
 import { ITSHOVER_ICONS, IconShape } from './itshover-icons';
 
@@ -21,8 +21,10 @@ const MOTION: Partial<Record<IconName, Motion>> = {
   arrowDown: 'down',
   chevronDown: 'down',
   download: 'down',
+  save: 'down',
   arrowUp: 'up',
   rocket: 'up',
+  upload: 'up',
   heart: 'pop',
   star: 'pop',
   flame: 'pop',
@@ -31,6 +33,10 @@ const MOTION: Partial<Record<IconName, Motion>> = {
   plus: 'pop',
   trophy: 'pop',
   drop: 'pop',
+  dollar: 'pop',
+  message: 'pop',
+  camera: 'pop',
+  like: 'pop',
   trash: 'shake',
   alert: 'shake',
   dumbbell: 'lift',
@@ -38,11 +44,44 @@ const MOTION: Partial<Record<IconName, Motion>> = {
   edit: 'tilt',
   pill: 'tilt',
   swap: 'tilt',
+  moon: 'tilt',
+  wallet: 'tilt',
 };
+
+/** Elemento que dispara la animación del icono: primero el control o la tarjeta que lo contiene; si no hay, su fila. */
+const CONTROLS = 'a, button, summary, label, [role="tab"], .icon-hover';
+const ROWS = 'li, tr, .card__head, .notice, .tile-icon, .card__badge';
+/** Insignias: su icono se presenta al aparecer aunque esté dentro de un enlace. */
+const BADGES = '.tile-icon, .card__badge';
+/** Lo que dura la animación más larga (dibujado de un icono con varios trazos). */
+const PLAY_MS = 900;
+
+/** Un solo observador para todos los iconos decorativos: se animan una vez al entrar en pantalla. */
+let appear: IntersectionObserver | null = null;
+const onAppear = new WeakMap<Element, () => void>();
+
+function watch(host: Element, play: () => void): () => void {
+  appear ??= new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        onAppear.get(entry.target)?.();
+        onAppear.delete(entry.target);
+        appear!.unobserve(entry.target);
+      }
+    },
+    { threshold: 0.6 },
+  );
+  onAppear.set(host, play);
+  appear.observe(host);
+  return () => appear?.unobserve(host);
+}
 
 /**
  * Icono de trazo. Los dibujos vienen de itshover (ver itshover-icons.ts) y de custom-icons.ts.
- * itshover anima con React + Motion; aquí la animación al pasar el cursor está rehecha en CSS.
+ * itshover anima con React + Motion; aquí la animación está rehecha en CSS y se dispara:
+ * - al pasar el cursor (o tocar) el control, la fila o la tarjeta que contiene al icono;
+ * - una vez al entrar en pantalla, si el icono es decorativo (no está dentro de un botón o enlace).
  */
 @Component({
   selector: 'app-icon',
@@ -82,35 +121,27 @@ const MOTION: Partial<Record<IconName, Motion>> = {
     svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; transform-origin: center; }
     svg.filled { fill: currentColor; stroke: none; }
 
-    /* La animación corre cuando el cursor entra al control que contiene el icono. */
-    @media (hover: hover) and (pointer: fine) {
-      /* Dibujado: cada trazo se recorre de principio a fin, uno tras otro. */
-      :host-context(a:hover) svg[data-motion='draw']:not(.filled) > *,
-      :host-context(button:hover) svg[data-motion='draw']:not(.filled) > *,
-      :host-context(.icon-hover:hover) svg[data-motion='draw']:not(.filled) > * {
-        stroke-dasharray: 1;
-        animation: icon-draw 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
-        animation-delay: calc(var(--i) * 45ms);
-      }
-
-      :host-context(a:hover) svg[data-motion='spin'], :host-context(button:hover) svg[data-motion='spin'], :host-context(.icon-hover:hover) svg[data-motion='spin'] { animation: icon-spin 600ms cubic-bezier(0.77, 0, 0.175, 1); }
-      :host-context(a:hover) svg[data-motion='right'], :host-context(button:hover) svg[data-motion='right'], :host-context(.icon-hover:hover) svg[data-motion='right'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 3px; --dy: 0px; }
-      :host-context(a:hover) svg[data-motion='left'], :host-context(button:hover) svg[data-motion='left'], :host-context(.icon-hover:hover) svg[data-motion='left'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: -3px; --dy: 0px; }
-      :host-context(a:hover) svg[data-motion='down'], :host-context(button:hover) svg[data-motion='down'], :host-context(.icon-hover:hover) svg[data-motion='down'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 0px; --dy: 3px; }
-      :host-context(a:hover) svg[data-motion='up'], :host-context(button:hover) svg[data-motion='up'], :host-context(.icon-hover:hover) svg[data-motion='up'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 0px; --dy: -3px; }
-      :host-context(a:hover) svg[data-motion='pop'], :host-context(button:hover) svg[data-motion='pop'], :host-context(.icon-hover:hover) svg[data-motion='pop'] { animation: icon-pop 420ms cubic-bezier(0.23, 1, 0.32, 1); }
-      :host-context(a:hover) svg[data-motion='shake'], :host-context(button:hover) svg[data-motion='shake'], :host-context(.icon-hover:hover) svg[data-motion='shake'] { animation: icon-shake 420ms ease-in-out; }
-      /* Mancuerna: se levanta y gira como en una repetición. */
-      :host-context(a:hover) svg[data-motion='lift'], :host-context(button:hover) svg[data-motion='lift'], :host-context(.icon-hover:hover) svg[data-motion='lift'] { animation: icon-lift 620ms cubic-bezier(0.77, 0, 0.175, 1); }
-      :host-context(a:hover) svg[data-motion='tilt'], :host-context(button:hover) svg[data-motion='tilt'], :host-context(.icon-hover:hover) svg[data-motion='tilt'] { animation: icon-tilt 460ms cubic-bezier(0.23, 1, 0.32, 1); }
-    }
-
-    /* Dentro de una insignia (.tile-icon) el ícono se dibuja una vez al aparecer. */
-    :host-context(.tile-icon) svg:not(.filled) > * {
+    /* Dibujado: cada trazo se recorre de principio a fin, uno tras otro. */
+    svg.is-playing[data-motion='draw']:not(.filled) > *,
+    svg.is-intro:not(.filled) > * {
       stroke-dasharray: 1;
-      animation: icon-draw 700ms cubic-bezier(0.23, 1, 0.32, 1) both;
-      animation-delay: calc(180ms + var(--i) * 70ms);
+      animation: icon-draw 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      animation-delay: calc(var(--i) * 45ms);
     }
+    /* Al aparecer se dibuja más despacio: es la presentación del icono. */
+    svg.is-intro:not(.filled) > * { animation-duration: 640ms; animation-delay: calc(120ms + var(--i) * 70ms); }
+    svg.is-intro.filled, svg.is-playing.filled[data-motion='draw'] { animation: icon-pop 420ms cubic-bezier(0.23, 1, 0.32, 1); }
+
+    svg.is-playing[data-motion='spin'] { animation: icon-spin 600ms cubic-bezier(0.77, 0, 0.175, 1); }
+    svg.is-playing[data-motion='right'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 3px; --dy: 0px; }
+    svg.is-playing[data-motion='left'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: -3px; --dy: 0px; }
+    svg.is-playing[data-motion='down'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 0px; --dy: 3px; }
+    svg.is-playing[data-motion='up'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 0px; --dy: -3px; }
+    svg.is-playing[data-motion='pop'] { animation: icon-pop 420ms cubic-bezier(0.23, 1, 0.32, 1); }
+    svg.is-playing[data-motion='shake'] { animation: icon-shake 420ms ease-in-out; }
+    /* Mancuerna: se levanta y gira como en una repetición. */
+    svg.is-playing[data-motion='lift'] { animation: icon-lift 620ms cubic-bezier(0.77, 0, 0.175, 1); }
+    svg.is-playing[data-motion='tilt'] { animation: icon-tilt 460ms cubic-bezier(0.23, 1, 0.32, 1); }
 
     @keyframes icon-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
     @keyframes icon-spin { to { transform: rotate(180deg); } }
@@ -131,4 +162,36 @@ export class Icon {
     const [, , width] = this.shape().viewBox.split(' ').map(Number);
     return (1.8 * (width || 24)) / 24;
   });
+
+  constructor() {
+    const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
+    const destroyRef = inject(DestroyRef);
+
+    afterNextRender(() => {
+      const trigger = host.closest(CONTROLS) ?? host.closest(ROWS) ?? host;
+      let timer = 0;
+      // Quitar y volver a poner la clase reinicia la animación aunque siga en curso.
+      const run = (name: 'is-playing' | 'is-intro') => {
+        const svg = host.querySelector('svg');
+        if (!svg) return;
+        svg.classList.remove('is-playing', 'is-intro');
+        void svg.getBoundingClientRect();
+        svg.classList.add(name);
+        clearTimeout(timer);
+        timer = window.setTimeout(() => svg.classList.remove(name), name === 'is-intro' ? PLAY_MS * 2 : PLAY_MS);
+      };
+      const play = () => run('is-playing');
+      trigger.addEventListener('pointerenter', play);
+
+      // Los iconos decorativos (insignias y los que no están en un botón o enlace) se presentan al entrar en pantalla.
+      const decorative = host.closest(BADGES) || !host.closest('a, button');
+      const stopWatching = decorative ? watch(host, () => run('is-intro')) : null;
+
+      destroyRef.onDestroy(() => {
+        clearTimeout(timer);
+        trigger.removeEventListener('pointerenter', play);
+        stopWatching?.();
+      });
+    });
+  }
 }

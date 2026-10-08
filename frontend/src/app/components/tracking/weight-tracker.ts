@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { LineChart } from '../charts/line-chart';
+import { Icon } from '../icon/icon';
 import { ClientStore } from '../../core/services/client-store';
 import { formatDate, formatNumber, formatPercent, formatSigned, toNumber } from '../../core/utils/format';
 
@@ -9,34 +10,40 @@ const DAY_MS = 864e5;
 /** Peso diario en ayunas: registro de la semana, promedio semanal y cambio real contra el esperado. */
 @Component({
   selector: 'app-weight-tracker',
-  imports: [LineChart],
+  imports: [LineChart, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="card">
-      <header class="card__head">
-        <div>
-          <h3 class="card__title">Peso en ayunas</h3>
-          <p class="card__hint">Pésate al despertar, después de ir al baño y antes de comer o beber.</p>
-        </div>
-        <div class="row no-print">
-          <button type="button" class="chip" (click)="shift(-7)" aria-label="Semana anterior">←</button>
-          <span class="week-label">Semana del {{ date(weekStart(), true) }}</span>
-          <button type="button" class="chip" (click)="shift(7)" [disabled]="isCurrentWeek()" aria-label="Semana siguiente">→</button>
-        </div>
-      </header>
+    <section class="card card--badge tone--emerald icon-hover">
+      <span class="card__badge"><app-icon name="scale" [size]="26" /></span>
+      <h3 class="form-section__title">Peso en ayunas</h3>
+      <p class="card__hint lead">Pésate al despertar, después de ir al baño y <b>antes de comer o beber</b>. Se guarda solo al salir del campo.</p>
+
+      <div class="weeknav">
+        <button type="button" class="nav-btn" (click)="shift(-7)" aria-label="Semana anterior"><app-icon name="arrowLeft" [size]="18" /></button>
+        <span class="week-label">Semana del {{ date(weekStart(), true) }}</span>
+        <button type="button" class="nav-btn" (click)="shift(7)" [disabled]="isCurrentWeek()" aria-label="Semana siguiente"><app-icon name="arrowRight" [size]="18" /></button>
+      </div>
 
       <div class="days">
         @for (day of days(); track day.date) {
-          <label class="field day" [class.is-today]="day.date === store.today()">
-            <span class="field__label">{{ day.name }} {{ day.date.slice(8) }}</span>
-            <input class="cell-input cell-input--num" type="number" inputmode="decimal" min="25" max="350" step="0.1" placeholder="kg" [disabled]="day.date > store.today()" [value]="day.weightKg ?? ''" (change)="save(day.date, $any($event.target).value)" />
+          <label class="day" [class.is-today]="day.date === store.today()" [class.is-filled]="day.weightKg !== null" [class.is-future]="day.date > store.today()">
+            <span class="day__name">{{ day.name }}</span>
+            <span class="day__date">{{ day.date.slice(8) }}</span>
+            <input class="day__input" type="number" inputmode="decimal" min="25" max="350" step="0.1" placeholder="kg" [disabled]="day.date > store.today()" [value]="day.weightKg ?? ''" (change)="save(day.date, $any($event.target).value)" [attr.aria-label]="'Peso del ' + day.name + ' ' + day.date.slice(8) + ' en kilos'" />
           </label>
         }
+      </div>
+
+      <div class="boxes">
+        <div class="box tone--emerald"><span>Promedio de esta semana</span><b>{{ num(current().average, 2) }}<small> kg</small></b></div>
+        <div class="box tone--steel"><span>Cambio vs. semana anterior</span><b>{{ signed(current().changeKg, 2) }}<small> kg</small></b></div>
+        <div class="box tone--teal"><span>Cambio esperado por semana</span><b>{{ signed(weight()?.weeklyChangeKg, 2) }}<small> kg</small></b></div>
       </div>
     </section>
 
     <section class="card">
-      <header class="card__head">
+      <header class="card__head card__head--icon icon-hover">
+        <span class="tile-icon tone--emerald"><app-icon name="chart" [size]="20" /></span>
         <h3 class="card__title">Promedio semanal: real contra esperado</h3>
         @if (weight()?.weeklyChangeKg; as change) {
           <span class="badge badge--steel">Esperado: {{ signed(change, 2) }} kg por semana</span>
@@ -65,11 +72,34 @@ const DAY_MS = 864e5;
     </section>
   `,
   styles: `
-    :host { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+    :host { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+    .lead { max-width: 60ch; margin: var(--space-2) auto var(--space-4); text-align: center; }
+    .weeknav { display: flex; align-items: center; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .week-label { min-width: 9.5rem; font-size: var(--text-sm); font-weight: 700; text-align: center; }
+    .nav-btn { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border: 0; border-radius: 50%; background: var(--color-surface-alt); color: var(--color-text); transition: transform 140ms var(--ease-out); }
+    .nav-btn:active { transform: scale(0.94); }
+    .nav-btn:disabled { opacity: 0.35; }
+
+    /* Un mosaico por día: se tiñe al registrar el peso y hoy lleva el borde de color. */
     .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-2); }
-    .day.is-today .field__label { color: var(--color-primary); font-weight: 700; }
-    .week-label { font-size: var(--text-sm); font-weight: 600; }
+    .day { display: grid; justify-items: center; gap: 2px; padding: var(--space-3) var(--space-2); border: 2px solid transparent; border-radius: var(--radius-md); background: var(--color-background); transition: background-color var(--duration); }
+    .day__name { font-size: 0.68rem; font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--color-text-muted); }
+    .day__date { font-size: var(--text-lg); font-weight: 700; line-height: 1.1; }
+    .day__input { width: 100%; min-height: 2.4rem; margin-top: var(--space-1); padding: 0.2rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); font-size: 1rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+    .day__input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+    .day.is-filled { background: var(--tone-emerald-soft); }
+    .day.is-filled .day__name { color: var(--tone-emerald-ink); }
+    .day.is-today { border-color: var(--color-primary); }
+    .day.is-future { opacity: 0.5; }
+
+    .boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--space-2); margin-top: var(--space-4); }
+    .box { display: grid; gap: 2px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--tone-soft); }
+    .box span { font-size: var(--text-xs); font-weight: 700; color: var(--tone-ink); }
+    .box b { font-size: var(--text-xl); font-variant-numeric: tabular-nums; }
+    .box small { font-size: 0.6em; color: var(--color-text-muted); }
     .table-top { margin-top: var(--space-4); }
+
+    @media (hover: hover) and (pointer: fine) { .nav-btn:not(:disabled):hover { background: var(--color-primary-soft); color: var(--color-primary); } }
     @media (max-width: 640px) {
       .days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
@@ -102,6 +132,12 @@ export class WeightTracker {
       const date = new Date(start + i * DAY_MS).toISOString().slice(0, 10);
       return { name, date, weightKg: logged.get(date) ?? null };
     });
+  });
+
+  /** Promedio y cambio de la semana que se está viendo. */
+  protected readonly current = computed(() => {
+    const week = this.weeks().find((item) => item.start === this.weekStart());
+    return { average: week?.average ?? null, changeKg: week?.changeKg ?? null };
   });
 
   protected readonly chartLabels = computed(() => this.weeks().map((week) => `Sem ${week.number}`));

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay, tap } from 'rxjs';
 import { API_URL } from '../../config/api.config';
 import { Catalog, CatalogResource } from '../../types/catalog.model';
-import { Client, ClientListItem, ClientStatus, Dashboard } from '../../types/client.model';
+import { Client, ClientListItem, ClientStatus, Dashboard, Payment, PaymentDraft } from '../../types/client.model';
 import { SettingsSection, SiteSettings } from '../../types/settings.model';
 
 /** Endpoints exclusivos del coach: clientes, catálogos, dashboard y contenido de la landing. */
@@ -26,6 +26,11 @@ export class PanelApi {
 
   createClient(body: unknown) {
     return this.http.post<Client>(`${this.api}/clients`, body);
+  }
+
+  /** Registrar un pago desde el resumen, sin abrir el expediente. */
+  registerPayment(clientId: string, body: PaymentDraft) {
+    return this.http.post<Payment>(`${this.api}/clients/${clientId}/payments`, body);
   }
 
   /** Los catálogos cambian poco: se piden una vez y se reutilizan hasta que se edite alguno. */
