@@ -1,0 +1,41 @@
+import { Router } from 'express';
+import * as clients from '../controllers/clients.controller.js';
+import * as plans from '../controllers/plans.controller.js';
+import { coachOnly } from '../middlewares/load-client.js';
+import { validate } from '../middlewares/validate.js';
+import { checkinBody, checkinParams, clientBody, dateParams, measurementBody, weightBody } from '../validators/client.schemas.js';
+import { nutritionPlanBody } from '../validators/nutrition.schemas.js';
+import { exerciseLogBody, trainingPlanBody, weekLogBody, weekPrescriptionBody } from '../validators/training.schemas.js';
+
+/**
+ * Rutas de un cliente ya cargado en `req.client`. Se montan dos veces:
+ * en /clients/:clientId (coach, con sesión) y en /portal/:code (cliente, con su enlace privado).
+ * El cliente solo puede registrar su avance; lo marcado con `coachOnly` es exclusivo del coach.
+ */
+export function clientDataRoutes() {
+  return (
+    Router({ mergeParams: true })
+      .get('/', clients.overview)
+      .put('/', coachOnly, validate({ body: clientBody }), clients.update)
+      .delete('/', coachOnly, clients.remove)
+      .post('/access-code', coachOnly, clients.regenerateAccessCode)
+
+      // Entrenamiento
+      .put('/training', coachOnly, validate({ body: trainingPlanBody }), plans.saveTrainingPlan)
+      .post('/training/weeks', coachOnly, plans.addWeek)
+      .put('/training/weeks/:weekId', coachOnly, validate({ body: weekPrescriptionBody }), plans.saveWeek)
+      .delete('/training/weeks/:weekId', coachOnly, plans.deleteWeek)
+      .patch('/training/weeks/:weekId/log', validate({ body: weekLogBody }), plans.logWeek)
+      .patch('/training/exercises/:exerciseId/log', validate({ body: exerciseLogBody }), plans.logExercise)
+
+      // Nutrición
+      .put('/nutrition', coachOnly, validate({ body: nutritionPlanBody }), plans.saveNutrition)
+      .post('/nutrition/preview', coachOnly, validate({ body: nutritionPlanBody }), plans.previewNutrition)
+
+      // Seguimiento
+      .put('/checkins/:weekNumber', validate({ params: checkinParams, body: checkinBody }), plans.saveCheckin)
+      .put('/weights/:date', validate({ params: dateParams, body: weightBody }), plans.saveWeight)
+      .put('/measurements/:date', validate({ params: dateParams, body: measurementBody }), plans.saveMeasurement)
+      .delete('/measurements/:date', coachOnly, validate({ params: dateParams }), plans.deleteMeasurement)
+  );
+}
