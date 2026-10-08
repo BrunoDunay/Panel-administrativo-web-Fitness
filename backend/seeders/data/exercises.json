@@ -1,0 +1,236 @@
+[
+  {
+    "name": "Pectoral",
+    "exercises": [
+      "Press de banca plano con barra",
+      "Press de banca inclinado con barra",
+      "Press plano con mancuernas",
+      "Press inclinado con mancuernas",
+      "Press en máquina convergente",
+      "Press inclinado en Smith",
+      "Aperturas en máquina (pec deck)",
+      "Cruce de poleas altas",
+      "Cruce de poleas bajas",
+      "Aperturas con mancuernas en banco inclinado",
+      "Fondos en paralelas (énfasis pectoral)",
+      "Flexiones lastradas"
+    ]
+  },
+  {
+    "name": "Espalda alta",
+    "exercises": [
+      "Remo en máquina con pecho apoyado agarre abierto",
+      "Remo Pendlay con barra",
+      "Remo en polea baja agarre abierto",
+      "Remo con mancuerna a una mano (codo abierto)",
+      "Remo en barra T",
+      "Remo invertido",
+      "Remo alto en polea con cuerda",
+      "Remo en máquina agarre prono (codos abiertos)"
+    ]
+  },
+  {
+    "name": "Dorsal",
+    "exercises": [
+      "Jalón al pecho agarre prono",
+      "Jalón al pecho agarre neutro",
+      "Pulldown supino unilateral",
+      "Dominadas",
+      "Dominadas lastradas",
+      "Remo con barra (codos pegados)",
+      "Remo en polea baja agarre neutro cerrado",
+      "Remo con mancuerna a una mano (codo pegado)",
+      "Pullover en polea alta",
+      "Pullover con mancuerna",
+      "Jalón con brazos rectos en polea",
+      "Remo en máquina agarre neutro (codos pegados)"
+    ]
+  },
+  {
+    "name": "Deltoides anterior",
+    "exercises": [
+      "Press militar con barra de pie",
+      "Press militar sentado con mancuernas",
+      "Press de hombro en máquina",
+      "Press Arnold",
+      "Elevaciones frontales con mancuernas",
+      "Elevaciones frontales en polea"
+    ]
+  },
+  {
+    "name": "Deltoides lateral",
+    "exercises": [
+      "Elevaciones laterales con mancuernas",
+      "Elevaciones laterales en polea unilateral",
+      "Elevaciones laterales en máquina",
+      "Elevaciones laterales inclinado (Y-raise)",
+      "Press tras nuca en Smith",
+      "Remo al mentón agarre abierto"
+    ]
+  },
+  {
+    "name": "Deltoides posterior",
+    "exercises": [
+      "Apertura posterior en máquina (pec deck inverso)",
+      "Apertura para posterior con polea unilateral agarre neutro",
+      "Pájaros con mancuernas",
+      "Face pull en polea con cuerda",
+      "Apertura posterior con mancuernas en banco inclinado",
+      "Remo alto en polea para posterior"
+    ]
+  },
+  {
+    "name": "Trapecio",
+    "exercises": [
+      "Encogimientos con barra",
+      "Encogimientos con mancuernas",
+      "Encogimientos en máquina",
+      "Encogimientos en polea",
+      "Encogimientos en Smith"
+    ]
+  },
+  {
+    "name": "Bíceps",
+    "exercises": [
+      "Curl con barra recta",
+      "Curl con barra Z",
+      "Curl predicador en máquina",
+      "Curl predicador con barra Z",
+      "Curl inclinado con mancuernas",
+      "Curl bayesiano en polea",
+      "Curl martillo con mancuernas",
+      "Curl en polea baja con barra",
+      "Curl concentrado",
+      "Curl spider",
+      "Curl alterno con mancuernas de pie"
+    ]
+  },
+  {
+    "name": "Tríceps",
+    "exercises": [
+      "Extensión de tríceps en polea con cuerda",
+      "Extensión de tríceps en polea con barra recta",
+      "Extensión sobre cabeza en polea con cuerda",
+      "Press francés con barra Z",
+      "Press francés con mancuernas",
+      "Fondos en máquina",
+      "Press cerrado con barra",
+      "Extensión de tríceps unilateral en polea",
+      "Patada de tríceps en polea",
+      "Fondos en paralelas (énfasis tríceps)",
+      "Extensión sobre cabeza con mancuerna"
+    ]
+  },
+  {
+    "name": "Antebrazo",
+    "exercises": [
+      "Curl de muñeca con barra",
+      "Extensión de muñeca con barra",
+      "Curl inverso con barra Z",
+      "Paseo del granjero",
+      "Curl de muñeca tras la espalda"
+    ]
+  },
+  {
+    "name": "Abdomen",
+    "exercises": [
+      "Flexión de tronco con soga en polea alta",
+      "Crunch en máquina",
+      "Elevación de piernas colgado",
+      "Elevación de rodillas en banco",
+      "Plancha",
+      "Rueda abdominal",
+      "Crunch en fitball",
+      "Press Pallof en polea",
+      "Encogimiento de piernas en polea baja"
+    ]
+  },
+  {
+    "name": "Cuádriceps",
+    "exercises": [
+      "Sentadilla Hack",
+      "Sentadilla con barra alta",
+      "Sentadilla en máquina péndulo",
+      "Prensa 45°",
+      "Prensa horizontal",
+      "Extensión de cuádriceps bilateral",
+      "Extensión de cuádriceps unilateral",
+      "Sentadilla en Smith (pies adelantados)",
+      "Sentadilla búlgara (énfasis cuádriceps)",
+      "Zancadas caminando",
+      "Sentadilla frontal",
+      "Sentadilla sissy",
+      "Step up en cajón",
+      "Sentadilla goblet",
+      "Prensa unilateral"
+    ]
+  },
+  {
+    "name": "Isquiosurales",
+    "exercises": [
+      "Buenos días con barra",
+      "Peso muerto convencional",
+      "Curl de isquiosurales tumbado en máquina",
+      "Curl de isquiosurales sentado en máquina",
+      "Curl de isquiosurales de pie unilateral",
+      "Peso muerto rumano con barra",
+      "Peso muerto rumano con mancuernas",
+      "Buenos días en Smith",
+      "Curl nórdico",
+      "Curl de isquios con fitball",
+      "Peso muerto piernas rígidas",
+      "Curl de isquios en polea baja tumbado"
+    ]
+  },
+  {
+    "name": "Glúteo",
+    "exercises": [
+      "Hiperextensión inversa",
+      "Hip thrust con barra",
+      "Hip thrust en máquina",
+      "Sentadilla búlgara (énfasis glúteo)",
+      "Peso muerto sumo",
+      "Patada de glúteo en polea",
+      "Patada de glúteo en máquina",
+      "Abducción de cadera en máquina (tronco inclinado)",
+      "Puente de glúteo con barra",
+      "Hiperextensión 45° enfoque glúteo",
+      "Zancadas inversas",
+      "Prensa con pies altos y abiertos",
+      "Step up alto",
+      "Abducción de cadera en máquina",
+      "Abducción de cadera en polea",
+      "Abducción lateral con banda",
+      "Abducción de cadera tumbado"
+    ]
+  },
+  {
+    "name": "Aductores",
+    "exercises": [
+      "Adducción de cadera en máquina",
+      "Adducción de cadera en máquina con pausa de 2 s",
+      "Adducción de cadera en polea",
+      "Sentadilla sumo con mancuerna",
+      "Copenhagen plank"
+    ]
+  },
+  {
+    "name": "Gastrocnemios",
+    "exercises": [
+      "Flexión plantar de pie en máquina (rodilla extendida)",
+      "Flexión plantar en prensa",
+      "Flexión plantar en Smith",
+      "Flexión plantar unilateral con mancuerna",
+      "Flexión plantar en máquina Hack",
+      "Flexión plantar burro"
+    ]
+  },
+  {
+    "name": "Sóleo",
+    "exercises": [
+      "Flexión plantar sentado en máquina",
+      "Flexión plantar sentado en Smith",
+      "Flexión plantar sentado con mancuernas"
+    ]
+  }
+]

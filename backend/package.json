@@ -1,0 +1,17 @@
+{
+  "name": "fbe-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API REST de Fitness by Evidence (Germain Camarillo)",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.3"
+  }
+}

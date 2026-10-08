@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Tren inferior · compuesto pesado (sentadilla, prensa, PM)",
+    "general": "5–8' bici o caminadora a RPE 3–4, hasta sudor ligero (↑ temperatura muscular y FC).",
+    "mobility": "Dinámica, sin estático >30 s: sentadilla profunda con apoyo 1×8, 90/90 de cadera 1×8 por lado, dorsiflexión de tobillo en pared 1×10 por lado.",
+    "activation": "Puente de glúteo 1×12 + monster walk con banda 1×12 por lado (ligero, sin fatiga).",
+    "rampUpSets": "Solo en el 1er compuesto: 40 % × 5 → 60 % × 5 → 80 % × 3 (del peso de trabajo). Si la 1ª serie efectiva es ≥85 % 1RM, añade 90 % × 1. Descansa 1–2' entre escalones.",
+    "duration": "12–15'",
+    "rationale": "General + específico rinde más que específico solo en 1RM de tren inferior (Abad 2011; Barroso 2013). Aproximación al 80 % optimiza la fuerza en sentadilla (Ribeiro 2020). El estiramiento estático previo reduce 1RM y reps (Barroso 2012); >60 s por músculo baja fuerza, <30 s es neutro (Behm 2016)."
+  },
+  {
+    "name": "Tren inferior · aislamiento y máquinas",
+    "general": "3–5' bici suave (opcional si el cliente ya llega caminando/activo).",
+    "mobility": "1 ejercicio dinámico de la articulación más cargada, 1×10 (p. ej. dorsiflexión de tobillo para gemelo).",
+    "activation": "No requiere.",
+    "rampUpSets": "1 serie al 50 % × 10 en cada máquina nueva de la sesión. Nada más.",
+    "duration": "5–8'",
+    "rationale": "En ejercicios de aislamiento la serie específica es la que rinde; el general largo añade poco (Ribeiro 2014; Iversen 2021)."
+  },
+  {
+    "name": "Empuje · pecho / hombro / tríceps",
+    "general": "5' elíptica o remo a RPE 3–4.",
+    "mobility": "Dislocaciones de hombro con banda 1×10, extensión torácica sobre banco 1×8, rotación externa con banda 1×15 por lado.",
+    "activation": "Flexiones escapulares 1×10 + face pull ligero 1×15.",
+    "rampUpSets": "Press principal: 40 % × 5 → 60 % × 5 → 80 % × 3. Si la serie efectiva es pesada (≥85 % 1RM), 90 % × 1. Ejercicios secundarios: 1 serie al 50 % × 8.",
+    "duration": "8–12'",
+    "rationale": "La aproximación específica mejora reps y velocidad en press de banca (Ribeiro 2014; Iversen 2021). Movilidad dinámica no perjudica y facilita el rango; evitar estático largo (Behm 2016)."
+  },
+  {
+    "name": "Tracción · espalda / bíceps",
+    "general": "5' remo ergómetro a RPE 3–4 (ya es tracción: sirve como general y específico).",
+    "mobility": "Colgarse de la barra 2×20 s, gato-camello 1×10, rotación torácica 1×8 por lado.",
+    "activation": "Retracción escapular en polea 1×15 (aprende a 'apretar' antes de cargar).",
+    "rampUpSets": "Jalón / remo principal: 50 % × 8 → 70 % × 4. Secundarios: 1 serie al 50 % × 8.",
+    "duration": "8–10'",
+    "rationale": "Un general que reproduce el patrón cuenta como calentamiento específico (Jeffreys 2007, RAMP). El calentamiento mejora el rendimiento en ~79 % de los criterios medidos (Fradkin 2010)."
+  },
+  {
+    "name": "Full body · express (poco tiempo)",
+    "general": "3' saltos suaves, cuerda o caminadora rápida. Si el tiempo no da, sáltalo.",
+    "mobility": "1 movimiento dinámico por patrón del día, 1×8 (sentadilla con apoyo, dislocaciones, bisagra).",
+    "activation": "No requiere.",
+    "rampUpSets": "1er compuesto de cada patrón: 50 % × 5 → 75 % × 3. Aislamientos sin aproximación.",
+    "duration": "5–7'",
+    "rationale": "Cuando el tiempo es el límite, prioriza las series de aproximación sobre el general: son las que protegen el rendimiento (Iversen 2021)."
+  },
+  {
+    "name": "Cliente frío / con molestias",
+    "general": "8–10' cardio suave, hasta sentir calor y sin dolor.",
+    "mobility": "3 movimientos dinámicos de la zona con molestia, en rango sin dolor, 2×8.",
+    "activation": "Isométricos de la zona 2×20 s (p. ej. puente para lumbar/cadera, plancha lateral).",
+    "rampUpSets": "Escalones más finos: 30 / 45 / 60 / 70 / 85 % × 5 / 5 / 3 / 2 / 1. Si algo duele en un escalón, no subas: cambia el ejercicio.",
+    "duration": "15–18'",
+    "rationale": "Más volumen de calentamiento a baja intensidad es seguro y no perjudica el rendimiento en sujetos entrenados (Barroso 2013); la progresión gradual permite detectar dolor antes de cargar (criterio clínico)."
+  },
+  {
+    "name": "Personalizado",
+    "general": null,
+    "mobility": null,
+    "activation": null,
+    "rampUpSets": null,
+    "duration": null,
+    "rationale": null
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "name": "LISS 30'",
+    "type": "Continuo",
+    "durationMin": 30,
+    "intervals": "—",
+    "rpe": "4–5",
+    "hrZone": "Z2 (60–70% FCmáx)",
+    "notes": "Caminadora inclinada, bici o elíptica. Debes poder hablar."
+  },
+  {
+    "name": "LISS 45'",
+    "type": "Continuo",
+    "durationMin": 45,
+    "intervals": "—",
+    "rpe": "4–5",
+    "hrZone": "Z2 (60–70% FCmáx)",
+    "notes": "Igual que LISS 30' pero más volumen. Ideal en días de descanso."
+  },
+  {
+    "name": "Caminata inclinada 20'",
+    "type": "Continuo",
+    "durationMin": 20,
+    "intervals": "—",
+    "rpe": "5–6",
+    "hrZone": "Z2–Z3",
+    "notes": "Caminadora 10–12% inclinación, 5–6 km/h. Sin agarrarte."
+  },
+  {
+    "name": "HIIT 10 × 1:1",
+    "type": "Intervalos",
+    "durationMin": 20,
+    "intervals": "10 × (1' fuerte / 1' suave)",
+    "rpe": "8–9 / 3",
+    "hrZone": "Z4–Z5 en los picos",
+    "notes": "Bici o remo. Después del entreno o en día aparte."
+  },
+  {
+    "name": "Intervalos 4 × 4'",
+    "type": "Intervalos",
+    "durationMin": 28,
+    "intervals": "4 × (4' fuerte / 3' suave)",
+    "rpe": "7–8 / 3",
+    "hrZone": "Z4 (80–90% FCmáx)",
+    "notes": "Protocolo noruego. Máximo 2 veces por semana."
+  },
+  {
+    "name": "Bici 15' post-entreno",
+    "type": "Continuo",
+    "durationMin": 15,
+    "intervals": "—",
+    "rpe": "3–4",
+    "hrZone": "Z1–Z2",
+    "notes": "Vuelta a la calma. Baja intensidad, cadencia alta."
+  },
+  {
+    "name": "Solo pasos",
+    "type": "NEAT",
+    "durationMin": 0,
+    "intervals": "—",
+    "rpe": "—",
+    "hrZone": "—",
+    "notes": "Sin cardio estructurado. Cumplir objetivo diario de pasos."
+  },
+  {
+    "name": "Personalizado",
+    "type": null,
+    "durationMin": null,
+    "intervals": null,
+    "rpe": null,
+    "hrZone": null,
+    "notes": "Escribe los detalles en la columna de ajustes."
+  }
+]
