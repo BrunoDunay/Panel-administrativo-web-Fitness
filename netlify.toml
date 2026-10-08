@@ -1,0 +1,40 @@
+# Despliegue del frontend (Angular con SSR) en Netlify.
+# El SSR corre como Edge Function (frontend/src/server.ts).
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist/frontend/browser"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# Complemento que convierte el SSR de Angular en una Edge Function (se declara explícito para no depender de la detección automática).
+[[plugins]]
+  package = "@netlify/angular-runtime"
+
+# Encabezados de seguridad para los archivos estáticos (las páginas renderizadas los reciben desde server.ts).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    # El enlace privado del cliente va en la URL: nunca se comparte con otros sitios.
+    Referrer-Policy = "no-referrer"
+    X-Frame-Options = "SAMEORIGIN"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Archivos del build con hash en el nombre: no cambian nunca, se guardan un año.
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/media/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

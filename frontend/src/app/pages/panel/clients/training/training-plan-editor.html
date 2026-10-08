@@ -1,0 +1,177 @@
+@let d = draft();
+<form (ngSubmit)="save()" (change)="refresh()" novalidate>
+  <section class="card form-section">
+    <h3 class="form-section__title">Objetivo y trayectoria</h3>
+    <div class="form-grid">
+      <label class="field"><span class="field__label">Nombre del programa</span><input class="field__control" name="name" [(ngModel)]="d.name" maxlength="120" /></label>
+      <label class="field"><span class="field__label">Objetivo principal</span><input class="field__control" name="primary" [(ngModel)]="d.objective.primary" maxlength="300" /></label>
+      <label class="field"><span class="field__label">Objetivo secundario</span><input class="field__control" name="secondary" [(ngModel)]="d.objective.secondary" maxlength="300" /></label>
+      <label class="field span-all"><span class="field__label">Punto de partida (de dónde viene)</span><textarea class="field__control" name="startingPoint" [(ngModel)]="d.objective.startingPoint"></textarea></label>
+      <label class="field span-all"><span class="field__label">Trayectoria (a dónde va y en cuánto tiempo)</span><textarea class="field__control" name="trajectory" [(ngModel)]="d.objective.trajectory"></textarea></label>
+    </div>
+    <div class="form-grid">
+      <label class="field">
+        <span class="field__label">Bloque actual</span>
+        <select class="field__control" name="blockPhase" [(ngModel)]="d.blockPhase">
+          @for (phase of catalog().lists.blockPhases; track phase) { <option [value]="phase">{{ phase }}</option> }
+        </select>
+      </label>
+      <label class="field"><span class="field__label">Fecha de inicio</span><input class="field__control" type="date" name="blockStart" [(ngModel)]="d.blockStart" /></label>
+      <label class="field"><span class="field__label">Semanas</span><input class="field__control" type="number" inputmode="numeric" min="1" max="26" name="blockWeeks" [(ngModel)]="d.blockWeeks" /></label>
+      <div class="field"><span class="field__label">Fin del bloque</span><span class="computed">{{ date(blockEnd()) }}</span></div>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <div class="row row--between">
+      <h3 class="form-section__title">Split semanal</h3>
+      <span class="badge badge--success">{{ trainingDays() }} días de entreno</span>
+    </div>
+    <p class="card__hint">Escribe la sesión de cada día o déjalo en "Descanso". Alimenta las semanas, el cardio y el calentamiento.</p>
+    <div class="split">
+      @for (day of days; track day; let i = $index) {
+        <label class="field">
+          <span class="field__label">Día {{ i + 1 }} · {{ day }}</span>
+          <input class="field__control" [name]="'split' + i" [(ngModel)]="d.split[i]" list="sessions" maxlength="40" />
+        </label>
+      }
+    </div>
+    <datalist id="sessions">
+      @for (session of sessions; track session) { <option [value]="session"></option> }
+    </datalist>
+  </section>
+
+  <section class="card form-section">
+    <h3 class="form-section__title">Prioridades musculares del bloque</h3>
+    <p class="card__hint">Hasta 4 músculos por nivel. Las series y la frecuencia reales se ven en el reporte de volumen.</p>
+    <div class="levels">
+      @for (level of levels; track level.key) {
+        <div class="level">
+          <strong>{{ level.label }}</strong>
+          <div class="chips">
+            @for (muscle of muscles(); track muscle) {
+              @if (!takenElsewhere(level.key, muscle)) {
+                <button type="button" class="chip" [attr.aria-pressed]="d.priorities[level.key].includes(muscle)" (click)="toggleMuscle(level.key, muscle)">{{ muscle }}</button>
+              }
+            }
+          </div>
+          <div class="level__notes">
+            <label class="field"><span class="field__label">Series / sem</span><input class="field__control" [name]="level.key + 'sets'" [(ngModel)]="d.priorities.notes[level.key].sets" placeholder="12–16" maxlength="20" /></label>
+            <label class="field"><span class="field__label">Frecuencia / sem</span><input class="field__control" [name]="level.key + 'freq'" [(ngModel)]="d.priorities.notes[level.key].frequency" placeholder="2" maxlength="20" /></label>
+            <label class="field"><span class="field__label">Estrategia / notas</span><input class="field__control" [name]="level.key + 'strategy'" [(ngModel)]="d.priorities.notes[level.key].strategy" maxlength="500" /></label>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <h3 class="form-section__title">Objetivo de pasos (NEAT)</h3>
+    <div class="form-grid">
+      <label class="field"><span class="field__label">Días de entreno</span><input class="field__control" type="number" inputmode="numeric" step="500" name="stepsTraining" [(ngModel)]="d.steps.trainingDay" /></label>
+      <label class="field"><span class="field__label">Días de descanso</span><input class="field__control" type="number" inputmode="numeric" step="500" name="stepsRest" [(ngModel)]="d.steps.restDay" /></label>
+      <div class="field"><span class="field__label">Promedio semanal objetivo</span><span class="computed">{{ num(weeklySteps(), 0) }} <small>pasos/día</small></span></div>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <div class="row row--between">
+      <h3 class="form-section__title">Cardio por día</h3>
+      <span class="badge badge--steel">{{ cardioMinutes() }} min por semana</span>
+    </div>
+    <p class="card__hint">Elige un protocolo: tipo, duración, RPE y zona se llenan solos desde el catálogo de protocolos.</p>
+    <div class="table-wrap">
+      <table class="table table--compact">
+        <thead><tr><th>Día</th><th>Protocolo</th><th>Detalle</th><th>Momento</th><th>Ajustes / notas</th></tr></thead>
+        <tbody>
+          @for (day of days; track day; let i = $index) {
+            @let p = protocol(d.cardio[i].protocol);
+            <tr>
+              <td>{{ day }}<br /><span class="text-muted">{{ d.split[i] || 'Descanso' }}</span></td>
+              <td>
+                <select class="cell-input" [name]="'cardio' + i" [(ngModel)]="d.cardio[i].protocol" [attr.aria-label]="'Protocolo de cardio del ' + day">
+                  <option [ngValue]="null">—</option>
+                  @for (option of catalog().cardioProtocols; track option.id) { <option [value]="option.name">{{ option.name }}</option> }
+                </select>
+              </td>
+              <td class="text-muted">
+                @if (p) { {{ p.type }} @if (p.durationMin) { · {{ p.durationMin }} min } @if (p.rpe && p.rpe !== '—') { · RPE {{ p.rpe }} } @if (p.hrZone && p.hrZone !== '—') { · {{ p.hrZone }} } }
+              </td>
+              <td>
+                <select class="cell-input" [name]="'moment' + i" [(ngModel)]="d.cardio[i].moment" [attr.aria-label]="'Momento del cardio del ' + day">
+                  <option [ngValue]="null">—</option>
+                  @for (option of catalog().lists.cardioMoments; track option) { <option [value]="option">{{ option }}</option> }
+                </select>
+              </td>
+              <td><input class="cell-input" [name]="'cardioNotes' + i" [(ngModel)]="d.cardio[i].notes" maxlength="500" [attr.aria-label]="'Notas de cardio del ' + day" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <h3 class="form-section__title">Calentamiento por día</h3>
+    <p class="card__hint">Los protocolos son pautas generales: individualiza en la columna de ajustes.</p>
+    <div class="table-wrap">
+      <table class="table table--compact">
+        <thead><tr><th>Día</th><th>Protocolo</th><th>Duración</th><th>Ajustes / notas</th></tr></thead>
+        <tbody>
+          @for (day of days; track day; let i = $index) {
+            <tr>
+              <td>{{ day }}<br /><span class="text-muted">{{ d.split[i] || 'Descanso' }}</span></td>
+              <td>
+                <select class="cell-input" [name]="'warmup' + i" [(ngModel)]="d.warmup[i].protocol" [attr.aria-label]="'Protocolo de calentamiento del ' + day">
+                  <option [ngValue]="null">—</option>
+                  @for (option of catalog().warmupProtocols; track option.id) { <option [value]="option.name">{{ option.name }}</option> }
+                </select>
+              </td>
+              <td class="text-muted">{{ warmupProtocol(d.warmup[i].protocol)?.duration || '—' }}</td>
+              <td><input class="cell-input" [name]="'warmupNotes' + i" [(ngModel)]="d.warmup[i].notes" maxlength="500" [attr.aria-label]="'Notas de calentamiento del ' + day" /></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card form-section">
+    <div class="row row--between">
+      <h3 class="form-section__title">Planeación de bloques (macro)</h3>
+      <button appBtn type="button" variant="soft" size="sm" (click)="addBlock()"><app-icon name="plus" [size]="16" />Agregar bloque</button>
+    </div>
+    @if (d.macroBlocks.length) {
+      <div class="table-wrap">
+        <table class="table table--compact">
+          <thead><tr><th>#</th><th>Fase</th><th>Semanas</th><th>Enfoque</th><th>Inicio</th><th>Fin</th><th>Notas</th><th></th></tr></thead>
+          <tbody>
+            @for (block of d.macroBlocks; track $index; let i = $index) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td>
+                  <select class="cell-input" [name]="'phase' + i" [(ngModel)]="block.phase" [attr.aria-label]="'Fase del bloque ' + (i + 1)">
+                    @for (phase of catalog().lists.blockPhases; track phase) { <option [value]="phase">{{ phase }}</option> }
+                  </select>
+                </td>
+                <td><input class="cell-input cell-input--num" type="number" inputmode="numeric" min="1" max="52" [name]="'weeks' + i" [(ngModel)]="block.weeks" [attr.aria-label]="'Semanas del bloque ' + (i + 1)" /></td>
+                <td><input class="cell-input" [name]="'focus' + i" [(ngModel)]="block.focus" maxlength="200" [attr.aria-label]="'Enfoque del bloque ' + (i + 1)" /></td>
+                <td class="num">{{ date(schedule()[i]?.start, true) }}</td>
+                <td class="num">{{ date(schedule()[i]?.end, true) }}</td>
+                <td><input class="cell-input" [name]="'blockNotes' + i" [(ngModel)]="block.notes" maxlength="500" [attr.aria-label]="'Notas del bloque ' + (i + 1)" /></td>
+                <td><button type="button" class="icon-btn" (click)="removeBlock(i)" [attr.aria-label]="'Quitar bloque ' + (i + 1)"><app-icon name="trash" [size]="16" /></button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="card__hint">Las fechas se encadenan solas a partir del inicio del bloque actual.</p>
+    } @else {
+      <p class="text-muted">Opcional: planea las fases que siguen (acumulación, descarga…).</p>
+    }
+  </section>
+
+  <div class="actions no-print">
+    <button appBtn type="submit" size="lg" [loading]="saving()" [disabled]="saving()">Guardar plan</button>
+  </div>
+</form>

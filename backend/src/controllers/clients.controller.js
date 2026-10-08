@@ -83,6 +83,10 @@ export async function overview(req, res) {
   const [catalog, trainingPlan, nutritionPlan] = await Promise.all([loadCatalog(), findActivePlan(client.id), findActiveNutritionPlan(client.id)]);
 
   const nutrition = nutritionPlan || isCoach ? buildNutritionView(nutritionPlan, client, catalog, todayInAppTz()) : null;
+  // Si el coach no quiere mostrar los cambios, el portal no los recibe.
+  if (!isCoach && nutrition?.computed && !nutrition.allowClientSwaps) {
+    for (const meal of nutrition.computed.meals) for (const item of meal.items) item.swaps = [];
+  }
   const tracking = await buildTrackingView(client.id, { weeklyChangeKg: nutrition?.computed?.weeklyChangeKg ?? null });
 
   res.json({
@@ -118,14 +122,18 @@ export async function dashboard(_req, res) {
     TrainingPlan.count({ where: { isActive: true } }),
     NutritionPlan.count({ where: { isActive: true } }),
     Checkin.findAll({ order: [['updatedAt', 'DESC']], limit: 8 }),
-    WeightLog.findAll({ order: [['updatedAt', 'DESC']], limit: 8 }),
+    WeightLog.findAll({ order: [['updatedAt', 'DESC']], limit: 40 }),
     Client.findAll({ where: { status: 'active' }, attributes: ['id', 'fullName', 'profile', 'createdAt'], order: [['createdAt', 'DESC']] }),
   ]);
   const names = new Map(clients.map((c) => [c.id, c.fullName]));
 
+  // Del peso, solo el registro más reciente de cada cliente (si no, un cliente constante llena la lista).
+  const seen = new Set();
+  const latestWeights = recentWeights.filter((w) => !seen.has(w.clientId) && seen.add(w.clientId));
+
   const activity = [
     ...recentCheckins.map((c) => ({ clientId: c.clientId, type: 'checkin', label: `Cuestionario de la semana ${c.weekNumber}`, at: c.updatedAt })),
-    ...recentWeights.map((w) => ({ clientId: w.clientId, type: 'weight', label: `Registró su peso: ${w.weightKg ?? '—'} kg`, at: w.updatedAt })),
+    ...latestWeights.map((w) => ({ clientId: w.clientId, type: 'weight', label: `Registró su peso: ${w.weightKg ?? '—'} kg`, at: w.updatedAt })),
   ]
     .filter((item) => names.has(item.clientId))
     .map((item) => ({ ...item, clientName: names.get(item.clientId) }))

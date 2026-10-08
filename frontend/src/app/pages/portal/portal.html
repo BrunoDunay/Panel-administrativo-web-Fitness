@@ -1,0 +1,156 @@
+<app-panel-ui-styles />
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" href="/" aria-label="Fitness by Evidence">
+      <img src="/brand/mark-light.png" alt="" width="640" height="356" />
+      <span class="display">Fitness by Evidence</span>
+    </a>
+    @if (store.saving()) {
+      <span class="saving" role="status">Guardando…</span>
+    }
+  </div>
+</header>
+
+<main class="page">
+  @if (store.loading()) {
+    <app-skeleton-dashboard />
+  } @else if (store.error(); as error) {
+    <section class="card empty">
+      <h1>No pudimos abrir tu plan</h1>
+      <p>{{ error.message }}</p>
+    </section>
+  } @else if (store.client(); as client) {
+    <section class="welcome">
+      <div>
+        <p class="eyebrow">Tu plan personalizado</p>
+        <h1>Hola, {{ firstName() }}</h1>
+      </div>
+      <nav class="tabs no-print" role="tablist" aria-label="Secciones de tu plan">
+        @for (item of tabs; track item.key) {
+          <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" (click)="tab.set(item.key)">
+            <app-icon [name]="item.icon" [size]="16" />{{ item.label }}
+          </button>
+        }
+      </nav>
+    </section>
+
+    @switch (tab()) {
+      @case ('summary') {
+        <div class="stack">
+          @if (!weighedToday() || checkinPending()) {
+            <section class="todo no-print">
+              @if (!weighedToday()) {
+                <button type="button" class="todo__item" (click)="tab.set('tracking')">
+                  <app-icon name="chart" /><span><b>Registra tu peso de hoy</b>En ayunas, al despertar.</span><app-icon name="arrowRight" [size]="18" />
+                </button>
+              }
+              @if (checkinPending()) {
+                <button type="button" class="todo__item" (click)="tab.set('tracking')">
+                  <app-icon name="clipboard" /><span><b>Contesta el cuestionario de la semana</b>Le dice a tu coach cómo vas.</span><app-icon name="arrowRight" [size]="18" />
+                </button>
+              }
+            </section>
+          }
+
+          <div class="grid" style="--min: 230px">
+            @if (weekProgress(); as progress) {
+              <button type="button" class="card stat tile" (click)="tab.set('training')">
+                <span class="stat__label">Semana {{ progress.number }} · series hechas</span>
+                <span class="stat__value">{{ progress.done }}<small> de {{ progress.planned }}</small></span>
+                <div class="meter"><span [style.width.%]="progress.pct"></span></div>
+              </button>
+            }
+            @if (today(); as day) {
+              <button type="button" class="card stat tile" (click)="tab.set('nutrition')">
+                <span class="stat__label">Hoy · día de {{ day.trains ? 'entreno' : 'descanso' }}</span>
+                <span class="stat__value">{{ num(day.kcal, 0) }}<small> kcal</small></span>
+                <span class="stat__note">P {{ day.proteinG }} g · C {{ day.carbsG }} g · G {{ day.fatG }} g</span>
+              </button>
+            }
+            <button type="button" class="card stat tile" (click)="tab.set('tracking')">
+              <span class="stat__label">Peso · promedio de la semana</span>
+              <span class="stat__value">{{ num(weightSummary().average ?? weightSummary().latest ?? client.initialWeightKg) }}<small> kg</small></span>
+              <span class="stat__note">
+                @if (weightSummary().change !== null) {
+                  {{ signed(weightSummary().change, 2) }} kg vs. semana anterior
+                } @else {
+                  Registra tu peso para ver tu tendencia
+                }
+              </span>
+            </button>
+          </div>
+
+          @if (store.training(); as plan) {
+            <app-training-overview [plan]="plan" />
+          } @else {
+            <section class="card empty"><h3>Tu plan de entrenamiento está en preparación</h3><p>Tu coach lo publicará aquí en cuanto esté listo.</p></section>
+          }
+        </div>
+      }
+
+      @case ('training') {
+        @if (store.training(); as plan) {
+          <div class="stack">
+            @if (plan.weeks.length) {
+              <div class="row row--between">
+                <div class="tabs" role="tablist" aria-label="Semana">
+                  @for (item of plan.weeks; track item.id) {
+                    <button type="button" class="tab" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">Semana {{ item.number }}</button>
+                  }
+                </div>
+                <button type="button" class="chip no-print" (click)="print()">Imprimir / PDF</button>
+              </div>
+              <details class="details no-print">
+                <summary>Simbología</summary>
+                <div class="details__body">
+                  <dl class="dl">
+                    @for (item of symbols; track item.symbol) {
+                      <dt>{{ item.symbol }} {{ item.label }}</dt>
+                      <dd>{{ item.hint }}</dd>
+                    }
+                  </dl>
+                </div>
+              </details>
+              @if (week(); as current) {
+                <app-week-sheet [week]="current" [cardio]="plan.cardio" />
+              }
+              <app-training-reports [plan]="plan" />
+            } @else {
+              <section class="card empty"><h3>Aún no hay semanas</h3><p>Tu coach está armando tu primera semana.</p></section>
+            }
+          </div>
+        } @else {
+          <section class="card empty"><h3>Tu plan de entrenamiento está en preparación</h3><p>Tu coach lo publicará aquí en cuanto esté listo.</p></section>
+        }
+      }
+
+      @case ('nutrition') {
+        @if (store.nutrition()?.computed; as computed) {
+          <div class="stack">
+            <div class="row row--between no-print">
+              <p class="card__hint">Los gramos son peso neto: lo que te comes, ya sin cáscara ni hueso.</p>
+              <button type="button" class="chip" (click)="print()">Imprimir / PDF</button>
+            </div>
+            <app-nutrition-plan-view [computed]="computed" />
+          </div>
+        } @else {
+          <section class="card empty"><h3>Tu plan de alimentación está en preparación</h3><p>Tu coach lo publicará aquí en cuanto esté listo.</p></section>
+        }
+      }
+
+      @case ('tracking') {
+        <div class="stack">
+          <app-weight-tracker />
+          <app-checkin-form />
+          <app-measurements-panel />
+        </div>
+      }
+    }
+  }
+</main>
+
+<footer class="foot no-print">
+  <p>Fitness by Evidence · Germain Camarillo</p>
+  <p>Este enlace es personal: no lo compartas.</p>
+</footer>

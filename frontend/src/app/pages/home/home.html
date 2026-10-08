@@ -1,0 +1,138 @@
+@let s = site();
+
+<header class="nav">
+  <div class="container nav__inner">
+    <a class="nav__brand" href="#inicio" aria-label="Fitness by Evidence, inicio">
+      <img src="/brand/mark-light.png" alt="" width="640" height="356" />
+      <span class="display">{{ s.brand.name }}</span>
+    </a>
+    <nav class="nav__links" aria-label="Secciones">
+      <a href="#servicios">Servicios</a>
+      <a href="#metodo">Método</a>
+      <a href="#coach">Coach</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+    <a appBtn variant="light" size="sm" [href]="cta()" [attr.target]="ctaExternal() ? '_blank' : null" [attr.rel]="ctaExternal() ? 'noopener' : null">{{ s.hero.ctaLabel || 'Contacto' }}</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="inicio">
+    <div class="hero__mark" aria-hidden="true"><img src="/brand/mark-light.png" alt="" width="640" height="356" /></div>
+    <div class="container hero__content">
+      <p class="hero__eyebrow fade-up">{{ s.hero.eyebrow }}</p>
+      <h1 class="display hero__title fade-up">{{ s.hero.title }}</h1>
+      <p class="hero__subtitle fade-up">{{ s.hero.subtitle }}</p>
+      <div class="hero__actions fade-up">
+        <a appBtn variant="light" size="lg" [href]="cta()" [attr.target]="ctaExternal() ? '_blank' : null" [attr.rel]="ctaExternal() ? 'noopener' : null">
+          {{ s.hero.ctaLabel || 'Quiero mi plan' }} <app-icon name="arrowRight" [size]="18" />
+        </a>
+        <a class="hero__link" href="#metodo">Cómo trabajo</a>
+      </div>
+    </div>
+    <ul class="container hero__facts">
+      <li><strong>Entrenamiento</strong>Series, repeticiones y RIR pautados por semana</li>
+      <li><strong>Nutrición</strong>Calorías y macros con gramos exactos por comida</li>
+      <li><strong>Seguimiento</strong>Tu panel en línea, revisado cada semana</li>
+    </ul>
+  </section>
+
+  @if (s.services.items.length) {
+    <section class="section" id="servicios">
+      <div class="container">
+        <p class="eyebrow" appReveal>Servicios</p>
+        <h2 class="display section__title" appReveal>{{ s.services.title }}</h2>
+        <div class="services">
+          @for (item of s.services.items; track item.title; let i = $index) {
+            <article class="service" appReveal [revealDelay]="i * 60">
+              <span class="service__icon"><app-icon [name]="serviceIcons[i % serviceIcons.length]" [size]="24" /></span>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.description }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  @if (s.method.steps.length) {
+    <section class="section method" id="metodo">
+      <div class="container method__grid">
+        <div class="method__intro">
+          <p class="eyebrow eyebrow--mint" appReveal>Método</p>
+          <h2 class="display section__title" appReveal>{{ s.method.title }}</h2>
+          <p class="method__text" appReveal>{{ s.method.intro }}</p>
+        </div>
+        <ol class="steps">
+          @for (step of s.method.steps; track step.title; let i = $index) {
+            <li appReveal [revealDelay]="i * 60">
+              <span class="steps__number display">{{ i + 1 }}</span>
+              <div>
+                <h3>{{ step.title }}</h3>
+                <p>{{ step.description }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+  }
+
+  <section class="section" id="coach">
+    <div class="container about">
+      <div class="about__badge" appReveal="fade">
+        <img src="/brand/mark.png" alt="Logotipo de Fitness by Evidence" width="640" height="356" loading="lazy" />
+      </div>
+      <div>
+        <p class="eyebrow" appReveal>Tu coach</p>
+        <h2 class="display section__title" appReveal>{{ s.about.title }}</h2>
+        <p class="about__body" appReveal>{{ s.about.body }}</p>
+        @if (s.about.credentials.length) {
+          <ul class="credentials">
+            @for (credential of s.about.credentials; track credential) {
+              <li appReveal><app-icon name="check" [size]="18" />{{ credential }}</li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section contact" id="contacto">
+    <div class="container contact__card" appReveal>
+      <div>
+        <p class="eyebrow eyebrow--mint">Contacto</p>
+        <h2 class="display contact__title">Empecemos con tu plan</h2>
+        <p class="contact__text">Cuéntame tu objetivo y tu punto de partida. Te digo cómo trabajaríamos y resolvemos tus dudas.</p>
+      </div>
+      <ul class="contact__list">
+        @if (whatsapp(); as link) {
+          <li><a [href]="link" target="_blank" rel="noopener"><app-icon name="whatsapp" /><span><b>WhatsApp</b>{{ s.contact.whatsapp }}</span></a></li>
+        }
+        @if (mailto(); as link) {
+          <li><a [href]="link"><app-icon name="mail" /><span><b>Correo</b>{{ s.contact.email }}</span></a></li>
+        }
+        @for (social of socials(); track social.href) {
+          <li><a [href]="social.href" target="_blank" rel="noopener"><app-icon [name]="social.icon" /><span><b>{{ social.icon }}</b>{{ social.label }}</span></a></li>
+        }
+        @if (s.contact.city) {
+          <li><span class="contact__static"><app-icon name="location" /><span><b>Ubicación</b>{{ s.contact.city }}</span></span></li>
+        }
+        @if (!whatsapp() && !mailto() && !socials().length) {
+          <li><span class="contact__static"><app-icon name="info" /><span><b>Próximamente</b>Los datos de contacto estarán disponibles muy pronto.</span></span></li>
+        }
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <p><span class="display">{{ s.brand.name }}</span> · {{ s.brand.coachName }}</p>
+    <p>© {{ year }} · <a routerLink="/login">Acceso del coach</a></p>
+  </div>
+</footer>
+
+@if (whatsapp(); as link) {
+  <a class="float" [href]="link" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp"><app-icon name="whatsapp" [size]="26" /></a>
+}

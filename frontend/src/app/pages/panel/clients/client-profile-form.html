@@ -1,0 +1,198 @@
+@let v = value();
+<form (ngSubmit)="submit()" (change)="refresh()" novalidate>
+  <section class="card form-section">
+    <h3 class="form-section__title">Datos personales</h3>
+    <div class="form-grid">
+      <label class="field span-all">
+        <span class="field__label">Nombre completo *</span>
+        <input class="field__control" name="fullName" [(ngModel)]="v.fullName" maxlength="160" required autocomplete="off" [attr.aria-invalid]="(touched() && !v.fullName.trim()) || !!errors()['fullName']" />
+        @if ((touched() && !v.fullName.trim()) || errors()['fullName']) {
+          <span class="field__error">{{ errors()['fullName'] || 'Escribe el nombre del cliente.' }}</span>
+        }
+      </label>
+      <label class="field">
+        <span class="field__label">Fecha de nacimiento</span>
+        <input class="field__control" type="date" name="birthDate" [(ngModel)]="v.birthDate" />
+      </label>
+      <div class="field">
+        <span class="field__label">Edad</span>
+        <span class="computed">{{ age() ?? '—' }} <small>se calcula sola</small></span>
+      </div>
+      <label class="field">
+        <span class="field__label">Sexo</span>
+        <select class="field__control" name="sex" [(ngModel)]="v.sex">
+          <option [ngValue]="null">—</option>
+          <option value="male">Masculino</option>
+          <option value="female">Femenino</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="field__label">Estatura (cm)</span>
+        <input class="field__control" type="number" inputmode="decimal" name="heightCm" [(ngModel)]="v.heightCm" min="80" max="250" [attr.aria-invalid]="!!errors()['heightCm']" />
+        @if (errors()['heightCm']) { <span class="field__error">{{ errors()['heightCm'] }}</span> }
+      </label>
+      <label class="field">
+        <span class="field__label">Peso inicial (kg)</span>
+        <input class="field__control" type="number" inputmode="decimal" step="0.1" name="initialWeightKg" [(ngModel)]="v.initialWeightKg" min="25" max="350" [attr.aria-invalid]="!!errors()['initialWeightKg']" />
+        @if (errors()['initialWeightKg']) { <span class="field__error">{{ errors()['initialWeightKg'] }}</span> }
+      </label>
+      <label class="field">
+        <span class="field__label">Ciudad</span>
+        <input class="field__control" name="city" [(ngModel)]="v.city" maxlength="120" />
+      </label>
+      <label class="field">
+        <span class="field__label">Ocupación</span>
+        <input class="field__control" name="occupation" [(ngModel)]="v.occupation" maxlength="120" />
+      </label>
+      <label class="field">
+        <span class="field__label">Teléfono / WhatsApp</span>
+        <input class="field__control" type="tel" name="phone" [(ngModel)]="v.phone" maxlength="30" />
+      </label>
+      <label class="field">
+        <span class="field__label">Email</span>
+        <input class="field__control" type="email" name="email" [(ngModel)]="v.email" maxlength="160" [attr.aria-invalid]="!!errors()['email']" />
+        @if (errors()['email']) { <span class="field__error">{{ errors()['email'] }}</span> }
+      </label>
+    </div>
+  </section>
+
+  <div class="grid grid--2">
+    <section class="card form-section">
+      <h3 class="form-section__title">Salud</h3>
+      <div class="form-grid">
+        <label class="field">
+          <span class="field__label">Autorización médica</span>
+          <select class="field__control" name="medicalClearance" [(ngModel)]="v.profile.health.medicalClearance">
+            <option [ngValue]="undefined">—</option>
+            @for (option of lists.medicalClearance; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Alergias</span><input class="field__control" name="allergies" [(ngModel)]="v.profile.health.allergies" /></label>
+        <label class="field span-all"><span class="field__label">Enfermedades crónicas</span><input class="field__control" name="chronicDiseases" [(ngModel)]="v.profile.health.chronicDiseases" /></label>
+        <label class="field span-all"><span class="field__label">Cirugías</span><input class="field__control" name="surgeries" [(ngModel)]="v.profile.health.surgeries" /></label>
+        <label class="field span-all"><span class="field__label">Lesiones (actuales y pasadas)</span><textarea class="field__control" name="injuries" [(ngModel)]="v.profile.health.injuries"></textarea></label>
+        <label class="field span-all"><span class="field__label">Medicamentos / suplementos</span><input class="field__control" name="medications" [(ngModel)]="v.profile.health.medications" /></label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <h3 class="form-section__title">Plan y logística</h3>
+      <div class="form-grid">
+        <label class="field">
+          <span class="field__label">Tipo de plan</span>
+          <select class="field__control" name="planType" [(ngModel)]="v.profile.logistics.planType">
+            <option [ngValue]="undefined">—</option>
+            @for (option of lists.planTypes; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Fecha de inicio</span><input class="field__control" type="date" name="startDate" [(ngModel)]="v.profile.logistics.startDate" /></label>
+        <label class="field"><span class="field__label">Fecha de pago</span><input class="field__control" type="date" name="paymentDate" [(ngModel)]="v.profile.logistics.paymentDate" /></label>
+        <label class="field">
+          <span class="field__label">Días disponibles / semana</span>
+          <select class="field__control" name="daysPerWeek" [(ngModel)]="v.profile.logistics.daysPerWeek">
+            <option [ngValue]="undefined">—</option>
+            @for (n of [2, 3, 4, 5, 6, 7]; track n) { <option [ngValue]="n">{{ n }}</option> }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Tiempo por sesión (min)</span><input class="field__control" type="number" inputmode="numeric" name="sessionMinutes" [(ngModel)]="v.profile.logistics.sessionMinutes" /></label>
+        <label class="field">
+          <span class="field__label">Lugar de entrenamiento</span>
+          <select class="field__control" name="trainingPlace" [(ngModel)]="v.profile.logistics.trainingPlace">
+            <option [ngValue]="undefined">—</option>
+            @for (option of lists.trainingPlaces; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+        <label class="field span-all"><span class="field__label">Equipo disponible</span><textarea class="field__control" name="equipment" [(ngModel)]="v.profile.logistics.equipment"></textarea></label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <h3 class="form-section__title">Estilo de vida</h3>
+      <div class="form-grid">
+        <label class="field"><span class="field__label">Horas de sueño promedio</span><input class="field__control" type="number" inputmode="decimal" step="0.5" name="sleepHours" [(ngModel)]="v.profile.lifestyle.sleepHours" /></label>
+        <label class="field">
+          <span class="field__label">Nivel de estrés (1–5)</span>
+          <select class="field__control" name="stressLevel" [(ngModel)]="v.profile.lifestyle.stressLevel">
+            <option [ngValue]="undefined">—</option>
+            @for (n of [1, 2, 3, 4, 5]; track n) { <option [ngValue]="n">{{ n }}</option> }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Pasos diarios promedio</span><input class="field__control" type="number" inputmode="numeric" name="dailySteps" [(ngModel)]="v.profile.lifestyle.dailySteps" /></label>
+        <label class="field">
+          <span class="field__label">Actividad laboral</span>
+          <select class="field__control" name="workActivity" [(ngModel)]="v.profile.lifestyle.workActivity">
+            <option [ngValue]="undefined">—</option>
+            @for (option of lists.workActivity; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Alcohol / tabaco</span><input class="field__control" name="alcoholTobacco" [(ngModel)]="v.profile.lifestyle.alcoholTobacco" /></label>
+        <label class="field"><span class="field__label">Horario habitual de entreno</span><input class="field__control" name="trainingSchedule" [(ngModel)]="v.profile.lifestyle.trainingSchedule" /></label>
+        <label class="field span-all"><span class="field__label">Observaciones</span><textarea class="field__control" name="lifestyleNotes" [(ngModel)]="v.profile.lifestyle.notes"></textarea></label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <h3 class="form-section__title">Experiencia de entrenamiento</h3>
+      <div class="form-grid">
+        <label class="field"><span class="field__label">Años entrenando</span><input class="field__control" type="number" inputmode="decimal" step="0.5" name="yearsTraining" [(ngModel)]="v.profile.experience.yearsTraining" /></label>
+        <label class="field">
+          <span class="field__label">Nivel</span>
+          <select class="field__control" name="level" [(ngModel)]="v.profile.experience.level">
+            <option [ngValue]="undefined">—</option>
+            @for (option of lists.levels; track option) { <option [value]="option">{{ option }}</option> }
+          </select>
+        </label>
+        <label class="field span-all"><span class="field__label">Ejercicios que domina</span><textarea class="field__control" name="masteredExercises" [(ngModel)]="v.profile.experience.masteredExercises"></textarea></label>
+        <label class="field span-all"><span class="field__label">Ejercicios que evita / molestias</span><textarea class="field__control" name="avoidedExercises" [(ngModel)]="v.profile.experience.avoidedExercises"></textarea></label>
+        <label class="field span-all"><span class="field__label">Mejores marcas (press / sentadilla / PM)</span><input class="field__control" name="bestLifts" [(ngModel)]="v.profile.experience.bestLifts" /></label>
+        <label class="field span-all"><span class="field__label">Programas anteriores</span><input class="field__control" name="previousPrograms" [(ngModel)]="v.profile.experience.previousPrograms" /></label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <h3 class="form-section__title">Nutrición</h3>
+      <div class="form-grid">
+        <label class="field"><span class="field__label">Comidas al día</span><input class="field__control" type="number" inputmode="numeric" name="mealsPerDay" [(ngModel)]="v.profile.nutrition.mealsPerDay" /></label>
+        <label class="field">
+          <span class="field__label">Seguimiento nutricional</span>
+          <select class="field__control" name="tracksNutrition" [(ngModel)]="v.profile.nutrition.tracksNutrition">
+            <option [ngValue]="undefined">—</option>
+            <option [ngValue]="true">Sí</option>
+            <option [ngValue]="false">No</option>
+          </select>
+        </label>
+        <label class="field span-all"><span class="field__label">Restricciones / preferencias</span><textarea class="field__control" name="restrictions" [(ngModel)]="v.profile.nutrition.restrictions"></textarea></label>
+        <label class="field span-all"><span class="field__label">Suplementación actual</span><input class="field__control" name="currentSupplements" [(ngModel)]="v.profile.nutrition.supplements" /></label>
+        <label class="field span-all"><span class="field__label">Hidratación / hábitos</span><input class="field__control" name="hydrationHabits" [(ngModel)]="v.profile.nutrition.hydration" /></label>
+        <label class="field span-all"><span class="field__label">Observaciones</span><textarea class="field__control" name="nutritionNotes" [(ngModel)]="v.profile.nutrition.notes"></textarea></label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <h3 class="form-section__title">Notas del coach y acceso</h3>
+      <label class="field">
+        <span class="field__label">Notas privadas (el cliente no las ve)</span>
+        <textarea class="field__control" name="coachNotes" [(ngModel)]="v.coachNotes" rows="5"></textarea>
+      </label>
+      <div class="form-grid">
+        <label class="field">
+          <span class="field__label">Estado</span>
+          <select class="field__control" name="status" [(ngModel)]="v.status">
+            <option value="active">Activo</option>
+            <option value="paused">En pausa</option>
+            <option value="archived">Archivado</option>
+          </select>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="portalEnabled" [(ngModel)]="v.portalEnabled" />
+          Enlace privado del cliente activo
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <div class="actions no-print">
+    <ng-content />
+    <button appBtn type="submit" [loading]="saving()" [disabled]="saving()">{{ submitLabel() }}</button>
+  </div>
+</form>

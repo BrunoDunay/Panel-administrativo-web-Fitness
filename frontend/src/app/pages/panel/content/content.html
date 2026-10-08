@@ -1,0 +1,113 @@
+<app-page-header title="Contenido del sitio" subtitle="Lo que ve el público en tu página. Cada sección se guarda por separado.">
+  <a appBtn variant="outline" href="/" target="_blank" rel="noopener"><app-icon name="external" [size]="16" />Ver sitio</a>
+</app-page-header>
+
+@if (site(); as s) {
+  <div class="stack top">
+    <form class="card form-section" (ngSubmit)="save('hero')">
+      <div class="row row--between">
+        <h2 class="form-section__title">Portada</h2>
+        @if (s.hero.isProvisional) { <span class="badge badge--warning">Pendiente de confirmar</span> }
+      </div>
+      <div class="form-grid">
+        <label class="field"><span class="field__label">Texto pequeño sobre el título</span><input class="field__control" name="eyebrow" [(ngModel)]="s.hero.eyebrow" maxlength="80" /></label>
+        <label class="field"><span class="field__label">Texto del botón</span><input class="field__control" name="ctaLabel" [(ngModel)]="s.hero.ctaLabel" maxlength="40" /></label>
+        <label class="field span-all"><span class="field__label">Título</span><input class="field__control" name="title" [(ngModel)]="s.hero.title" maxlength="120" required /></label>
+        <label class="field span-all"><span class="field__label">Subtítulo</span><textarea class="field__control" name="subtitle" [(ngModel)]="s.hero.subtitle" maxlength="400"></textarea></label>
+      </div>
+      <div><button appBtn type="submit" [loading]="saving() === 'hero'" [disabled]="saving() !== null">Guardar portada</button></div>
+    </form>
+
+    <form class="card form-section" (ngSubmit)="save('services')">
+      <div class="row row--between">
+        <h2 class="form-section__title">Servicios</h2>
+        @if (s.services.isProvisional) { <span class="badge badge--warning">Pendiente de confirmar</span> }
+      </div>
+      <label class="field"><span class="field__label">Título de la sección</span><input class="field__control" name="servicesTitle" [(ngModel)]="s.services.title" maxlength="120" required /></label>
+      @for (item of s.services.items; track $index; let i = $index) {
+        <div class="item">
+          <div class="item__fields">
+            <input class="field__control" [name]="'serviceTitle' + i" [(ngModel)]="item.title" placeholder="Nombre del servicio" maxlength="80" [attr.aria-label]="'Nombre del servicio ' + (i + 1)" />
+            <textarea class="field__control" [name]="'serviceDescription' + i" [(ngModel)]="item.description" placeholder="Descripción" maxlength="600" [attr.aria-label]="'Descripción del servicio ' + (i + 1)"></textarea>
+          </div>
+          <button type="button" class="icon-btn" (click)="remove(s.services.items, i)" [attr.aria-label]="'Quitar servicio ' + (i + 1)"><app-icon name="trash" [size]="16" /></button>
+        </div>
+      }
+      <div class="foot">
+        <button appBtn type="button" variant="soft" size="sm" (click)="addItem(s.services.items)" [disabled]="s.services.items.length >= 8"><app-icon name="plus" [size]="16" />Agregar servicio</button>
+        <button appBtn type="submit" [loading]="saving() === 'services'" [disabled]="saving() !== null">Guardar servicios</button>
+      </div>
+    </form>
+
+    <form class="card form-section" (ngSubmit)="save('method')">
+      <div class="row row--between">
+        <h2 class="form-section__title">Método</h2>
+        @if (s.method.isProvisional) { <span class="badge badge--warning">Pendiente de confirmar</span> }
+      </div>
+      <label class="field"><span class="field__label">Título de la sección</span><input class="field__control" name="methodTitle" [(ngModel)]="s.method.title" maxlength="120" required /></label>
+      <label class="field"><span class="field__label">Introducción</span><textarea class="field__control" name="methodIntro" [(ngModel)]="s.method.intro" maxlength="400"></textarea></label>
+      @for (step of s.method.steps; track $index; let i = $index) {
+        <div class="item">
+          <div class="item__fields">
+            <input class="field__control" [name]="'stepTitle' + i" [(ngModel)]="step.title" placeholder="Paso" maxlength="80" [attr.aria-label]="'Nombre del paso ' + (i + 1)" />
+            <textarea class="field__control" [name]="'stepDescription' + i" [(ngModel)]="step.description" placeholder="Descripción" maxlength="600" [attr.aria-label]="'Descripción del paso ' + (i + 1)"></textarea>
+          </div>
+          <button type="button" class="icon-btn" (click)="remove(s.method.steps, i)" [attr.aria-label]="'Quitar paso ' + (i + 1)"><app-icon name="trash" [size]="16" /></button>
+        </div>
+      }
+      <div class="foot">
+        <button appBtn type="button" variant="soft" size="sm" (click)="addItem(s.method.steps)" [disabled]="s.method.steps.length >= 6"><app-icon name="plus" [size]="16" />Agregar paso</button>
+        <button appBtn type="submit" [loading]="saving() === 'method'" [disabled]="saving() !== null">Guardar método</button>
+      </div>
+    </form>
+
+    <form class="card form-section" (ngSubmit)="save('about')">
+      <div class="row row--between">
+        <h2 class="form-section__title">Sobre el coach</h2>
+        @if (s.about.isProvisional) { <span class="badge badge--warning">Pendiente de confirmar</span> }
+      </div>
+      <label class="field"><span class="field__label">Título</span><input class="field__control" name="aboutTitle" [(ngModel)]="s.about.title" maxlength="120" required /></label>
+      <label class="field"><span class="field__label">Presentación</span><textarea class="field__control" name="aboutBody" [(ngModel)]="s.about.body" rows="6" maxlength="3000"></textarea></label>
+      <p class="card__hint">Estudios y certificaciones: una por renglón.</p>
+      @for (credential of s.about.credentials; track $index; let i = $index) {
+        <div class="item">
+          <input class="field__control" [name]="'credential' + i" [(ngModel)]="s.about.credentials[i]" placeholder="Ej. Licenciatura en…, Certificación…" maxlength="200" [attr.aria-label]="'Certificación ' + (i + 1)" />
+          <button type="button" class="icon-btn" (click)="remove(s.about.credentials, i)" [attr.aria-label]="'Quitar certificación ' + (i + 1)"><app-icon name="trash" [size]="16" /></button>
+        </div>
+      }
+      <div class="foot">
+        <button appBtn type="button" variant="soft" size="sm" (click)="addCredential()" [disabled]="s.about.credentials.length >= 20"><app-icon name="plus" [size]="16" />Agregar certificación</button>
+        <button appBtn type="submit" [loading]="saving() === 'about'" [disabled]="saving() !== null">Guardar</button>
+      </div>
+    </form>
+
+    <form class="card form-section" (ngSubmit)="save('contact')">
+      <div class="row row--between">
+        <h2 class="form-section__title">Contacto</h2>
+        @if (s.contact.isProvisional) { <span class="badge badge--warning">Pendiente de confirmar</span> }
+      </div>
+      <div class="form-grid">
+        <label class="field"><span class="field__label">WhatsApp (10 dígitos)</span><input class="field__control" type="tel" name="whatsapp" [(ngModel)]="s.contact.whatsapp" maxlength="30" /></label>
+        <label class="field"><span class="field__label">Correo</span><input class="field__control" type="email" name="email" [(ngModel)]="s.contact.email" maxlength="160" /></label>
+        <label class="field"><span class="field__label">Instagram (usuario)</span><input class="field__control" name="instagram" [(ngModel)]="s.contact.instagram" maxlength="80" /></label>
+        <label class="field"><span class="field__label">Facebook (página o enlace)</span><input class="field__control" name="facebook" [(ngModel)]="s.contact.facebook" maxlength="120" /></label>
+        <label class="field"><span class="field__label">TikTok (usuario)</span><input class="field__control" name="tiktok" [(ngModel)]="s.contact.tiktok" maxlength="80" /></label>
+        <label class="field"><span class="field__label">Ciudad</span><input class="field__control" name="city" [(ngModel)]="s.contact.city" maxlength="120" /></label>
+        <label class="field span-all"><span class="field__label">Mensaje automático de WhatsApp</span><textarea class="field__control" name="whatsappMessage" [(ngModel)]="s.contact.whatsappMessage" maxlength="300"></textarea></label>
+      </div>
+      <div><button appBtn type="submit" [loading]="saving() === 'contact'" [disabled]="saving() !== null">Guardar contacto</button></div>
+    </form>
+
+    <form class="card form-section" (ngSubmit)="save('brand')">
+      <h2 class="form-section__title">Marca</h2>
+      <div class="form-grid">
+        <label class="field"><span class="field__label">Nombre de la marca</span><input class="field__control" name="brandName" [(ngModel)]="s.brand.name" maxlength="80" required /></label>
+        <label class="field"><span class="field__label">Nombre del coach</span><input class="field__control" name="coachName" [(ngModel)]="s.brand.coachName" maxlength="120" required /></label>
+        <label class="field span-all"><span class="field__label">Lema</span><input class="field__control" name="tagline" [(ngModel)]="s.brand.tagline" maxlength="160" /></label>
+      </div>
+      <div><button appBtn type="submit" [loading]="saving() === 'brand'" [disabled]="saving() !== null">Guardar marca</button></div>
+    </form>
+  </div>
+} @else {
+  <app-skeleton-dashboard />
+}

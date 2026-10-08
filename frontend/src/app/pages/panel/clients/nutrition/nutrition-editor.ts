@@ -1,0 +1,204 @@
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
+import { catchError, debounceTime, filter, of, switchMap, tap } from 'rxjs';
+import { Btn } from '../../../../components/buttons/btn';
+import { Icon } from '../../../../components/icon/icon';
+import { ClientStore } from '../../../../core/services/client-store';
+import { Catalog, Food } from '../../../../core/types/catalog.model';
+import { MealChoice, MealSlot, NutritionDraft, NutritionView } from '../../../../core/types/nutrition.model';
+import { WEEK_DAYS } from '../../../../core/types/training.model';
+import { formatNumber, formatPercent, formatSigned } from '../../../../core/utils/format';
+
+const SLOTS: { key: MealSlot; label: string; flag: keyof Food; portions?: 'vegetablePortions' | 'fruitPortions' }[] = [
+  { key: 'protein1', label: 'Proteína 1', flag: 'asProtein' },
+  { key: 'protein2', label: 'Proteína 2', flag: 'asProtein' },
+  { key: 'carb1', label: 'Carbo 1', flag: 'asCarb' },
+  { key: 'carb2', label: 'Carbo 2', flag: 'asCarb' },
+  { key: 'fat', label: 'Grasa', flag: 'asFat' },
+  { key: 'vegetable', label: 'Verdura', flag: 'asVegetable', portions: 'vegetablePortions' },
+  { key: 'fruit', label: 'Fruta', flag: 'asFruit', portions: 'fruitPortions' },
+];
+
+const emptyMeal = (): MealChoice => ({
+  style: 'Mixto',
+  protein1: null,
+  protein2: null,
+  carb1: null,
+  carb2: null,
+  fat: null,
+  vegetable: null,
+  vegetablePortions: 1,
+  fruit: null,
+  fruitPortions: 1,
+  swaps: {},
+});
+
+/**
+ * Plan de nutrición del coach: datos y objetivo, reparto por comida, alimentos (los gramos
+ * salen solos), cambios, intra-entreno, hidratación y suplementos. Cada cambio se recalcula
+ * en el servidor con el mismo motor que verá el cliente.
+ */
+@Component({
+  selector: 'app-nutrition-editor',
+  imports: [FormsModule, Btn, Icon],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './nutrition-editor.html',
+  styleUrl: './nutrition-editor.css',
+})
+export class NutritionEditor {
+  private readonly store = inject(ClientStore);
+  readonly view = input.required<NutritionView>();
+  readonly catalog = input.required<Catalog>();
+
+  protected readonly slots = SLOTS;
+  protected readonly days = WEEK_DAYS;
+  protected readonly num = formatNumber;
+  protected readonly pct = formatPercent;
+  protected readonly signed = formatSigned;
+
+  protected readonly draft = signal<NutritionDraft | null>(null);
+  /** Resultado del último cálculo del borrador. */
+  protected readonly preview = signal<NutritionView | null>(null);
+  protected readonly calculating = signal(false);
+  protected readonly saving = signal(false);
+  protected readonly errors = signal<Record<string, string>>({});
+
+  protected readonly computed = computed(() => this.preview()?.computed ?? null);
+  protected readonly missing = computed(() => this.preview()?.missing ?? this.view().missing);
+  protected readonly mealNumbers = computed(() => Array.from({ length: this.draft()?.inputs.mealCount ?? 0 }, (_, i) => i + 1));
+  private readonly foodsById = computed(() => new Map(this.catalog().foods.map((food) => [food.id, food])));
+  protected readonly intraFoods = computed(() => this.catalog().foods.filter((food) => food.asCarb && food.carbsG > 0 && food.proteinG < 3 && food.fatG < 2));
+
+  private loadedId: string | null | undefined;
+
+  constructor() {
+    // Carga el borrador una vez por plan (no en cada recarga, para no pisar lo que se está editando).
+    effect(() => {
+      const view = this.view();
+      if (this.loadedId === view.id && this.draft()) return;
+      this.loadedId = view.id;
+      this.preview.set(view);
+      this.draft.set({
+        startDate: view.startDate,
+        allowClientSwaps: view.allowClientSwaps,
+        inputs: structuredClone(view.inputs),
+        meals: Array.from({ length: 6 }, (_, i) => ({ ...emptyMeal(), ...structuredClone(view.meals[i] ?? {}) })),
+        intra: { foodId: view.intra.foodId ?? null, carbsG: view.intra.carbsG ?? null },
+        hydration: { sessionMin: 75, sweatRateLPerH: 0.8, ...structuredClone(view.hydrationInputs), test: { ...(view.hydrationInputs.test ?? {}) } },
+        supplements: structuredClone(view.supplementInputs),
+      });
+    });
+
+    toObservable(this.draft)
+      .pipe(
+        filter((draft) => draft !== null),
+        debounceTime(300),
+        tap(() => this.calculating.set(true)),
+        switchMap((draft) => this.store.previewNutrition(this.payload(draft)).pipe(catchError(() => of(null)))),
+        takeUntilDestroyed(),
+      )
+      .subscribe((result) => {
+        this.calculating.set(false);
+        if (result) this.preview.set(result);
+      });
+  }
+
+  /** Los campos escriben directo en el borrador; esto dispara el recálculo. */
+  protected refresh(): void {
+    this.draft.update((draft) => (draft ? { ...draft } : draft));
+  }
+
+  private payload(draft: NutritionDraft): NutritionDraft {
+    const inputs = { ...draft.inputs };
+    // Una comida pre/post que ya no existe (se redujo el número de comidas) deja de aplicar.
+    if ((inputs.preWorkoutMeal ?? 0) > inputs.mealCount) inputs.preWorkoutMeal = null;
+    if ((inputs.postWorkoutMeal ?? 0) > inputs.mealCount) inputs.postWorkoutMeal = null;
+    return {
+      ...draft,
+      inputs,
+      meals: draft.meals.slice(0, inputs.mealCount),
+      supplements: draft.supplements.filter((entry) => entry.supplementId),
+    };
+  }
+
+  // ---- Alimentos ----
+
+  /** Alimentos válidos para un tipo de fila, según el tipo de alimentación y el estilo de la comida. */
+  protected options(meal: MealChoice, flag: keyof Food, selected?: number | null): Food[] {
+    const allowed = this.catalog().lists.dietTypes.find((type) => type.key === this.draft()?.inputs.dietType)?.foodTypes ?? null;
+    return this.catalog().foods.filter(
+      (food) =>
+        food.id === selected ||
+        (food[flag] === true && (!allowed || allowed.includes(food.foodType)) && (meal.style === 'Mixto' || food.style === 'Ambos' || food.style === meal.style)),
+    );
+  }
+
+  protected foodName(id: number | null | undefined): string {
+    return (id && this.foodsById().get(id)?.name) || '';
+  }
+
+  protected item(mealIndex: number, slot: MealSlot) {
+    return this.computed()?.meals[mealIndex]?.items.find((item) => item.slot === slot) ?? null;
+  }
+
+  protected swapsOf(meal: MealChoice, slot: MealSlot): (number | null)[] {
+    const list: (number | null)[] = [...(meal.swaps[slot] ?? [])];
+    while (list.length < 3) list.push(null);
+    return list;
+  }
+
+  protected setSwap(meal: MealChoice, slot: MealSlot, index: number, value: number | null): void {
+    const list = this.swapsOf(meal, slot);
+    list[index] = value;
+    meal.swaps[slot] = list.filter((id): id is number => id !== null);
+    this.refresh();
+  }
+
+  protected clearSlot(meal: MealChoice, slot: MealSlot): void {
+    if (!meal[slot]) delete meal.swaps[slot];
+    this.refresh();
+  }
+
+  // ---- Suplementos ----
+
+  protected addSupplement(): void {
+    const first = this.catalog().supplements.find((s) => !this.draft()!.supplements.some((entry) => entry.supplementId === s.id));
+    if (!first) return;
+    this.draft()!.supplements.push({ supplementId: first.id, assignedDose: null, timing: null });
+    this.refresh();
+  }
+
+  protected removeSupplement(index: number): void {
+    this.draft()!.supplements.splice(index, 1);
+    this.refresh();
+  }
+
+  protected supplement(id: number) {
+    return this.catalog().supplements.find((s) => s.id === id) ?? null;
+  }
+
+  protected recommended(id: number): string {
+    return this.computed()?.supplements.find((s) => s.supplementId === id)?.recommendedDose ?? this.supplement(id)?.doseText ?? '—';
+  }
+
+  protected toggleDay(index: number): void {
+    const days = this.draft()!.inputs.trainingDays;
+    days[index] = !days[index];
+    this.refresh();
+  }
+
+  protected save(): void {
+    const draft = this.draft();
+    if (!draft) return;
+    this.saving.set(true);
+    this.errors.set({});
+    this.store.saveNutrition(this.payload(draft)).subscribe({
+      next: () => this.saving.set(false),
+      error: (error: { fields?: Record<string, string> }) => {
+        this.saving.set(false);
+        this.errors.set(error.fields ?? {});
+      },
+    });
+  }
+}

@@ -1,0 +1,241 @@
+@if (store.loading()) {
+  <app-skeleton-dashboard />
+} @else if (store.error(); as error) {
+  <app-page-header title="No se pudo abrir el expediente" [subtitle]="error.message" backLink="/panel/clients" backLabel="Clientes" />
+} @else if (store.client(); as client) {
+  <app-page-header [title]="client.fullName" [subtitle]="(client.age !== null ? client.age + ' años · ' : '') + (store.training()?.objective?.primary || 'Objetivo por definir')" backLink="/panel/clients" backLabel="Clientes">
+    @if (store.saving()) { <span class="badge">Guardando…</span> }
+    @if (client.status !== 'active') { <span class="badge badge--warning">{{ client.status === 'paused' ? 'En pausa' : 'Archivado' }}</span> }
+  </app-page-header>
+
+  <nav class="tabs main-tabs no-print" role="tablist" aria-label="Secciones del expediente">
+    @for (item of tabs; track item.key) {
+      <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" (click)="tab.set(item.key)">
+        <app-icon [name]="item.icon" [size]="16" />{{ item.label }}
+      </button>
+    }
+  </nav>
+
+  @switch (tab()) {
+    @case ('summary') {
+      <div class="stack">
+        <section class="card card--dark link">
+          <div>
+            <p class="link__eyebrow">Enlace privado del cliente</p>
+            <p class="link__url">{{ client.portalUrl }}</p>
+            <p class="link__hint">
+              @if (client.portalEnabled) {
+                Con este enlace tu cliente ve su plan y registra sus series, su peso y su cuestionario. No necesita contraseña: no lo compartas con nadie más.
+              } @else {
+                El acceso está desactivado. Actívalo en la pestaña Expediente.
+              }
+            </p>
+          </div>
+          <div class="link__actions">
+            <button appBtn type="button" variant="light" (click)="copyLink()"><app-icon name="copy" [size]="16" />Copiar</button>
+            @if (whatsapp(); as url) {
+              <a appBtn variant="light" [href]="url" target="_blank" rel="noopener"><app-icon name="whatsapp" [size]="16" />Enviar por WhatsApp</a>
+            }
+            <a appBtn variant="light" [href]="client.portalUrl" target="_blank" rel="noopener"><app-icon name="external" [size]="16" />Ver como cliente</a>
+          </div>
+        </section>
+
+        <div class="grid" style="--min: 200px">
+          <button type="button" class="card stat tile" (click)="tab.set('training')">
+            <span class="stat__label">Entrenamiento</span>
+            @if (store.training(); as plan) {
+              <span class="stat__value">{{ plan.blockPhase || 'Plan activo' }}</span>
+              <span class="stat__note">{{ plan.weeks.length }} semana(s) · {{ plan.trainingDays }} días de entreno</span>
+            } @else {
+              <span class="stat__value pending">Por armar</span>
+              <span class="stat__note">Todavía no tiene plan</span>
+            }
+          </button>
+          <button type="button" class="card stat tile" (click)="tab.set('nutrition')">
+            <span class="stat__label">Nutrición</span>
+            @if (store.nutrition()?.id && store.nutrition()?.computed; as computed) {
+              <span class="stat__value">{{ num(computed.targetKcal, 0) }}<small> kcal</small></span>
+              <span class="stat__note">{{ store.nutrition()!.inputs.goal }} · P {{ computed.macros.proteinG }} · C {{ computed.macros.carbsG }} · G {{ computed.macros.fatG }}</span>
+            } @else {
+              <span class="stat__value pending">Por armar</span>
+              <span class="stat__note">Todavía no tiene plan</span>
+            }
+          </button>
+          <button type="button" class="card stat tile" (click)="tab.set('tracking')">
+            <span class="stat__label">Peso · promedio semanal</span>
+            <span class="stat__value">{{ num(weightSummary().average ?? client.initialWeightKg) }}<small> kg</small></span>
+            <span class="stat__note">
+              @if (weightSummary().change !== null) { {{ signed(weightSummary().change, 2) }} kg vs. semana anterior · esperado {{ num(weightSummary().expected, 2) }} } @else { Sin registros de peso }
+            </span>
+          </button>
+          <button type="button" class="card stat tile" (click)="tab.set('tracking')">
+            <span class="stat__label">Bienestar · último cuestionario</span>
+            @if (lastCheckin(); as checkin) {
+              <span class="stat__value">{{ num(checkin.wellbeingIndex) }}<small> de 5</small></span>
+              <span class="stat__note">Semana {{ checkin.weekNumber }} · RPE {{ num(checkin.avgRpe) }} · lesiones {{ checkin.injuryRating ?? '—' }}/5</span>
+            } @else {
+              <span class="stat__value">—</span>
+              <span class="stat__note">Sin cuestionarios contestados</span>
+            }
+          </button>
+        </div>
+
+        @if (lastCheckin(); as checkin) {
+          <section class="card">
+            <header class="card__head">
+              <h2 class="card__title">Cuestionario de la semana {{ checkin.weekNumber }}</h2>
+              <span class="card__hint">{{ date(checkin.date) }}</span>
+            </header>
+            <div class="checkin">
+              @for (rating of ratings; track rating.key) {
+                @let value = checkin.ratings[rating.key];
+                <div class="checkin__row">
+                  <span>{{ rating.label }}</span>
+                  <div class="meter" [class.meter--warning]="(value ?? 5) <= 2"><span [style.width.%]="(value ?? 0) * 20"></span></div>
+                  <b>{{ value ?? '—' }}</b>
+                </div>
+              }
+            </div>
+            <dl class="dl answers">
+              @for (question of questions; track question.key) {
+                @if (checkin.answers[question.key]) {
+                  <dt>{{ question.label }}</dt>
+                  <dd>{{ checkin.answers[question.key] }}</dd>
+                }
+              }
+            </dl>
+          </section>
+        }
+
+        <section class="card">
+          <header class="card__head">
+            <h2 class="card__title">Contacto y notas</h2>
+            <button appBtn type="button" variant="soft" size="sm" (click)="tab.set('profile')">Editar expediente</button>
+          </header>
+          <dl class="dl">
+            <dt>Teléfono</dt><dd>{{ client.phone || '—' }}</dd>
+            <dt>Email</dt><dd>{{ client.email || '—' }}</dd>
+            <dt>Plan</dt><dd>{{ client.profile.logistics?.planType || '—' }} · pago: {{ date(client.profile.logistics?.paymentDate) }}</dd>
+            <dt>Lesiones</dt><dd>{{ client.profile.health?.injuries || '—' }}</dd>
+            <dt>Notas del coach</dt><dd class="pre">{{ client.coachNotes || '—' }}</dd>
+          </dl>
+        </section>
+      </div>
+    }
+
+    @case ('profile') {
+      <div class="stack">
+        <app-client-profile-form [client]="client" [saving]="savingProfile()" [errors]="profileErrors()" (save)="saveProfile($event)" />
+        <section class="card danger-zone">
+          <div>
+            <h3 class="card__title">Zona de cuidado</h3>
+            <p class="card__hint">Genera un enlace nuevo si el actual se compartió por error. Eliminar borra todo lo del cliente.</p>
+          </div>
+          <div class="row">
+            <button appBtn type="button" variant="outline" (click)="regenerateLink()"><app-icon name="link" [size]="16" />Generar enlace nuevo</button>
+            <button appBtn type="button" variant="danger" (click)="deleteClient()"><app-icon name="trash" [size]="16" />Eliminar cliente</button>
+          </div>
+        </section>
+      </div>
+    }
+
+    @case ('training') {
+      @if (!catalog()) {
+        <app-skeleton-dashboard />
+      } @else if (store.training(); as plan) {
+        <div class="stack">
+          <div class="row row--between no-print">
+            <div class="tabs" role="tablist" aria-label="Vista de entrenamiento">
+              <button type="button" class="tab" role="tab" [attr.aria-selected]="trainingView() === 'plan'" (click)="trainingView.set('plan')">Plan y split</button>
+              <button type="button" class="tab" role="tab" [attr.aria-selected]="trainingView() === 'weeks'" (click)="trainingView.set('weeks')">Semanas</button>
+              <button type="button" class="tab" role="tab" [attr.aria-selected]="trainingView() === 'reports'" (click)="trainingView.set('reports')">Volumen y progreso</button>
+            </div>
+            <button type="button" class="chip" (click)="print()">Imprimir / PDF</button>
+          </div>
+
+          @switch (trainingView()) {
+            @case ('plan') {
+              <app-training-plan-editor [plan]="plan" [catalog]="catalog()!" />
+            }
+            @case ('weeks') {
+              <div class="row row--between no-print">
+                <div class="tabs" role="tablist" aria-label="Semana">
+                  @for (item of plan.weeks; track item.id) {
+                    <button type="button" class="tab" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">Semana {{ item.number }}</button>
+                  }
+                </div>
+                <button appBtn type="button" variant="soft" (click)="addWeek()"><app-icon name="plus" [size]="16" />Nueva semana</button>
+              </div>
+
+              @if (week(); as current) {
+                <div class="row row--between no-print">
+                  <div class="tabs tabs--solid" role="tablist" aria-label="Modo">
+                    <button type="button" class="tab" role="tab" [attr.aria-selected]="weekMode() === 'prescription'" (click)="weekMode.set('prescription')">Pauta del coach</button>
+                    <button type="button" class="tab" role="tab" [attr.aria-selected]="weekMode() === 'log'" (click)="weekMode.set('log')">Registro del cliente</button>
+                  </div>
+                  @if (isLastWeek()) {
+                    <button appBtn type="button" variant="ghost" size="sm" (click)="deleteWeek()"><app-icon name="trash" [size]="16" />Eliminar semana {{ current.number }}</button>
+                  }
+                </div>
+                @if (weekMode() === 'prescription') {
+                  <app-week-prescription-editor [week]="current" [catalog]="catalog()!" />
+                } @else {
+                  <app-week-sheet [week]="current" [cardio]="plan.cardio" />
+                }
+              } @else {
+                <section class="card empty">
+                  <h3>Aún no hay semanas</h3>
+                  <p>Crea la semana 1 y pauta los ejercicios. Las siguientes heredan la pauta con un clic.</p>
+                  <button appBtn type="button" (click)="addWeek()">Crear semana 1</button>
+                </section>
+              }
+            }
+            @case ('reports') {
+              <app-training-overview [plan]="plan" />
+              <app-training-reports [plan]="plan" />
+            }
+          }
+        </div>
+      } @else {
+        <section class="card empty">
+          <h3>Este cliente todavía no tiene plan de entrenamiento</h3>
+          <p>Empieza por el objetivo, el split semanal y las prioridades. Después pautas los ejercicios semana por semana.</p>
+          <button appBtn type="button" (click)="startTraining()">Crear plan de entrenamiento</button>
+        </section>
+      }
+    }
+
+    @case ('nutrition') {
+      @if (catalog() && store.nutrition(); as view) {
+        <div class="stack">
+          <div class="row row--between no-print">
+            <div class="tabs" role="tablist" aria-label="Vista de nutrición">
+              <button type="button" class="tab" role="tab" [attr.aria-selected]="nutritionView() === 'edit'" (click)="nutritionView.set('edit')">Armar plan</button>
+              <button type="button" class="tab" role="tab" [attr.aria-selected]="nutritionView() === 'client'" (click)="nutritionView.set('client')">Como lo ve el cliente</button>
+            </div>
+            @if (nutritionView() === 'client') {
+              <button type="button" class="chip" (click)="print()">Imprimir / PDF</button>
+            }
+          </div>
+          @if (nutritionView() === 'edit') {
+            <app-nutrition-editor [view]="view" [catalog]="catalog()!" />
+          } @else if (view.id && view.computed) {
+            <app-nutrition-plan-view [computed]="view.computed" />
+          } @else {
+            <section class="card empty"><h3>Aún no hay plan guardado</h3><p>Arma el plan y guárdalo para ver cómo lo recibirá el cliente.</p></section>
+          }
+        </div>
+      } @else {
+        <app-skeleton-dashboard />
+      }
+    }
+
+    @case ('tracking') {
+      <div class="stack">
+        <app-weight-tracker />
+        <app-checkin-form />
+        <app-measurements-panel />
+      </div>
+    }
+  }
+}
