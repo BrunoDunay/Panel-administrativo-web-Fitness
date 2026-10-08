@@ -71,6 +71,7 @@ export function buildNutritionView(plan, client, catalog, today) {
   const inputs = { ...DEFAULT_INPUTS, ...(plan?.inputs ?? {}) };
   const foods = new Map(catalog.foods.map((food) => [food.id, food]));
   const supplements = new Map(catalog.supplements.map((s) => [s.id, s]));
+  const foodIcons = new Map(catalog.foods.map((food) => [food.name, food.icon]));
 
   const weightKg = inputs.weightKg ?? client.initialWeightKg;
   const age = client.birthDate ? ageOn(client.birthDate, today) : null;
@@ -149,6 +150,7 @@ export function buildNutritionView(plan, client, catalog, today) {
         label: slot.label,
         foodId: food.id,
         name: food.name,
+        icon: food.icon ?? null,
         trainingGrams,
         restGrams,
         trainingMeasure: householdMeasure(food, trainingGrams),
@@ -161,6 +163,7 @@ export function buildNutritionView(plan, client, catalog, today) {
             return {
               foodId: to.id,
               name: to.name,
+              icon: to.icon ?? null,
               trainingGrams: grams(trainingGrams),
               restGrams: grams(restGrams),
               trainingMeasure: householdMeasure(to, grams(trainingGrams)),
@@ -241,7 +244,7 @@ export function buildNutritionView(plan, client, catalog, today) {
             measure: householdMeasure(intraFood, intraAmount),
           }
         : null,
-      grocery: groceryList(groceryItems, { trainingDays, weeks: 1 }),
+      grocery: groceryList(groceryItems, { trainingDays, weeks: 1 }).map((item) => ({ ...item, icon: foodIcons.get(item.name) ?? null })),
       hydration: { ...water, measuredSweatRate: measuredSweat },
       supplements: base.supplementInputs
         .map((entry) => ({ entry, supplement: supplements.get(entry.supplementId) }))
@@ -249,6 +252,7 @@ export function buildNutritionView(plan, client, catalog, today) {
         .map(({ entry, supplement }) => ({
           supplementId: supplement.id,
           name: supplement.name,
+          icon: supplement.icon ?? null,
           aisGroup: supplement.aisGroup,
           purpose: supplement.purpose,
           recommendedDose: supplementDose(supplement, weightKg),

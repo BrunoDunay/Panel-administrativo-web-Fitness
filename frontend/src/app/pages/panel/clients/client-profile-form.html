@@ -1,6 +1,7 @@
 @let v = value();
 <form (ngSubmit)="submit()" (change)="refresh()" novalidate>
-  <section class="card form-section">
+  <section class="card card--vivid card--badge tone--emerald form-section icon-hover">
+    <span class="card__badge"><app-icon name="user" [size]="26" /></span>
     <h3 class="form-section__title">Datos personales</h3>
     <div class="form-grid">
       <label class="field span-all">
@@ -57,8 +58,9 @@
   </section>
 
   <div class="grid grid--2">
-    <section class="card form-section">
-      <h3 class="form-section__title">Salud</h3>
+    <section class="card card--badge tone--coral form-section icon-hover">
+      <span class="card__badge"><app-icon name="scanHeart" [size]="26" /></span>
+    <h3 class="form-section__title">Salud</h3>
       <div class="form-grid">
         <label class="field">
           <span class="field__label">Autorización médica</span>
@@ -75,8 +77,9 @@
       </div>
     </section>
 
-    <section class="card form-section">
-      <h3 class="form-section__title">Plan y logística</h3>
+    <section class="card card--badge tone--teal form-section icon-hover">
+      <span class="card__badge"><app-icon name="calendar" [size]="26" /></span>
+    <h3 class="form-section__title">Plan y logística</h3>
       <div class="form-grid">
         <label class="field">
           <span class="field__label">Tipo de plan</span>
@@ -106,8 +109,9 @@
       </div>
     </section>
 
-    <section class="card form-section">
-      <h3 class="form-section__title">Estilo de vida</h3>
+    <section class="card card--badge tone--steel form-section icon-hover">
+      <span class="card__badge"><app-icon name="clock" [size]="26" /></span>
+    <h3 class="form-section__title">Estilo de vida</h3>
       <div class="form-grid">
         <label class="field"><span class="field__label">Horas de sueño promedio</span><input class="field__control" type="number" inputmode="decimal" step="0.5" name="sleepHours" [(ngModel)]="v.profile.lifestyle.sleepHours" /></label>
         <label class="field">
@@ -131,8 +135,9 @@
       </div>
     </section>
 
-    <section class="card form-section">
-      <h3 class="form-section__title">Experiencia de entrenamiento</h3>
+    <section class="card card--badge tone--emerald form-section icon-hover">
+      <span class="card__badge"><app-icon name="dumbbell" [size]="26" /></span>
+    <h3 class="form-section__title">Experiencia de entrenamiento</h3>
       <div class="form-grid">
         <label class="field"><span class="field__label">Años entrenando</span><input class="field__control" type="number" inputmode="decimal" step="0.5" name="yearsTraining" [(ngModel)]="v.profile.experience.yearsTraining" /></label>
         <label class="field">
@@ -149,8 +154,9 @@
       </div>
     </section>
 
-    <section class="card form-section">
-      <h3 class="form-section__title">Nutrición</h3>
+    <section class="card card--badge tone--amber form-section icon-hover">
+      <span class="card__badge"><app-icon name="food" [size]="26" /></span>
+    <h3 class="form-section__title">Nutrición</h3>
       <div class="form-grid">
         <label class="field"><span class="field__label">Comidas al día</span><input class="field__control" type="number" inputmode="numeric" name="mealsPerDay" [(ngModel)]="v.profile.nutrition.mealsPerDay" /></label>
         <label class="field">
@@ -168,8 +174,9 @@
       </div>
     </section>
 
-    <section class="card form-section">
-      <h3 class="form-section__title">Notas del coach y acceso</h3>
+    <section class="card card--badge tone--slate form-section icon-hover">
+      <span class="card__badge"><app-icon name="edit" [size]="26" /></span>
+    <h3 class="form-section__title">Notas del coach y acceso</h3>
       <label class="field">
         <span class="field__label">Notas privadas (el cliente no las ve)</span>
         <textarea class="field__control" name="coachNotes" [(ngModel)]="v.coachNotes" rows="5"></textarea>

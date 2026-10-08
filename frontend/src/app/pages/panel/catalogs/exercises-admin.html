@@ -1,0 +1,137 @@
+<app-page-header title="Ejercicios" [subtitle]="summary()" />
+
+<div class="toolbar">
+  <label class="search">
+    <app-icon name="search" [size]="18" />
+    <span class="visually-hidden">Buscar ejercicio</span>
+    <input type="search" placeholder="Buscar ejercicio" [value]="search()" (input)="search.set($any($event.target).value)" />
+  </label>
+
+  <form class="new-muscle" (ngSubmit)="addMuscle()">
+    <label class="visually-hidden" for="new-muscle">Músculo nuevo</label>
+    <input id="new-muscle" class="cell-input" name="newMuscleName" placeholder="Músculo nuevo" maxlength="80" [ngModel]="newMuscle().name" (ngModelChange)="patchNewMuscle({ name: $event })" />
+    <label class="visually-hidden" for="new-muscle-region">Categoría del músculo nuevo</label>
+    <select id="new-muscle-region" class="cell-input" name="newMuscleRegion" [ngModel]="newMuscle().region" (ngModelChange)="patchNewMuscle({ region: $event })">
+      @for (item of regions; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+    </select>
+    <button appBtn type="submit" variant="soft"><app-icon name="plus" [size]="16" />Agregar músculo</button>
+  </form>
+</div>
+
+<p class="legend">
+  @for (item of regions; track item.key) {
+    <span><i [class]="'dot tone--' + item.tone"></i><b>{{ item.label }}</b></span>
+  }
+  <span>Pasa el cursor sobre un ejercicio para ver el movimiento.</span>
+</p>
+
+@if (editing(); as draft) {
+  @let muscle = editingMuscle();
+  <form id="exercise-editor" class="editor" (ngSubmit)="saveExercise()" novalidate>
+    <aside [class]="'card card--vivid card--badge preview tone--' + tone(muscle?.name ?? '', muscle?.region)">
+      <span class="card__badge">
+        @if (previewPattern(); as p) { <app-movement-figure [pattern]="p" [size]="40" [autoplay]="true" /> } @else { <app-icon name="movement" [size]="28" /> }
+      </span>
+      <p class="preview__eyebrow">{{ draft.id ? 'Editando ejercicio' : 'Ejercicio nuevo' }} · {{ muscle?.name }}</p>
+      <h3 class="preview__name">{{ draft.name || 'Sin nombre todavía' }}</h3>
+      <div class="preview__stage">
+        @if (previewPattern(); as p) {
+          <app-movement-figure [pattern]="p" [size]="150" [autoplay]="true" />
+          <p>{{ labels[p] }}</p>
+        } @else {
+          <p>Elige un tipo de movimiento para ver el dibujo.</p>
+        }
+      </div>
+    </aside>
+
+    <div class="card editor__fields">
+      <div class="form-grid">
+        <label class="field span-all">
+          <span class="field__label">Nombre del ejercicio</span>
+          <input class="field__control" name="exerciseName" maxlength="160" [ngModel]="draft.name" (ngModelChange)="patch({ name: $event })" [attr.aria-invalid]="!!error()" />
+          @if (error()) { <span class="field__error">{{ error() }}</span> }
+        </label>
+        <label class="field">
+          <span class="field__label">Músculo</span>
+          <select class="field__control" name="exerciseMuscle" [ngModel]="draft.muscleId" (ngModelChange)="patch({ muscleId: $event })">
+            @for (option of catalog()?.muscles; track option.id) { <option [ngValue]="option.id">{{ option.name }}</option> }
+          </select>
+        </label>
+        <label class="field span-all">
+          <span class="field__label">Descripción / cómo se hace (el cliente la ve en su plan)</span>
+          <textarea class="field__control" name="exerciseDescription" rows="3" maxlength="2000" placeholder="Ej. Pies al ancho de hombros, baja controlado hasta paralelo y sube sin bloquear rodillas." [ngModel]="draft.description" (ngModelChange)="patch({ description: $event })"></textarea>
+        </label>
+      </div>
+
+      <div class="picker">
+        <div class="row row--between">
+          <span class="picker__label">Tipo de movimiento (define el dibujo)</span>
+          <button type="button" class="picker__option picker__option--auto" [attr.aria-pressed]="draft.movement === null" (click)="patch({ movement: null })">Automático</button>
+        </div>
+        <div class="picker__grid">
+          @for (option of patterns; track option) {
+            <button type="button" class="picker__option picker__option--figure icon-hover" [attr.aria-pressed]="draft.movement === option" (click)="patch({ movement: option })">
+              <app-movement-figure [pattern]="option" [size]="44" />
+              {{ labels[option] }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="row editor__actions">
+        <button appBtn type="submit" size="lg" [loading]="saving()" [disabled]="saving()"><app-icon name="check" [size]="18" />Guardar ejercicio</button>
+        <button appBtn type="button" variant="ghost" (click)="editing.set(null)">Cancelar</button>
+      </div>
+    </div>
+  </form>
+}
+
+@if (catalog()) {
+  <div class="muscles">
+    @for (muscle of muscles(); track muscle.id) {
+      <section [class]="'card card--edge muscle tone--' + tone(muscle.name, muscle.region)">
+        <header class="card__head">
+          <div>
+            <p class="muscle__region">{{ region(muscle.name, muscle.region) }}</p>
+            <h2 class="card__title">{{ muscle.name }}</h2>
+          </div>
+          <div class="row muscle__tools">
+            <span class="badge badge--tone">{{ muscle.exercises.length }}</span>
+            <label>
+              <span class="visually-hidden">Categoría de {{ muscle.name }}</span>
+              <select class="cell-input region-select" [ngModel]="regionKey(muscle.name, muscle.region) ?? ''" (ngModelChange)="setRegion(muscle, $event)">
+                <option value="" disabled>Sin categoría</option>
+                @for (item of regions; track item.key) { <option [value]="item.key">{{ item.label }}</option> }
+              </select>
+            </label>
+            <button type="button" class="icon-btn icon-btn--danger" (click)="removeMuscle(muscle)" [attr.aria-label]="'Eliminar el músculo ' + muscle.name"><app-icon name="trash" [size]="16" /></button>
+          </div>
+        </header>
+
+        <ul>
+          @for (exercise of muscle.exercises; track exercise.id) {
+            <li class="icon-hover">
+              <span class="thumb thumb--lg figure">
+                @if (pattern(exercise.name, muscle.name, exercise.movement); as p) { <app-movement-figure [pattern]="p" [size]="46" /> } @else { <app-icon name="movement" [size]="26" /> }
+              </span>
+              <span class="exercise">
+                <b>{{ exercise.name }}</b>
+                <small>{{ meta(exercise, muscle) }}</small>
+                @if (exercise.description) { <small class="exercise__description">{{ exercise.description }}</small> }
+              </span>
+              <span class="row-actions">
+                <button type="button" class="icon-btn" (click)="editExercise(exercise, muscle)" [attr.aria-label]="'Editar ' + exercise.name"><app-icon name="edit" [size]="16" /></button>
+                <button type="button" class="icon-btn icon-btn--danger" (click)="removeExercise(exercise)" [attr.aria-label]="'Eliminar ' + exercise.name"><app-icon name="trash" [size]="16" /></button>
+              </span>
+            </li>
+          }
+        </ul>
+        <button appBtn type="button" variant="soft" size="sm" (click)="startExercise(muscle)"><app-icon name="plus" [size]="16" />Agregar ejercicio</button>
+      </section>
+    } @empty {
+      <div class="card empty"><h3>Sin resultados</h3><p>Ningún ejercicio coincide con la búsqueda.</p></div>
+    }
+  </div>
+} @else {
+  <div class="card"><app-skeleton-table /></div>
+}

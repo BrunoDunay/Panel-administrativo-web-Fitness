@@ -4,8 +4,13 @@ import { number, requiredText, text } from './common.schemas.js';
 const amount = (max = 5000) => z.number().min(0).max(max);
 
 export const catalogSchemas = {
-  muscles: z.object({ name: requiredText(80, 'Escribe el nombre del músculo') }),
-  exercises: z.object({ muscleId: z.number().int().positive(), name: requiredText(160, 'Escribe el nombre del ejercicio') }),
+  muscles: z.object({ name: requiredText(80, 'Escribe el nombre del músculo'), region: z.enum(['push', 'pull', 'legs', 'core']).nullish().transform((v) => v ?? null) }),
+  exercises: z.object({
+    muscleId: z.number().int().positive(),
+    name: requiredText(160, 'Escribe el nombre del ejercicio'),
+    movement: text(20),
+    description: text(2000),
+  }),
   'cardio-protocols': z.object({
     name: requiredText(120, 'Escribe el nombre del protocolo'),
     type: text(20),
@@ -14,6 +19,7 @@ export const catalogSchemas = {
     rpe: text(40),
     hrZone: text(60),
     notes: text(),
+    icon: text(30),
   }),
   'warmup-protocols': z.object({
     name: requiredText(120, 'Escribe el nombre del protocolo'),
@@ -23,6 +29,7 @@ export const catalogSchemas = {
     rampUpSets: text(),
     duration: text(40),
     rationale: text(),
+    icon: text(30),
   }),
   foods: z.object({
     name: requiredText(160, 'Escribe el nombre del alimento'),
@@ -43,6 +50,7 @@ export const catalogSchemas = {
     asFat: z.boolean().default(false),
     asVegetable: z.boolean().default(false),
     asFruit: z.boolean().default(false),
+    icon: text(16),
   }),
   supplements: z.object({
     name: requiredText(120, 'Escribe el nombre del suplemento'),
@@ -57,6 +65,7 @@ export const catalogSchemas = {
     reference: text(),
     brand: text(120),
     link: text(500),
+    icon: text(16),
   }),
 };
 

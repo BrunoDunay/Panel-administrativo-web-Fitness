@@ -43,9 +43,12 @@
   --tone-steel-soft: #dde8f3;
   --tone-steel-ink: #2a4f72;
   --tone-steel: #325c82;
-  --tone-amber-soft: #fbedcf;
-  --tone-amber-ink: #8a5a0c;
-  --tone-amber: #d59a2a;
+  --tone-amber-soft: #f7e7d3;
+  --tone-amber-ink: #8a4f14;
+  --tone-amber: #cf8a3a;
+  --tone-teal-soft: #d5ecee;
+  --tone-teal-ink: #0d5f66;
+  --tone-teal: #117f88;
   --tone-coral-soft: #fbe3dc;
   --tone-coral-ink: #a13c2a;
   --tone-coral: #d2674f;
@@ -72,7 +75,8 @@
   --gradient-emerald: linear-gradient(135deg, #0b6e4f 0%, #12906a 100%);
   --gradient-forest: linear-gradient(135deg, #1a4f47 0%, #0f6b55 100%);
   --gradient-steel: linear-gradient(135deg, #2c557a 0%, #4a7fae 100%);
-  --gradient-amber: linear-gradient(135deg, #b9770f 0%, #d99a2b 100%);
+  --gradient-amber: linear-gradient(135deg, #b56a1e 0%, #d6934a 100%);
+  --gradient-teal: linear-gradient(135deg, #0f6f78 0%, #1c9aa3 100%);
   --gradient-coral: linear-gradient(135deg, #b84a33 0%, #d9745a 100%);
   --color-skeleton: #e3ebe7;
   --color-skeleton-shine: #f1f5f3;

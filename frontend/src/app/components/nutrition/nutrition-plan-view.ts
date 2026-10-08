@@ -63,7 +63,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
                 @if (grams(item) > 0) {
                   <li>
                     <div class="item">
-                      <span [class]="'thumb thumb--sm tone--' + slotTone(item.slot)">{{ emoji(item.name) }}</span>
+                      <span [class]="'thumb thumb--sm tone--' + slotTone(item.slot)">{{ emoji(item.name, item.icon) }}</span>
                       <span class="item__name">{{ item.name }}<small>{{ item.label }}</small></span>
                       <span class="item__amount">{{ grams(item) }} g<small>{{ measure(item) }}</small></span>
                     </div>
@@ -91,7 +91,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
     </div>
 
     @if (c.intra && kind() === 'training') {
-      <section class="card card--tint tone--steel intra">
+      <section class="card card--tint tone--teal intra">
         <div>
           <p class="eyebrow">Intra-entreno · solo días de entreno</p>
           <strong>{{ c.intra.name }}</strong>
@@ -120,7 +120,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
               <thead><tr><th>Alimento</th><th class="num">Cantidad</th><th>Medida aprox.</th></tr></thead>
               <tbody>
                 @for (item of grocery(); track item.name) {
-                  <tr><td><span class="grocery"><span class="thumb thumb--sm">{{ emoji(item.name) }}</span>{{ item.name }}</span></td><td class="num"><b>{{ item.amount }}</b></td><td>{{ item.measure || '—' }}</td></tr>
+                  <tr><td><span class="grocery"><span class="thumb thumb--sm">{{ emoji(item.name, item.icon) }}</span>{{ item.name }}</span></td><td class="num"><b>{{ item.amount }}</b></td><td>{{ item.measure || '—' }}</td></tr>
                 }
               </tbody>
             </table>
@@ -164,7 +164,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
               @for (s of c.supplements; track s.supplementId) {
                 <tr>
                   <td>
-                    <span class="grocery"><span class="thumb thumb--sm tone--emerald">{{ supplement(s.name) }}</span><strong>{{ s.name }}</strong></span>
+                    <span class="grocery"><span class="thumb thumb--sm tone--emerald">{{ supplement(s.name, s.icon) }}</span><strong>{{ s.name }}</strong></span>
                     @if (s.brand) { <br /><span class="text-muted">{{ s.brand }}</span> }
                     @if (s.link) { <br /><a class="link" [href]="s.link" target="_blank" rel="noopener noreferrer">Ver producto</a> }
                   </td>
@@ -241,7 +241,7 @@ export class NutritionPlanView {
   protected readonly grocery = computed(() =>
     this.computed().grocery.map((item) => {
       const grams = item.grams * this.weeks();
-      return { name: item.name, amount: grams >= 1000 ? `${formatNumber(grams / 1000, 2)} kg` : `${formatNumber(grams, 0)} g`, measure: this.weeks() === 1 ? item.measure : '' };
+      return { name: item.name, icon: item.icon, amount: grams >= 1000 ? `${formatNumber(grams / 1000, 2)} kg` : `${formatNumber(grams, 0)} g`, measure: this.weeks() === 1 ? item.measure : '' };
     }),
   );
 

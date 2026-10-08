@@ -24,6 +24,8 @@ export const Food = sequelize.define(
     asFat: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     asVegetable: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     asFruit: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    // Emoji elegido por el coach; vacío = se deduce del nombre.
+    icon: DataTypes.STRING(16),
   },
   { tableName: 'foods' },
 );

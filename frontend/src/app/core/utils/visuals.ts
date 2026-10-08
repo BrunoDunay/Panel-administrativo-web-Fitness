@@ -1,9 +1,9 @@
-// Apoyo visual de los catálogos: a partir del nombre se deduce cómo se ve un alimento,
-// qué tipo de movimiento es un ejercicio y con qué equipo se hace. Así también lo que el
-// coach agregue después recibe su imagen sin capturar nada extra.
+// Apoyo visual de los catálogos. Cada elemento puede llevar el ícono que el coach eligió;
+// si no eligió ninguno, se deduce del nombre: cómo se ve un alimento, qué tipo de movimiento
+// es un ejercicio y con qué equipo se hace.
 
 /** Familias de color de la interfaz (ver las clases .tone--* en panel-ui.css). */
-export type Tone = 'emerald' | 'steel' | 'amber' | 'coral' | 'slate';
+export type Tone = 'emerald' | 'steel' | 'amber' | 'coral' | 'slate' | 'teal';
 
 const normalize = (text: string) =>
   text
@@ -20,7 +20,6 @@ function firstMatch<T>(text: string, rules: [RegExp, T][], fallback: T): T {
 
 // Solo emojis anteriores a 2020 (Emoji 12 o menos): los más nuevos no existen en Windows 10
 // y se verían como un recuadro vacío.
-
 const FOOD_EMOJI: [RegExp, string][] = [
   [/aguacate/, '🥑'],
   [/aceite/, '🍶'],
@@ -79,9 +78,26 @@ const FOOD_EMOJI: [RegExp, string][] = [
   [/leche/, '🥛'],
 ];
 
-export function foodEmoji(name: string): string {
-  return firstMatch(name, FOOD_EMOJI, '🍽️');
+/** Emoji de un alimento: el elegido por el coach o, si no hay, el que corresponde a su nombre. */
+export function foodEmoji(name: string, chosen?: string | null): string {
+  return chosen || firstMatch(name, FOOD_EMOJI, '🍽️');
 }
+
+export interface EmojiGroup {
+  label: string;
+  emojis: string[];
+}
+
+/** Opciones del selector de ícono de alimentos, por familia. */
+export const FOOD_EMOJI_CHOICES: EmojiGroup[] = [
+  { label: 'Carnes, huevo y pescado', emojis: ['🥩', '🍗', '🍖', '🥓', '🍔', '🌭', '🥚', '🍳', '🐟', '🍣', '🍤', '🦐', '🦀', '🦑', '🐙'] },
+  { label: 'Lácteos y bebidas', emojis: ['🥛', '🧀', '🍦', '🥤', '🧃', '☕', '🍵', '🍶', '🧉', '💧'] },
+  { label: 'Cereales y tubérculos', emojis: ['🍚', '🍙', '🍘', '🍞', '🥖', '🥐', '🥯', '🥞', '🧇', '🥣', '🌾', '🌽', '🥔', '🍠', '🍝', '🍜', '🌮', '🌯', '🥨', '🥪', '🍕'] },
+  { label: 'Leguminosas y platillos', emojis: ['🍲', '🥘', '🥡', '🥗', '🍛', '🥫', '🍱', '🥙'] },
+  { label: 'Verduras', emojis: ['🥦', '🥬', '🥒', '🥕', '🍅', '🧅', '🧄', '🍄', '🌶️', '🍆', '🌵', '🌱'] },
+  { label: 'Frutas', emojis: ['🍎', '🍏', '🍌', '🍓', '🍇', '🍊', '🍋', '🍍', '🥭', '🍈', '🍉', '🍐', '🍑', '🍒', '🥝', '🥥'] },
+  { label: 'Grasas y otros', emojis: ['🥑', '🥜', '🌰', '🧈', '🍯', '🍫', '🍪', '🧂', '⚡', '🍽️'] },
+];
 
 export interface FoodFlags {
   asProtein?: boolean;
@@ -125,7 +141,11 @@ const SUPPLEMENT_EMOJI: [RegExp, string][] = [
   [/magnesio/, '🌙'],
 ];
 
-export const supplementEmoji = (name: string) => firstMatch(name, SUPPLEMENT_EMOJI, '💊');
+export const supplementEmoji = (name: string, chosen?: string | null) => chosen || firstMatch(name, SUPPLEMENT_EMOJI, '💊');
+
+export const SUPPLEMENT_EMOJI_CHOICES: EmojiGroup[] = [
+  { label: 'Suplementos', emojis: ['💊', '💪', '⚡', '☕', '🥤', '🧃', '🧪', '💧', '☀️', '🌙', '🍊', '🐟', '🦴', '🦠', '🔩', '🌿', '🍵', '🧂', '❤️', '🧠', '😴', '🛡️', '🔥', '🥛'] },
+];
 
 /** Grupo AIS: A = evidencia sólida, B = emergente, C/D = poca o nula. */
 export function aisTone(group: unknown): Tone {
@@ -134,36 +154,58 @@ export function aisTone(group: unknown): Tone {
 
 // ---------------------------------------------------------------- Ejercicios
 
-export type MovementPattern = 'squat' | 'hinge' | 'pushH' | 'pushV' | 'pull' | 'row' | 'curl' | 'extension' | 'lateral' | 'core' | 'calf';
+export const MOVEMENT_LABELS = {
+  squat: 'Sentadilla',
+  legPress: 'Prensa',
+  lunge: 'Zancada',
+  hinge: 'Peso muerto / bisagra de cadera',
+  hipThrust: 'Hip thrust / puente',
+  legExtension: 'Extensión de pierna',
+  legCurl: 'Curl de pierna',
+  abduction: 'Abducción / aducción de cadera',
+  calf: 'Elevación de talones',
+  pushH: 'Press en banco',
+  fly: 'Cruce de poleas / aperturas',
+  dip: 'Fondos',
+  pushup: 'Flexiones',
+  pushV: 'Press sobre la cabeza',
+  lateral: 'Elevación lateral',
+  extension: 'Extensión de tríceps',
+  pull: 'Jalón / dominada',
+  row: 'Remo',
+  shrug: 'Encogimiento de hombros',
+  curl: 'Curl de brazo',
+  core: 'Crunch abdominal',
+  plank: 'Plancha',
+} as const;
 
-export const MOVEMENT_LABELS: Record<MovementPattern, string> = {
-  squat: 'Sentadilla / empuje de pierna',
-  hinge: 'Bisagra de cadera',
-  pushH: 'Empuje horizontal',
-  pushV: 'Empuje vertical',
-  pull: 'Jalón vertical',
-  row: 'Remo / tracción horizontal',
-  curl: 'Flexión (curl)',
-  extension: 'Extensión',
-  lateral: 'Elevación / abducción',
-  core: 'Core',
-  calf: 'Flexión plantar',
-};
+export type MovementPattern = keyof typeof MOVEMENT_LABELS;
+
+export const MOVEMENT_PATTERNS = Object.keys(MOVEMENT_LABELS) as MovementPattern[];
 
 // El orden importa: los casos específicos van antes que los generales.
 const PATTERNS: [RegExp, MovementPattern][] = [
-  [/plancha|plank|crunch|rueda abdominal|pallof|elevacion de (piernas|rodillas)|encogimiento de piernas|flexion de tronco/, 'core'],
+  [/plancha|plank|pallof|rueda abdominal/, 'plank'],
+  [/crunch|flexion de tronco|elevacion de (piernas|rodillas)|encogimiento de piernas/, 'core'],
   [/flexion plantar/, 'calf'],
-  [/extension de cuadriceps|sissy/, 'extension'],
-  [/curl de isquio|curl nordico/, 'curl'],
-  [/sentadilla|prensa|zancada|step up/, 'squat'],
-  [/peso muerto|buenos dias|hip thrust|puente|hiperextension|patada de gluteo/, 'hinge'],
-  [/abduccion|adduccion|aduccion|elevaciones laterales|pajaros|apertura posterior|face pull|remo al menton/, 'lateral'],
+  [/extension de cuadriceps|sissy/, 'legExtension'],
+  [/curl de isquio|curl nordico/, 'legCurl'],
+  [/hip thrust|puente/, 'hipThrust'],
+  [/prensa/, 'legPress'],
+  [/zancada|bulgara|step up/, 'lunge'],
+  [/sentadilla|hack/, 'squat'],
+  [/peso muerto|buenos dias|hiperextension/, 'hinge'],
+  [/patada de gluteo|abduccion|adduccion|aduccion|copenhagen/, 'abduction'],
+  [/elevaciones laterales|pajaros|apertura posterior|face pull|remo al menton/, 'lateral'],
+  [/encogimientos/, 'shrug'],
   [/jalon|dominadas|pulldown|pullover/, 'pull'],
-  [/remo|encogimientos/, 'row'],
-  [/press frances|press cerrado|extension|patada de triceps|fondos en maquina|enfasis triceps/, 'extension'],
+  [/remo/, 'row'],
+  [/fondos/, 'dip'],
+  [/flexiones/, 'pushup'],
+  [/aperturas|cruce de poleas|pec deck/, 'fly'],
+  [/press frances|press cerrado|extension|patada de triceps/, 'extension'],
   [/press militar|press de hombro|press arnold|press tras nuca|elevaciones frontales/, 'pushV'],
-  [/press|aperturas|cruce de poleas|fondos|flexiones/, 'pushH'],
+  [/press/, 'pushH'],
   [/curl|paseo del granjero/, 'curl'],
 ];
 
@@ -171,18 +213,25 @@ const MUSCLE_PATTERN: [RegExp, MovementPattern][] = [
   [/abdomen/, 'core'],
   [/gastrocnemio|soleo/, 'calf'],
   [/cuadriceps/, 'squat'],
-  [/isquio|gluteo/, 'hinge'],
-  [/aductor|deltoides (lateral|posterior)/, 'lateral'],
+  [/isquio/, 'hinge'],
+  [/gluteo/, 'hipThrust'],
+  [/aductor/, 'abduction'],
+  [/deltoides (lateral|posterior)/, 'lateral'],
   [/dorsal/, 'pull'],
-  [/espalda|trapecio/, 'row'],
+  [/trapecio/, 'shrug'],
+  [/espalda/, 'row'],
   [/deltoides anterior/, 'pushV'],
   [/pectoral/, 'pushH'],
   [/triceps/, 'extension'],
   [/biceps|antebrazo/, 'curl'],
 ];
 
-/** Naturaleza del movimiento, deducida del nombre del ejercicio (o del músculo si el nombre no lo dice). */
-export function movementPattern(exercise: string, muscle = ''): MovementPattern | null {
+/**
+ * Tipo de movimiento de un ejercicio: el que eligió el coach o, si no eligió, el que se deduce
+ * del nombre (y del músculo cuando el nombre no lo dice).
+ */
+export function movementPattern(exercise: string, muscle = '', chosen?: string | null): MovementPattern | null {
+  if (chosen && chosen in MOVEMENT_LABELS) return chosen as MovementPattern;
   const byName = firstMatch<MovementPattern | null>(exercise, PATTERNS, null);
   return byName ?? firstMatch<MovementPattern | null>(muscle, MUSCLE_PATTERN, null);
 }
@@ -200,20 +249,37 @@ const EQUIPMENT: [RegExp, string][] = [
 
 export const exerciseEquipment = (exercise: string) => firstMatch(exercise, EQUIPMENT, '');
 
-/** Zona del cuerpo de cada músculo: da color a las tarjetas del catálogo de ejercicios. */
-export function muscleTone(muscle: string): Tone {
-  return firstMatch<Tone>(
+/** Zonas del cuerpo en que se clasifican los músculos; cada una tiene su color. */
+export const MUSCLE_REGIONS: { key: MuscleRegion; label: string; tone: Tone }[] = [
+  { key: 'push', label: 'Empuje · tren superior', tone: 'steel' },
+  { key: 'pull', label: 'Tracción · tren superior', tone: 'emerald' },
+  { key: 'legs', label: 'Tren inferior', tone: 'amber' },
+  { key: 'core', label: 'Core', tone: 'coral' },
+];
+
+export type MuscleRegion = 'push' | 'pull' | 'legs' | 'core';
+
+/** Zona de un músculo: la que eligió el coach o la que corresponde a su nombre. */
+export function muscleRegionKey(muscle: string, chosen?: string | null): MuscleRegion | null {
+  if (chosen && MUSCLE_REGIONS.some((region) => region.key === chosen)) return chosen as MuscleRegion;
+  return firstMatch<MuscleRegion | null>(
     muscle,
     [
-      [/abdomen/, 'coral'],
-      [/cuadriceps|isquio|gluteo|aductor|gastrocnemio|soleo/, 'amber'],
-      [/pectoral|deltoides (anterior|lateral)|triceps/, 'steel'],
-      [/espalda|dorsal|trapecio|deltoides posterior|biceps|antebrazo/, 'emerald'],
+      [/abdomen|core|oblicuo|lumbar/, 'core'],
+      [/cuadriceps|isquio|gluteo|aductor|abductor|gastrocnemio|soleo|pierna|pantorrilla/, 'legs'],
+      [/pectoral|deltoides (anterior|lateral)|triceps|hombro/, 'push'],
+      [/espalda|dorsal|trapecio|deltoides posterior|biceps|antebrazo/, 'pull'],
     ],
-    'slate',
+    null,
   );
 }
 
-export function muscleRegion(muscle: string): string {
-  return { coral: 'Core', amber: 'Tren inferior', steel: 'Empuje · tren superior', emerald: 'Tracción · tren superior', slate: 'Otros' }[muscleTone(muscle)];
+export function muscleTone(muscle: string, chosen?: string | null): Tone {
+  const key = muscleRegionKey(muscle, chosen);
+  return MUSCLE_REGIONS.find((region) => region.key === key)?.tone ?? 'slate';
+}
+
+export function muscleRegion(muscle: string, chosen?: string | null): string {
+  const key = muscleRegionKey(muscle, chosen);
+  return MUSCLE_REGIONS.find((region) => region.key === key)?.label ?? 'Sin categoría';
 }

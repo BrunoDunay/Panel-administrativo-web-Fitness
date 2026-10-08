@@ -11,6 +11,7 @@ export const WarmupProtocol = sequelize.define(
     rampUpSets: DataTypes.TEXT,
     duration: DataTypes.STRING(40),
     rationale: DataTypes.TEXT,
+    icon: DataTypes.STRING(30),
     sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   },
   { tableName: 'warmup_protocols' },

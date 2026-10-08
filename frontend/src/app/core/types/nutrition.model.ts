@@ -77,6 +77,7 @@ export interface DayTotals extends MealTotals {
 export interface MealItemAmounts {
   foodId: number;
   name: string;
+  icon: string | null;
   trainingGrams: number;
   restGrams: number;
   trainingMeasure: string;
@@ -121,7 +122,7 @@ export interface NutritionComputed {
   meals: ComputedMeal[];
   dayTotals: Record<DayKind, DayTotals>;
   intra: { foodId: number; name: string; carbsG: number; amount: number; unit: string; measure: string } | null;
-  grocery: { name: string; grams: number; kg: number; measure: string }[];
+  grocery: { name: string; icon: string | null; grams: number; kg: number; measure: string }[];
   hydration: {
     restDayL: number;
     trainingDayL: number;
@@ -133,6 +134,7 @@ export interface NutritionComputed {
   supplements: {
     supplementId: number;
     name: string;
+    icon: string | null;
     aisGroup: string | null;
     purpose: string | null;
     recommendedDose: string | null;

@@ -63,7 +63,7 @@
               </button>
             }
             @if (today(); as day) {
-              <button type="button" class="card card--tint tone--amber stat tile" (click)="tab.set('nutrition')">
+              <button type="button" class="card card--tint tone--teal stat tile" (click)="tab.set('nutrition')">
                 <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="22" /></span>
                 <span class="stat__label">Hoy · día de {{ day.trains ? 'entreno' : 'descanso' }}</span>
                 <span class="stat__value">{{ num(day.kcal, 0) }}<small> kcal</small></span>

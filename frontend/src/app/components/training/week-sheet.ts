@@ -37,7 +37,7 @@ import { MovementFigure } from '../visual/movement-figure';
         @for (exercise of day.exercises; track exercise.id; let i = $index) {
           <section [class]="'exercise icon-hover tone--' + tone(exercise.muscle)">
             <div class="exercise__head">
-              @if (pattern(exercise.exercise, exercise.muscle); as p) {
+              @if (pattern(exercise.exercise, exercise.muscle, exercise.movement); as p) {
                 <span class="thumb thumb--lg figure"><app-movement-figure [pattern]="p" [size]="44" /></span>
               } @else {
                 <span class="exercise__index">{{ i + 1 }}</span>
@@ -58,6 +58,13 @@ import { MovementFigure } from '../visual/movement-figure';
               <div><dt>e1RM</dt><dd>{{ fmt(exercise.e1rm) }}</dd></div>
               <div><dt>Tonelaje</dt><dd>{{ fmt(exercise.tonnage, 0) }}</dd></div>
             </dl>
+
+            @if (exercise.description) {
+              <details class="details how">
+                <summary>Cómo se hace</summary>
+                <p class="details__body">{{ exercise.description }}</p>
+              </details>
+            }
 
             @if (exercise.coachNotes) {
               <p class="coach-note"><b>Coach:</b> {{ exercise.coachNotes }}</p>
@@ -141,6 +148,8 @@ import { MovementFigure } from '../visual/movement-figure';
     .exercise__name span { font-size: var(--text-xs); color: var(--color-text-muted); }
     .exercise__name strong { font-size: var(--text-base); }
     .muscle { color: var(--tone-ink); }
+    .how { background: var(--color-surface); }
+    .how p { white-space: pre-line; }
     .figure { --figure-accent: var(--tone); --figure-surface: var(--tone-soft); }
     .pauta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
     .pauta dt { font-size: var(--text-xs); color: var(--color-text-muted); }

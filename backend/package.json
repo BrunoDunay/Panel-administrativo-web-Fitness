@@ -13,7 +13,8 @@
     "start": "node --env-file-if-exists=.env src/server.js",
     "migrate": "node --env-file=.env src/config/migrate.js up",
     "migrate:down": "node --env-file=.env src/config/migrate.js down",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed:demo": "node --env-file=.env seeders/demo-clients.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

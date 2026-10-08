@@ -17,6 +17,7 @@ export const Supplement = sequelize.define(
     reference: DataTypes.TEXT,
     brand: DataTypes.STRING(120),
     link: DataTypes.TEXT,
+    icon: DataTypes.STRING(16),
   },
   { tableName: 'supplements' },
 );

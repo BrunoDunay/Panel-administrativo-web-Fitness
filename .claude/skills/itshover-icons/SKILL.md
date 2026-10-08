@@ -62,7 +62,8 @@ enlace, botón o elemento `.icon-hover` que lo contiene. Si no está en el mapa,
 
 Reglas que ya respeta el componente y hay que conservar:
 
-- Solo anima con cursor real (`hover: hover` y `pointer: fine`) y sin "reducir movimiento".
+- Solo anima con cursor real (`hover: hover` y `pointer: fine`). No se apaga con "reducir movimiento": es un movimiento pequeño que el usuario provoca, y en Windows esa opción suele estar activa sin que la persona lo sepa.
+- Dentro de una insignia (`.tile-icon`) el ícono se dibuja una vez al aparecer.
 - Dura menos de 650 ms y usa curvas de salida fuertes; no se repite en bucle.
 - La animación debe **decir algo del icono** (una flecha avanza, un bote se sacude). Si no hay un
   movimiento que venga al caso, se queda en `draw`.

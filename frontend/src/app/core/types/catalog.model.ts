@@ -2,11 +2,16 @@ export interface Exercise {
   id: number;
   name: string;
   sortOrder: number;
+  /** Tipo de movimiento elegido por el coach; null = se deduce del nombre. */
+  movement: string | null;
+  description: string | null;
 }
 
 export interface Muscle {
   id: number;
   name: string;
+  /** Zona del cuerpo elegida por el coach; null = se deduce del nombre. */
+  region: string | null;
   exercises: Exercise[];
 }
 
@@ -19,6 +24,7 @@ export interface CardioProtocol {
   rpe: string | null;
   hrZone: string | null;
   notes: string | null;
+  icon: string | null;
 }
 
 export interface WarmupProtocol {
@@ -30,6 +36,7 @@ export interface WarmupProtocol {
   rampUpSets: string | null;
   duration: string | null;
   rationale: string | null;
+  icon: string | null;
 }
 
 /** Valores por porción; los gramos del plan son peso neto. */
@@ -53,6 +60,7 @@ export interface Food {
   asFat: boolean;
   asVegetable: boolean;
   asFruit: boolean;
+  icon: string | null;
 }
 
 export interface Supplement {
@@ -69,6 +77,7 @@ export interface Supplement {
   reference: string | null;
   brand: string | null;
   link: string | null;
+  icon: string | null;
 }
 
 export interface KeyLabel {

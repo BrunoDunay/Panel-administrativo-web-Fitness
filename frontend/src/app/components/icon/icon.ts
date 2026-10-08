@@ -83,7 +83,7 @@ const MOTION: Partial<Record<IconName, Motion>> = {
     svg.filled { fill: currentColor; stroke: none; }
 
     /* La animación corre cuando el cursor entra al control que contiene el icono. */
-    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    @media (hover: hover) and (pointer: fine) {
       /* Dibujado: cada trazo se recorre de principio a fin, uno tras otro. */
       :host-context(a:hover) svg[data-motion='draw']:not(.filled) > *,
       :host-context(button:hover) svg[data-motion='draw']:not(.filled) > *,
@@ -103,6 +103,13 @@ const MOTION: Partial<Record<IconName, Motion>> = {
       /* Mancuerna: se levanta y gira como en una repetición. */
       :host-context(a:hover) svg[data-motion='lift'], :host-context(button:hover) svg[data-motion='lift'], :host-context(.icon-hover:hover) svg[data-motion='lift'] { animation: icon-lift 620ms cubic-bezier(0.77, 0, 0.175, 1); }
       :host-context(a:hover) svg[data-motion='tilt'], :host-context(button:hover) svg[data-motion='tilt'], :host-context(.icon-hover:hover) svg[data-motion='tilt'] { animation: icon-tilt 460ms cubic-bezier(0.23, 1, 0.32, 1); }
+    }
+
+    /* Dentro de una insignia (.tile-icon) el ícono se dibuja una vez al aparecer. */
+    :host-context(.tile-icon) svg:not(.filled) > * {
+      stroke-dasharray: 1;
+      animation: icon-draw 700ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      animation-delay: calc(180ms + var(--i) * 70ms);
     }
 
     @keyframes icon-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }

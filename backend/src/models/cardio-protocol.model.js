@@ -11,6 +11,7 @@ export const CardioProtocol = sequelize.define(
     rpe: DataTypes.STRING(40),
     hrZone: DataTypes.STRING(60),
     notes: DataTypes.TEXT,
+    icon: DataTypes.STRING(30),
     sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   },
   { tableName: 'cardio_protocols' },

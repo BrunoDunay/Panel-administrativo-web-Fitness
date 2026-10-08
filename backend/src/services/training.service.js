@@ -151,7 +151,7 @@ export async function logWeek(clientId, weekId, { dayDates, cardioLog }) {
   });
 }
 
-function serializeExercise(row) {
+function serializeExercise(row, details) {
   const logged = Array.from({ length: row.sets }, (_, i) => row.logged?.[i] ?? { load: null, reps: null });
   return {
     id: row.id,
@@ -166,6 +166,8 @@ function serializeExercise(row) {
     symbol: row.symbol,
     logged,
     clientNotes: row.clientNotes,
+    movement: details?.movement ?? null,
+    description: details?.description ?? null,
     ...exerciseSummary(logged),
   };
 }
@@ -178,6 +180,8 @@ export function buildTrainingView(plan, catalog) {
   const trainingDays = split.filter((session) => session !== REST).length;
   const protocols = new Map(catalog.cardioProtocols.map((p) => [p.name, p]));
   const warmups = new Map(catalog.warmupProtocols.map((p) => [p.name, p]));
+  // Lo que el coach definió en el catálogo para cada ejercicio (se busca por nombre).
+  const exerciseDetails = new Map(catalog.muscles.flatMap((muscle) => muscle.exercises.map((e) => [e.name, e])));
 
   const cardio = split.map((session, i) => {
     const day = plan.cardio?.[i] ?? {};
@@ -215,7 +219,7 @@ export function buildTrainingView(plan, catalog) {
   });
 
   const weeks = (plan.weeks ?? []).map((week) => {
-    const exercises = week.exercises.map(serializeExercise);
+    const exercises = week.exercises.map((row) => serializeExercise(row, exerciseDetails.get(row.exercise)));
     const doneMinutes = plannedMinutes.map((_, i) => week.cardioLog?.[i + 1] ?? null);
     return {
       id: week.id,

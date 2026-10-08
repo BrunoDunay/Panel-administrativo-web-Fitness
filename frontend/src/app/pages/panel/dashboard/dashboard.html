@@ -11,7 +11,7 @@
         <span class="stat__value hero-value">{{ d.counts.active }}</span>
         <span class="stat__note"><b>{{ d.counts.paused }}</b> en pausa</span>
       </a>
-      <a class="card card--tint tone--amber stat tile" routerLink="/panel/clients">
+      <a class="card card--tint tone--teal stat tile" routerLink="/panel/clients">
         <span class="tile-icon tile-icon--solid"><app-icon name="dumbbell" [size]="22" /></span>
         <span class="stat__label">Con plan de entrenamiento</span>
         <span class="stat__value">{{ d.counts.withTraining }}<small> de {{ d.counts.active }}</small></span>
@@ -118,7 +118,7 @@
         </section>
 
         @if (pendingSections().length) {
-          <section class="card card--tint tone--amber">
+          <section class="card card--tint tone--slate">
             <header class="card__head card__head--icon">
               <span class="tile-icon tile-icon--solid"><app-icon name="edit" [size]="20" /></span>
               <h2 class="card__title">Pendiente de confirmar en tu sitio</h2>

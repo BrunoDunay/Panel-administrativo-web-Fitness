@@ -77,7 +77,7 @@ export const LISTS = {
 export async function loadCatalog() {
   const [muscles, cardioProtocols, warmupProtocols, foods, supplements] = await Promise.all([
     Muscle.findAll({
-      include: [{ model: Exercise, as: 'exercises', attributes: ['id', 'name', 'sortOrder'] }],
+      include: [{ model: Exercise, as: 'exercises', attributes: ['id', 'name', 'sortOrder', 'movement', 'description'] }],
       order: [
         ['sortOrder', 'ASC'],
         [{ model: Exercise, as: 'exercises' }, 'sortOrder', 'ASC'],

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Btn } from '../../../components/buttons/btn';
+import { Icon } from '../../../components/icon/icon';
 import { Client, ClientProfile, ClientStatus } from '../../../core/types/client.model';
 
 export interface ClientFormValue {
@@ -48,11 +49,14 @@ function emptyValue(): ClientFormValue {
 /** Historia clínica del cliente: los mismos apartados de la plantilla, con la edad calculada. */
 @Component({
   selector: 'app-client-profile-form',
-  imports: [FormsModule, Btn],
+  imports: [FormsModule, Btn, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './client-profile-form.html',
   styles: `
     form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+    .form-section__title { color: var(--tone-ink); }
+    .card--vivid .form-section__title { color: var(--color-text-inverse); }
+    .grid--2 { align-items: start; }
     .actions { position: sticky; bottom: var(--space-3); z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--color-surface) 92%, transparent); box-shadow: var(--shadow-md); backdrop-filter: blur(8px); }
   `,
 })

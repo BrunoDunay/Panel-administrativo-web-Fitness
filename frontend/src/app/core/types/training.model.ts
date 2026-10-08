@@ -18,6 +18,9 @@ export interface WeekExercise {
   symbol: string | null;
   logged: LoggedSet[];
   clientNotes: string | null;
+  /** Del catálogo: tipo de movimiento elegido y cómo se hace el ejercicio. */
+  movement: string | null;
+  description: string | null;
   setsDone: number;
   e1rm: number | null;
   tonnage: number | null;

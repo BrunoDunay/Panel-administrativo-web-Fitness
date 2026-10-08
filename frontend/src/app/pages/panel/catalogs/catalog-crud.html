@@ -1,0 +1,140 @@
+<div class="toolbar no-print">
+  <label class="search">
+    <app-icon name="search" [size]="18" />
+    <span class="visually-hidden">Buscar</span>
+    <input type="search" placeholder="Buscar" [value]="search()" (input)="search.set($any($event.target).value)" />
+  </label>
+  <span class="card__hint"><b>{{ filtered().length }}</b> de {{ items().length }}</span>
+  <button appBtn type="button" (click)="start()"><app-icon name="plus" [size]="18" />{{ addLabel() }}</button>
+</div>
+
+<!-- La leyenda va arriba del listado: explica los colores antes de leerlos. -->
+<ng-content select="[legend]" />
+
+@if (filterOptions().length > 1) {
+  <div class="chips no-print" role="group" [attr.aria-label]="'Filtrar por ' + filterLabel()">
+    <button type="button" class="chip" [attr.aria-pressed]="filter() === null" (click)="filter.set(null)">Todos</button>
+    @for (option of filterOptions(); track option) {
+      <button type="button" class="chip" [attr.aria-pressed]="filter() === option" (click)="filter.set(option)">{{ option }}</button>
+    }
+  </div>
+}
+
+@if (editing(); as row) {
+  @let preview = visual()?.(row);
+  <form class="editor" (ngSubmit)="save()" novalidate>
+    <!-- Vista previa: así se verá el registro, con el ícono elegido. -->
+    <aside [class]="'card card--vivid card--badge preview icon-hover tone--' + (preview?.tone ?? 'emerald')">
+      <span class="card__badge">
+        @if (preview?.icon; as icon) { <app-icon [name]="icon" [size]="28" /> } @else { {{ preview?.emoji ?? '✨' }} }
+      </span>
+      <p class="preview__eyebrow">{{ row.id ? 'Editando' : addLabel() }}</p>
+      <h3 class="preview__name">{{ row['name'] || 'Sin nombre todavía' }}</h3>
+
+      @if (picker(); as options) {
+        <div class="picker">
+          <div class="row row--between">
+            <span class="picker__label">Ícono</span>
+            <button type="button" class="picker__option picker__option--auto" [attr.aria-pressed]="!row['icon']" (click)="pick(null)">Automático</button>
+          </div>
+          @if (options.kind === 'emoji') {
+            @for (group of options.groups; track group.label) {
+              <div class="picker__group">
+                @if (options.groups.length > 1) { <span class="picker__label">{{ group.label }}</span> }
+                <div class="picker__grid">
+                  @for (emoji of group.emojis; track emoji) {
+                    <button type="button" class="picker__option" [attr.aria-pressed]="row['icon'] === emoji" [attr.aria-label]="'Ícono ' + emoji" (click)="pick(emoji)">{{ emoji }}</button>
+                  }
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="picker__grid">
+              @for (option of options.options; track option.name) {
+                <button type="button" class="picker__option" [title]="option.label" [attr.aria-label]="option.label" [attr.aria-pressed]="row['icon'] === option.name" (click)="pick(option.name)">
+                  <app-icon [name]="option.name" [size]="22" />
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </aside>
+
+    <div class="card editor__fields">
+      <div class="form-grid">
+        @for (field of fields(); track field.key) {
+          @if (field.section) {
+            <h4 class="form-section__title span-all">{{ field.section }}</h4>
+          }
+          @if (field.type === 'checkbox') {
+            <label class="check"><input type="checkbox" [name]="field.key" [(ngModel)]="row[field.key]" />{{ field.label }}</label>
+          } @else {
+            <label class="field" [class.span-all]="field.wide">
+              <span class="field__label">{{ field.label }}</span>
+              @switch (field.type) {
+                @case ('textarea') { <textarea class="field__control" [name]="field.key" [(ngModel)]="row[field.key]"></textarea> }
+                @case ('select') {
+                  <select class="field__control" [name]="field.key" [(ngModel)]="row[field.key]">
+                    <option [ngValue]="null">—</option>
+                    @for (option of field.options; track option) { <option [value]="option">{{ option }}</option> }
+                  </select>
+                }
+                @case ('number') { <input class="field__control" type="number" inputmode="decimal" [step]="field.step ?? 'any'" [name]="field.key" [(ngModel)]="row[field.key]" [attr.aria-invalid]="!!errors()[field.key]" /> }
+                @default { <input class="field__control" [type]="field.type === 'url' ? 'url' : 'text'" [name]="field.key" [(ngModel)]="row[field.key]" [attr.aria-invalid]="!!errors()[field.key]" /> }
+              }
+              @if (errors()[field.key]) { <span class="field__error">{{ errors()[field.key] }}</span> } @else if (field.hint) { <span class="field__hint">{{ field.hint }}</span> }
+            </label>
+          }
+        }
+      </div>
+      <div class="row editor__actions">
+        <button appBtn type="submit" size="lg" [loading]="saving()" [disabled]="saving()"><app-icon name="check" [size]="18" />Guardar</button>
+        <button appBtn type="button" variant="ghost" (click)="editing.set(null)">Cancelar</button>
+      </div>
+    </div>
+  </form>
+}
+
+<div class="card card--flush">
+  <div class="table-wrap">
+    <table class="table table--hover">
+      <thead>
+        <tr>
+          @for (column of columns(); track column.key) { <th [class.num]="column.numeric">{{ column.label }}</th> }
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of filtered(); track row.id) {
+          <tr class="icon-hover">
+            @for (column of columns(); track column.key; let first = $first) {
+              <td [class.num]="column.numeric">
+                @if (first && visual(); as getVisual) {
+                  @let v = getVisual(row);
+                  <span class="lead">
+                    <span [class]="'thumb tone--' + v.tone">@if (v.icon) { <app-icon [name]="v.icon" [size]="22" /> } @else { {{ v.emoji }} }</span>
+                    <span class="lead__text">{{ display(row[column.key]) }}@if (column.sub) { <small>{{ column.sub(row) }}</small> }</span>
+                  </span>
+                } @else if (column.macros) {
+                  @let m = macroShares(row);
+                  <span class="macro-bar" [title]="m.title"><span class="is-protein" [style.flex]="m.protein"></span><span class="is-carbs" [style.flex]="m.carbs"></span><span class="is-fat" [style.flex]="m.fat"></span></span>
+                } @else if (column.tone && row[column.key]) {
+                  <span [class]="'badge badge--tone tone--' + column.tone(row[column.key], row)">{{ display(row[column.key]) }}</span>
+                } @else {
+                  {{ display(row[column.key]) }}
+                }
+              </td>
+            }
+            <td class="row-actions">
+              <button type="button" class="icon-btn" (click)="edit(row)" [attr.aria-label]="'Editar ' + row['name']"><app-icon name="edit" [size]="16" /></button>
+              <button type="button" class="icon-btn icon-btn--danger" (click)="remove(row)" [attr.aria-label]="'Eliminar ' + row['name']"><app-icon name="trash" [size]="16" /></button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td [attr.colspan]="columns().length + 1" class="text-muted">Sin resultados.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
