@@ -137,6 +137,22 @@ section {
   color: color-mix(in srgb, var(--color-text-inverse) 75%, transparent);
 }
 
+.hero__facts li {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.fact-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-mint);
+}
+
 .hero__facts strong {
   display: block;
   font-size: var(--text-base);
@@ -165,19 +181,37 @@ section {
   align-content: start;
   padding: var(--space-6);
   border-radius: var(--radius-xl);
+  border-top: 4px solid var(--tone);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .service:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .service__icon {
   display: grid;
   place-items: center;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: var(--radius-md);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--tone-gradient);
+  box-shadow: 0 10px 20px -10px var(--tone);
+  color: var(--color-text-inverse);
 }
+
+/* Cada servicio lleva la familia de color de su ícono. */
+.tone--emerald { --tone: var(--tone-emerald); --tone-soft: var(--tone-emerald-soft); --tone-gradient: var(--gradient-emerald); }
+.tone--steel { --tone: var(--tone-steel); --tone-soft: var(--tone-steel-soft); --tone-gradient: var(--gradient-steel); }
+.tone--amber { --tone: var(--tone-amber); --tone-soft: var(--tone-amber-soft); --tone-gradient: var(--gradient-amber); }
+.tone--coral { --tone: var(--tone-coral); --tone-soft: var(--tone-coral-soft); --tone-gradient: var(--gradient-coral); }
 
 .service h3 {
   font-size: var(--text-xl);
@@ -185,6 +219,11 @@ section {
 
 .service p {
   color: var(--color-text-muted);
+}
+
+.service p :is(strong, b),
+.about__body :is(strong, b) {
+  color: var(--color-text);
 }
 
 /* ---------- Método ---------- */

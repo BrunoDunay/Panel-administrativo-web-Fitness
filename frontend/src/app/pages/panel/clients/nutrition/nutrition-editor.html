@@ -56,9 +56,9 @@
       </div>
 
       <div class="grid" style="--min: 170px">
-        <div class="card card--dark stat"><span class="stat__label">Calorías objetivo</span><span class="stat__value">{{ num(c?.targetKcal, 0) }}<small> kcal/día</small></span></div>
-        <div class="card card--soft stat"><span class="stat__label">Cambio por semana</span><span class="stat__value">{{ signed(c?.weeklyChangeKg, 2) }}<small> kg</small></span><span class="stat__note">{{ c ? pct(c.weeklyChangePct, 2) : '—' }} del peso corporal</span></div>
-        <div class="card card--soft stat"><span class="stat__label">Cambio en 4 semanas</span><span class="stat__value">{{ signed(c?.fourWeekChangeKg, 1) }}<small> kg</small></span></div>
+        <div class="card card--vivid tone--emerald stat"><span class="stat__label">Calorías objetivo</span><span class="stat__value">{{ num(c?.targetKcal, 0) }}<small> kcal/día</small></span></div>
+        <div class="card card--tint tone--steel stat"><span class="stat__label">Cambio por semana</span><span class="stat__value">{{ signed(c?.weeklyChangeKg, 2) }}<small> kg</small></span><span class="stat__note">{{ c ? pct(c.weeklyChangePct, 2) : '—' }} del peso corporal</span></div>
+        <div class="card card--tint tone--amber stat"><span class="stat__label">Cambio en 4 semanas</span><span class="stat__value">{{ signed(c?.fourWeekChangeKg, 1) }}<small> kg</small></span></div>
       </div>
 
       <h4 class="sub">Macros</h4>
@@ -112,8 +112,8 @@
       </div>
       @if (c) {
         <div class="grid" style="--min: 220px">
-          <div class="card card--soft stat"><span class="stat__label">Día de entreno · {{ c.cycle.trainingDays }} por semana</span><span class="stat__value">{{ num(c.cycle.training.kcal, 0) }}<small> kcal</small></span><span class="stat__note">P {{ c.cycle.training.proteinG }} · C {{ c.cycle.training.carbsG }} · G {{ c.cycle.training.fatG }}</span></div>
-          <div class="card card--soft stat"><span class="stat__label">Día de descanso · {{ c.cycle.restDays }} por semana</span><span class="stat__value">{{ num(c.cycle.rest.kcal, 0) }}<small> kcal</small></span><span class="stat__note">P {{ c.cycle.rest.proteinG }} · C {{ c.cycle.rest.carbsG }} · G {{ c.cycle.rest.fatG }}</span></div>
+          <div class="card card--tint tone--emerald stat"><span class="stat__label">Día de entreno · {{ c.cycle.trainingDays }} por semana</span><span class="stat__value">{{ num(c.cycle.training.kcal, 0) }}<small> kcal</small></span><span class="stat__note">P {{ c.cycle.training.proteinG }} · C {{ c.cycle.training.carbsG }} · G {{ c.cycle.training.fatG }}</span></div>
+          <div class="card card--tint tone--slate stat"><span class="stat__label">Día de descanso · {{ c.cycle.restDays }} por semana</span><span class="stat__value">{{ num(c.cycle.rest.kcal, 0) }}<small> kcal</small></span><span class="stat__note">P {{ c.cycle.rest.proteinG }} · C {{ c.cycle.rest.carbsG }} · G {{ c.cycle.rest.fatG }}</span></div>
         </div>
         <p class="card__hint">El promedio de la semana sigue siendo tus calorías objetivo. Proteína y grasa no cambian; solo se mueven los carbos.</p>
       }

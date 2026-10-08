@@ -7,7 +7,7 @@ import { formatDate, formatNumber } from '../../core/utils/format';
   selector: 'app-training-overview',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="card card--dark hero">
+    <section class="card card--vivid tone--slate hero">
       <div>
         <p class="hero__eyebrow">{{ plan().name }}</p>
         <h3>{{ plan().objective.primary || 'Objetivo por definir' }}</h3>
@@ -137,7 +137,7 @@ import { formatDate, formatNumber } from '../../core/utils/format';
     .head { margin-bottom: var(--space-3); }
     .label { margin-bottom: var(--space-1); font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--color-primary); }
     .split { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-2); list-style: none; }
-    .split li { display: grid; gap: 2px; padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); background: var(--color-primary); text-align: center; color: var(--color-text-inverse); }
+    .split li { display: grid; gap: 2px; padding: var(--space-3) var(--space-2); border-radius: var(--radius-md); background: var(--gradient-emerald); text-align: center; color: var(--color-text-inverse); }
     .split span { font-size: var(--text-xs); opacity: 0.8; }
     .split strong { font-size: var(--text-sm); overflow-wrap: anywhere; }
     .split .is-rest { background: var(--color-surface-alt); color: var(--color-text-muted); }

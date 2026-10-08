@@ -16,7 +16,7 @@ export const PANEL_NAV: PanelNavGroup[] = [
   {
     title: 'Trabajo',
     items: [
-      { label: 'Resumen', path: '/panel', icon: 'home' },
+      { label: 'Resumen', path: '/panel', icon: 'dashboard' },
       { label: 'Clientes', path: '/panel/clients', icon: 'users' },
     ],
   },

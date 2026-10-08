@@ -1,68 +1,127 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { CUSTOM_ICONS } from './custom-icons';
+import { ITSHOVER_ICONS, IconShape } from './itshover-icons';
 
-/** Íconos de trazo (24×24). */
-const ICONS = {
-  instagram: 'M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zM12 16a4 4 0 100-8 4 4 0 000 8zM17.5 6.5h.01',
-  facebook: 'M14 21v-7h3l.5-4H14V8a1 1 0 011-1h2.5V3.5H15A4.5 4.5 0 0010.5 8v2H7v4h3.5v7z',
-  tiktok: 'M14 3v11.5a3.5 3.5 0 11-3.5-3.5M14 3c.3 2.6 2 4.4 5 4.7',
-  whatsapp:
-    'M20 11.6a8.4 8.4 0 01-12.4 7.3L3 20.3l1.4-4.4A8.4 8.4 0 1120 11.6zM8.8 8.3c.2-.5.5-.5.8-.5h.5c.2 0 .4.1.5.4l.7 1.6c.1.2 0 .4-.1.6l-.5.6c-.1.2-.1.3 0 .5a6 6 0 002.8 2.5c.2.1.4.1.5-.1l.7-.8c.2-.2.4-.2.6-.1l1.6.8c.2.1.3.3.3.5 0 .9-.7 1.8-1.7 1.9-1 .1-2.3-.3-4-1.5a9 9 0 01-2.9-3.5c-.5-1.1-.4-2.1.2-2.8z',
-  mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
-  phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a1 1 0 01-1 1A16 16 0 014 5a1 1 0 011-1z',
-  arrowRight: 'M5 12h14M13 6l6 6-6 6',
-  arrowUpRight: 'M7 17L17 7M9 7h8v8',
-  chevronLeft: 'M15 5l-7 7 7 7',
-  chevronRight: 'M9 5l7 7-7 7',
-  chevronDown: 'M5 9l7 7 7-7',
-  close: 'M6 6l12 12M18 6L6 18',
-  menu: 'M4 7h16M4 12h16M4 17h16',
-  plus: 'M12 5v14M5 12h14',
-  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
-  copy: 'M9 9h11v11H9zM5 15H4V4h11v1',
-  link: 'M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1',
-  check: 'M5 12.5l4.5 4.5L19 7.5',
-  search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
-  calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
-  location: 'M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
-  home: 'M3 11.5l9-7.5 9 7.5M5.5 10v10h13V10',
-  users: 'M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM2.5 20a6.5 6.5 0 0113 0M16 4.2a3.5 3.5 0 010 6.6M18 14.5a6.5 6.5 0 013.5 5.5',
-  user: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0',
-  dumbbell: 'M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12',
-  food: 'M6 3v7a2 2 0 004 0V3M8 3v18M17 21V3c-2.5 1-4 3.5-4 7 0 1.5 1.5 2.5 4 2.5',
-  chart: 'M4 20V4M4 20h16M8 16l3.5-4 3 2.5L20 8',
-  list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
-  settings: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
-  edit: 'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4',
-  external: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
-  logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
-  drop: 'M12 3s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z',
-  pill: 'M9.5 20.5a5 5 0 01-7-7l7-7a5 5 0 017 7zM6 10l7 7',
-  heart: 'M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0112 7.2a4.3 4.3 0 017.5 2.6C19.5 15.4 12 20 12 20z',
-  cart: 'M3 4h2.5l2 11h10.5l2-8H7M9 20h.01M17 20h.01',
-  swap: 'M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4',
-  clipboard: 'M9 4h6v3H9zM7 5H5v16h14V5h-2M9 12h6M9 16h4',
-  ruler: 'M3 16L16 3l5 5L8 21zM7.5 11.5l2 2M10.5 8.5l2 2M13.5 5.5l2 2',
-  info: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 11v6M12 7.5h.01',
-} as const;
+const ICONS = { ...ITSHOVER_ICONS, ...CUSTOM_ICONS };
 
 export type IconName = keyof typeof ICONS;
 
+/** Cómo se mueve el icono cuando el cursor pasa sobre el botón, enlace o tarjeta que lo contiene. */
+type Motion = 'draw' | 'spin' | 'right' | 'left' | 'down' | 'up' | 'pop' | 'shake' | 'lift' | 'tilt';
+
+const MOTION: Partial<Record<IconName, Motion>> = {
+  settings: 'spin',
+  refresh: 'spin',
+  arrowRight: 'right',
+  chevronRight: 'right',
+  external: 'right',
+  logout: 'right',
+  send: 'right',
+  arrowLeft: 'left',
+  arrowDown: 'down',
+  chevronDown: 'down',
+  download: 'down',
+  arrowUp: 'up',
+  rocket: 'up',
+  heart: 'pop',
+  star: 'pop',
+  flame: 'pop',
+  sparkles: 'pop',
+  check: 'pop',
+  plus: 'pop',
+  trophy: 'pop',
+  drop: 'pop',
+  trash: 'shake',
+  alert: 'shake',
+  dumbbell: 'lift',
+  scale: 'tilt',
+  edit: 'tilt',
+  pill: 'tilt',
+  swap: 'tilt',
+};
+
+/**
+ * Icono de trazo. Los dibujos vienen de itshover (ver itshover-icons.ts) y de custom-icons.ts.
+ * itshover anima con React + Motion; aquí la animación al pasar el cursor está rehecha en CSS.
+ */
 @Component({
   selector: 'app-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { 'aria-hidden': 'true' },
   template: `
-    <svg viewBox="0 0 24 24" [attr.width]="size()" [attr.height]="size()">
-      <path [attr.d]="path()" />
+    <svg [attr.viewBox]="shape().viewBox" [attr.width]="size()" [attr.height]="size()" [class.filled]="shape().filled" [attr.data-motion]="motion()" [attr.stroke-width]="strokeWidth()">
+      @for (node of shape().nodes; track $index) {
+        @switch (node.tag) {
+          @case ('circle') {
+            <circle pathLength="1" [style.--i]="$index" [attr.cx]="node.attrs['cx']" [attr.cy]="node.attrs['cy']" [attr.r]="node.attrs['r']" [attr.fill]="node.attrs['fill']" />
+          }
+          @case ('line') {
+            <line pathLength="1" [style.--i]="$index" [attr.x1]="node.attrs['x1']" [attr.y1]="node.attrs['y1']" [attr.x2]="node.attrs['x2']" [attr.y2]="node.attrs['y2']" />
+          }
+          @case ('rect') {
+            <rect pathLength="1" [style.--i]="$index" [attr.x]="node.attrs['x']" [attr.y]="node.attrs['y']" [attr.width]="node.attrs['width']" [attr.height]="node.attrs['height']" [attr.rx]="node.attrs['rx']" [attr.ry]="node.attrs['ry']" [attr.fill]="node.attrs['fill']" />
+          }
+          @case ('ellipse') {
+            <ellipse pathLength="1" [style.--i]="$index" [attr.cx]="node.attrs['cx']" [attr.cy]="node.attrs['cy']" [attr.rx]="node.attrs['rx']" [attr.ry]="node.attrs['ry']" />
+          }
+          @case ('polyline') {
+            <polyline pathLength="1" [style.--i]="$index" [attr.points]="node.attrs['points']" />
+          }
+          @case ('polygon') {
+            <polygon pathLength="1" [style.--i]="$index" [attr.points]="node.attrs['points']" />
+          }
+          @default {
+            <path pathLength="1" [style.--i]="$index" [attr.d]="node.attrs['d']" [attr.fill]="node.attrs['fill']" [attr.stroke]="node.attrs['stroke']" />
+          }
+        }
+      }
     </svg>
   `,
   styles: `
     :host { display: inline-flex; flex: none; }
-    svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; transform-origin: center; }
+    svg.filled { fill: currentColor; stroke: none; }
+
+    /* La animación corre cuando el cursor entra al control que contiene el icono. */
+    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+      /* Dibujado: cada trazo se recorre de principio a fin, uno tras otro. */
+      :host-context(a:hover) svg[data-motion='draw']:not(.filled) > *,
+      :host-context(button:hover) svg[data-motion='draw']:not(.filled) > *,
+      :host-context(.icon-hover:hover) svg[data-motion='draw']:not(.filled) > * {
+        stroke-dasharray: 1;
+        animation: icon-draw 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        animation-delay: calc(var(--i) * 45ms);
+      }
+
+      :host-context(a:hover) svg[data-motion='spin'], :host-context(button:hover) svg[data-motion='spin'], :host-context(.icon-hover:hover) svg[data-motion='spin'] { animation: icon-spin 600ms cubic-bezier(0.77, 0, 0.175, 1); }
+      :host-context(a:hover) svg[data-motion='right'], :host-context(button:hover) svg[data-motion='right'], :host-context(.icon-hover:hover) svg[data-motion='right'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 3px; --dy: 0px; }
+      :host-context(a:hover) svg[data-motion='left'], :host-context(button:hover) svg[data-motion='left'], :host-context(.icon-hover:hover) svg[data-motion='left'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: -3px; --dy: 0px; }
+      :host-context(a:hover) svg[data-motion='down'], :host-context(button:hover) svg[data-motion='down'], :host-context(.icon-hover:hover) svg[data-motion='down'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 0px; --dy: 3px; }
+      :host-context(a:hover) svg[data-motion='up'], :host-context(button:hover) svg[data-motion='up'], :host-context(.icon-hover:hover) svg[data-motion='up'] { animation: icon-nudge 420ms cubic-bezier(0.23, 1, 0.32, 1); --dx: 0px; --dy: -3px; }
+      :host-context(a:hover) svg[data-motion='pop'], :host-context(button:hover) svg[data-motion='pop'], :host-context(.icon-hover:hover) svg[data-motion='pop'] { animation: icon-pop 420ms cubic-bezier(0.23, 1, 0.32, 1); }
+      :host-context(a:hover) svg[data-motion='shake'], :host-context(button:hover) svg[data-motion='shake'], :host-context(.icon-hover:hover) svg[data-motion='shake'] { animation: icon-shake 420ms ease-in-out; }
+      /* Mancuerna: se levanta y gira como en una repetición. */
+      :host-context(a:hover) svg[data-motion='lift'], :host-context(button:hover) svg[data-motion='lift'], :host-context(.icon-hover:hover) svg[data-motion='lift'] { animation: icon-lift 620ms cubic-bezier(0.77, 0, 0.175, 1); }
+      :host-context(a:hover) svg[data-motion='tilt'], :host-context(button:hover) svg[data-motion='tilt'], :host-context(.icon-hover:hover) svg[data-motion='tilt'] { animation: icon-tilt 460ms cubic-bezier(0.23, 1, 0.32, 1); }
+    }
+
+    @keyframes icon-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+    @keyframes icon-spin { to { transform: rotate(180deg); } }
+    @keyframes icon-nudge { 45% { transform: translate(var(--dx), var(--dy)); } }
+    @keyframes icon-pop { 40% { transform: scale(1.22); } }
+    @keyframes icon-shake { 20% { transform: rotate(-9deg); } 50% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
+    @keyframes icon-lift { 40% { transform: translateY(-3px) rotate(-24deg); } 70% { transform: translateY(-1px) rotate(6deg); } }
+    @keyframes icon-tilt { 45% { transform: rotate(-14deg) scale(1.08); } }
   `,
 })
 export class Icon {
   readonly name = input.required<IconName>();
   readonly size = input(20);
-  protected readonly path = computed(() => ICONS[this.name()]);
+  protected readonly shape = computed(() => ICONS[this.name()] as IconShape);
+  protected readonly motion = computed<Motion>(() => MOTION[this.name()] ?? 'draw');
+  /** Grosor equivalente a 1.8 en una caja de 24, sea cual sea la caja original del icono. */
+  protected readonly strokeWidth = computed(() => {
+    const [, , width] = this.shape().viewBox.split(' ').map(Number);
+    return (1.8 * (width || 24)) / 24;
+  });
 }

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { DayKind, MealItemAmounts, NutritionComputed } from '../../core/types/nutrition.model';
 import { formatNumber, formatPercent, formatSigned } from '../../core/utils/format';
+import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
 
 /**
  * Plan de alimentación ya calculado: resumen del día, comidas con gramos y cambios,
@@ -22,7 +23,7 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
       <p class="card__hint">{{ dayNote() }}</p>
     </div>
 
-    <section class="card card--dark summary">
+    <section class="card card--vivid tone--emerald summary">
       <div class="stat">
         <span class="stat__label">Calorías del día</span>
         <span class="stat__value big">{{ num(target.kcal, 0) }}<small> kcal</small></span>
@@ -62,6 +63,7 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
                 @if (grams(item) > 0) {
                   <li>
                     <div class="item">
+                      <span [class]="'thumb thumb--sm tone--' + slotTone(item.slot)">{{ emoji(item.name) }}</span>
                       <span class="item__name">{{ item.name }}<small>{{ item.label }}</small></span>
                       <span class="item__amount">{{ grams(item) }} g<small>{{ measure(item) }}</small></span>
                     </div>
@@ -89,7 +91,7 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
     </div>
 
     @if (c.intra && kind() === 'training') {
-      <section class="card card--soft intra">
+      <section class="card card--tint tone--steel intra">
         <div>
           <p class="eyebrow">Intra-entreno · solo días de entreno</p>
           <strong>{{ c.intra.name }}</strong>
@@ -118,7 +120,7 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
               <thead><tr><th>Alimento</th><th class="num">Cantidad</th><th>Medida aprox.</th></tr></thead>
               <tbody>
                 @for (item of grocery(); track item.name) {
-                  <tr><td>{{ item.name }}</td><td class="num">{{ item.amount }}</td><td>{{ item.measure || '—' }}</td></tr>
+                  <tr><td><span class="grocery"><span class="thumb thumb--sm">{{ emoji(item.name) }}</span>{{ item.name }}</span></td><td class="num"><b>{{ item.amount }}</b></td><td>{{ item.measure || '—' }}</td></tr>
                 }
               </tbody>
             </table>
@@ -162,7 +164,7 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
               @for (s of c.supplements; track s.supplementId) {
                 <tr>
                   <td>
-                    <strong>{{ s.name }}</strong>
+                    <span class="grocery"><span class="thumb thumb--sm tone--emerald">{{ supplement(s.name) }}</span><strong>{{ s.name }}</strong></span>
                     @if (s.brand) { <br /><span class="text-muted">{{ s.brand }}</span> }
                     @if (s.link) { <br /><a class="link" [href]="s.link" target="_blank" rel="noopener noreferrer">Ver producto</a> }
                   </td>
@@ -192,9 +194,9 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
     .meal__kcal small { font-size: var(--text-xs); font-weight: 600; color: var(--color-text-muted); }
     .items { display: grid; list-style: none; }
     .items li { padding: var(--space-2) 0; border-top: var(--hairline); }
-    .item { display: flex; justify-content: space-between; gap: var(--space-3); }
+    .item { display: flex; align-items: center; gap: var(--space-3); }
     .item small { display: block; font-size: var(--text-xs); font-weight: 400; color: var(--color-text-muted); }
-    .item__name { font-weight: 600; }
+    .item__name { flex: 1; min-width: 0; font-weight: 700; }
     .item__amount { font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .swaps { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted); }
     .swaps .badge { white-space: normal; }
@@ -205,6 +207,7 @@ import { formatNumber, formatPercent, formatSigned } from '../../core/utils/form
     .head { margin-bottom: var(--space-3); }
     .foot { margin-top: var(--space-3); }
     .weeks select { width: 4rem; }
+    .grocery { display: inline-flex; align-items: center; gap: var(--space-3); }
     .link { font-weight: 600; color: var(--color-primary); text-decoration: underline; }
   `,
 })
@@ -215,6 +218,12 @@ export class NutritionPlanView {
   protected readonly num = formatNumber;
   protected readonly pct = formatPercent;
   protected readonly signed = formatSigned;
+  protected readonly emoji = foodEmoji;
+  protected readonly supplement = supplementEmoji;
+
+  protected slotTone(slot: string): string {
+    return slot.startsWith('protein') ? 'coral' : slot === 'fat' ? 'amber' : slot === 'vegetable' ? 'emerald' : 'steel';
+  }
 
   protected readonly macros = computed(() => {
     const target = this.computed().cycle[this.kind()];

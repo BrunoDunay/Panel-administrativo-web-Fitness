@@ -1,37 +1,41 @@
 <app-page-header [title]="'Hola, ' + name" subtitle="Así van tus clientes hoy.">
-  <a appBtn routerLink="/panel/clients/new"><app-icon name="plus" [size]="18" />Nuevo cliente</a>
+  <a appBtn routerLink="/panel/clients/new"><app-icon name="userPlus" [size]="18" />Nuevo cliente</a>
 </app-page-header>
 
 @if (data(); as d) {
   <div class="stack top">
-    <div class="grid" style="--min: 200px">
-      <a class="card card--dark stat" routerLink="/panel/clients">
+    <div class="grid" style="--min: 215px">
+      <a class="card card--vivid tone--emerald stat tile" routerLink="/panel/clients">
+        <span class="tile-icon"><app-icon name="users" [size]="22" /></span>
         <span class="stat__label">Clientes activos</span>
         <span class="stat__value hero-value">{{ d.counts.active }}</span>
-        <span class="stat__note">{{ d.counts.paused }} en pausa</span>
+        <span class="stat__note"><b>{{ d.counts.paused }}</b> en pausa</span>
       </a>
-      <div class="card stat">
+      <a class="card card--tint tone--amber stat tile" routerLink="/panel/clients">
+        <span class="tile-icon tile-icon--solid"><app-icon name="dumbbell" [size]="22" /></span>
         <span class="stat__label">Con plan de entrenamiento</span>
         <span class="stat__value">{{ d.counts.withTraining }}<small> de {{ d.counts.active }}</small></span>
         <div class="meter"><span [style.width.%]="d.counts.active ? (d.counts.withTraining / d.counts.active) * 100 : 0"></span></div>
-      </div>
-      <div class="card stat">
+      </a>
+      <a class="card card--tint tone--steel stat tile" routerLink="/panel/clients">
+        <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="22" /></span>
         <span class="stat__label">Con plan de nutrición</span>
         <span class="stat__value">{{ d.counts.withNutrition }}<small> de {{ d.counts.active }}</small></span>
-        <div class="meter meter--steel"><span [style.width.%]="d.counts.active ? (d.counts.withNutrition / d.counts.active) * 100 : 0"></span></div>
-      </div>
-      <div class="card stat">
+        <div class="meter"><span [style.width.%]="d.counts.active ? (d.counts.withNutrition / d.counts.active) * 100 : 0"></span></div>
+      </a>
+      <div class="card card--tint tone--coral stat tile">
+        <span class="tile-icon tile-icon--solid"><app-icon name="calendar" [size]="22" /></span>
         <span class="stat__label">Pagos próximos o vencidos</span>
         <span class="stat__value">{{ d.payments.length }}</span>
-        <span class="stat__note">En los siguientes 10 días</span>
+        <span class="stat__note">En los siguientes <b>10 días</b></span>
       </div>
     </div>
 
     @if (d.counts.withoutTraining || d.counts.withoutNutrition) {
       <p class="notice notice--warning">
-        <app-icon name="info" [size]="18" />
+        <app-icon name="alert" [size]="18" />
         <span>
-          Pendiente por armar:
+          <b>Pendiente por armar:</b>
           @if (d.counts.withoutTraining) { <b>{{ d.counts.withoutTraining }}</b> plan(es) de entrenamiento }
           @if (d.counts.withoutTraining && d.counts.withoutNutrition) { y }
           @if (d.counts.withoutNutrition) { <b>{{ d.counts.withoutNutrition }}</b> plan(es) de nutrición }
@@ -42,7 +46,8 @@
 
     <div class="grid grid--2">
       <section class="card">
-        <header class="card__head">
+        <header class="card__head card__head--icon">
+          <span class="tile-icon tone--emerald"><app-icon name="chart" [size]="20" /></span>
           <h2 class="card__title">Actividad reciente de tus clientes</h2>
         </header>
         @if (d.activity.length) {
@@ -50,7 +55,7 @@
             @for (item of d.activity; track $index) {
               <li>
                 <a [routerLink]="['/panel/clients', item.clientId]">
-                  <span class="avatar">{{ initials(item.clientName) }}</span>
+                  <span class="tile-icon" [class]="'tile-icon tone--' + (item.type === 'checkin' ? 'steel' : 'emerald')"><app-icon [name]="item.type === 'checkin' ? 'clipboard' : 'scale'" [size]="20" /></span>
                   <span class="feed__text"><b>{{ item.clientName }}</b>{{ item.label }}</span>
                   <span class="feed__date">{{ date(item.at, true) }}</span>
                 </a>
@@ -58,18 +63,22 @@
             }
           </ul>
         } @else {
-          <p class="text-muted">Aquí aparecerá lo que tus clientes registren desde su enlace: peso y cuestionarios.</p>
+          <p class="text-muted">Aquí aparecerá lo que tus clientes registren desde su enlace: <b>peso</b> y <b>cuestionarios</b>.</p>
         }
       </section>
 
       <div class="stack">
         <section class="card">
-          <header class="card__head"><h2 class="card__title">Pagos</h2></header>
+          <header class="card__head card__head--icon">
+            <span class="tile-icon tone--coral"><app-icon name="calendar" [size]="20" /></span>
+            <h2 class="card__title">Pagos</h2>
+          </header>
           @if (d.payments.length) {
             <ul class="feed">
               @for (payment of d.payments; track payment.clientId) {
                 <li>
                   <a [routerLink]="['/panel/clients', payment.clientId]">
+                    <span class="avatar">{{ initials(payment.clientName) }}</span>
                     <span class="feed__text"><b>{{ payment.clientName }}</b>{{ payment.planType || 'Plan' }}</span>
                     <span class="badge" [class.badge--danger]="payment.overdue" [class.badge--warning]="!payment.overdue">{{ payment.overdue ? 'Vencido' : 'Próximo' }} · {{ date(payment.date, true) }}</span>
                   </a>
@@ -77,12 +86,15 @@
               }
             </ul>
           } @else {
-            <p class="text-muted">Sin pagos por cobrar en los próximos días. La fecha de pago se captura en el expediente.</p>
+            <p class="text-muted">Sin pagos por cobrar en los próximos días. La <b>fecha de pago</b> se captura en el expediente.</p>
           }
         </section>
 
         <section class="card">
-          <header class="card__head"><h2 class="card__title">Clientes nuevos</h2></header>
+          <header class="card__head card__head--icon">
+            <span class="tile-icon tone--steel"><app-icon name="userPlus" [size]="20" /></span>
+            <h2 class="card__title">Clientes nuevos</h2>
+          </header>
           @if (d.recentClients.length) {
             <ul class="feed">
               @for (client of d.recentClients; track client.id) {
@@ -90,22 +102,27 @@
                   <a [routerLink]="['/panel/clients', client.id]">
                     <span class="avatar">{{ initials(client.fullName) }}</span>
                     <span class="feed__text"><b>{{ client.fullName }}</b>Alta: {{ date(client.createdAt, true) }}</span>
+                    <app-icon name="chevronRight" [size]="18" />
                   </a>
                 </li>
               }
             </ul>
           } @else {
             <div class="empty">
+              <span class="tile-icon tile-icon--solid tone--emerald"><app-icon name="userPlus" [size]="22" /></span>
               <h3>Todavía no tienes clientes</h3>
-              <p>Da de alta al primero para armar su plan.</p>
+              <p>Da de alta al primero para <b>armar su plan</b>.</p>
               <a appBtn variant="soft" routerLink="/panel/clients/new">Nuevo cliente</a>
             </div>
           }
         </section>
 
         @if (pendingSections().length) {
-          <section class="card card--soft">
-            <h2 class="card__title">Pendiente de confirmar en tu sitio</h2>
+          <section class="card card--tint tone--amber">
+            <header class="card__head card__head--icon">
+              <span class="tile-icon tile-icon--solid"><app-icon name="edit" [size]="20" /></span>
+              <h2 class="card__title">Pendiente de confirmar en tu sitio</h2>
+            </header>
             <p class="pending">{{ pendingSections().join(' · ') }}</p>
             <a appBtn variant="outline" size="sm" routerLink="/panel/content">Editar contenido</a>
           </section>

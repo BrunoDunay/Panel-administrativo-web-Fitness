@@ -6,6 +6,27 @@
   font-size: var(--text-4xl);
 }
 
+.tile {
+  gap: var(--space-2);
+  transition:
+    transform 160ms var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+}
+
+.tile .tile-icon {
+  margin-bottom: var(--space-2);
+}
+
+a.tile:active {
+  transform: scale(0.98);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.tile:hover {
+    transform: translateY(-2px);
+  }
+}
+
 .feed {
   display: grid;
   list-style: none;

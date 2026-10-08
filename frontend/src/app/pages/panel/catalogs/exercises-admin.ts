@@ -4,7 +4,9 @@ import { Icon } from '../../../components/icon/icon';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PanelApi } from '../../../core/services/api/panel-api.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { MovementFigure } from '../../../components/visual/movement-figure';
 import { Exercise, Muscle } from '../../../core/types/catalog.model';
+import { MOVEMENT_LABELS, exerciseEquipment, movementPattern, muscleRegion, muscleTone } from '../../../core/utils/visuals';
 import { ConfirmService } from '../shared/confirm.service';
 import { PageHeader } from '../shared/page-header';
 import { CatalogPage } from './catalog-page';
@@ -12,7 +14,7 @@ import { CatalogPage } from './catalog-page';
 /** Base de ejercicios: un músculo por tarjeta y sus ejercicios debajo. Alimenta los desplegables de las semanas. */
 @Component({
   selector: 'app-exercises-admin',
-  imports: [PageHeader, Btn, Icon, SkeletonTable],
+  imports: [PageHeader, Btn, Icon, SkeletonTable, MovementFigure],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-page-header title="Ejercicios" [subtitle]="summary()" />
@@ -31,20 +33,38 @@ import { CatalogPage } from './catalog-page';
     </div>
 
     @if (catalog()) {
+      <p class="legend">
+        <span><i class="dot tone--steel"></i><b>Empuje</b> · tren superior</span>
+        <span><i class="dot tone--emerald"></i><b>Tracción</b> · tren superior</span>
+        <span><i class="dot tone--amber"></i><b>Tren inferior</b></span>
+        <span><i class="dot tone--coral"></i><b>Core</b></span>
+        <span>El dibujo de cada ejercicio muestra el tipo de movimiento; se deduce del nombre.</span>
+      </p>
       <div class="muscles">
         @for (muscle of muscles(); track muscle.id) {
-          <section class="card muscle">
+          <section [class]="'card card--edge muscle tone--' + tone(muscle.name)">
             <header class="card__head">
-              <h2 class="card__title">{{ muscle.name }}</h2>
+              <div>
+                <p class="muscle__region">{{ region(muscle.name) }}</p>
+                <h2 class="card__title">{{ muscle.name }}</h2>
+              </div>
               <div class="row">
-                <span class="badge">{{ muscle.exercises.length }}</span>
+                <span class="badge badge--tone">{{ muscle.exercises.length }}</span>
                 <button type="button" class="icon-btn" (click)="removeMuscle(muscle)" [attr.aria-label]="'Eliminar el músculo ' + muscle.name"><app-icon name="trash" [size]="16" /></button>
               </div>
             </header>
             <ul>
               @for (exercise of muscle.exercises; track exercise.id) {
-                <li>
-                  <span>{{ exercise.name }}</span>
+                <li class="icon-hover">
+                  @if (pattern(exercise.name, muscle.name); as p) {
+                    <span class="thumb thumb--lg figure"><app-movement-figure [pattern]="p" [size]="46" /></span>
+                  } @else {
+                    <span class="thumb thumb--lg figure"><app-icon name="movement" [size]="26" /></span>
+                  }
+                  <span class="exercise">
+                    <b>{{ exercise.name }}</b>
+                    <small>{{ meta(exercise.name, muscle.name) }}</small>
+                  </span>
                   <button type="button" class="icon-btn" (click)="removeExercise(exercise)" [attr.aria-label]="'Eliminar ' + exercise.name"><app-icon name="close" [size]="14" /></button>
                 </li>
               }
@@ -73,7 +93,13 @@ import { CatalogPage } from './catalog-page';
     .new-muscle input { width: 12rem; }
     .muscles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-4); align-items: start; }
     .muscle ul { display: grid; margin-bottom: var(--space-3); list-style: none; }
-    .muscle li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0.2rem 0; border-bottom: var(--hairline); font-size: var(--text-sm); }
+    .muscle li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: var(--hairline); font-size: var(--text-sm); }
+    .muscle__region { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--tone-ink); }
+    .figure { --figure-accent: var(--tone); --figure-surface: var(--tone-soft); }
+    .exercise { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
+    .exercise small { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin-bottom: var(--space-4); font-size: var(--text-xs); color: var(--color-text-muted); }
+    .legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
     .icon-btn { display: inline-grid; place-items: center; flex: none; width: 2rem; height: 2rem; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); }
     @media (hover: hover) and (pointer: fine) { .icon-btn:hover { background: var(--color-danger-soft); color: var(--color-danger); } }
   `,
@@ -83,6 +109,14 @@ export class ExercisesAdmin extends CatalogPage {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   protected readonly search = signal('');
+  protected readonly tone = muscleTone;
+  protected readonly region = muscleRegion;
+  protected readonly pattern = movementPattern;
+
+  protected meta(exercise: string, muscle: string): string {
+    const pattern = movementPattern(exercise, muscle);
+    return [pattern ? MOVEMENT_LABELS[pattern] : null, exerciseEquipment(exercise)].filter(Boolean).join(' · ');
+  }
 
   protected readonly summary = computed(() => {
     const muscles = this.catalog()?.muscles ?? [];

@@ -1,7 +1,16 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PageHeader } from '../shared/page-header';
-import { CatalogCrud, CrudColumn, CrudField } from './catalog-crud';
+import { IconName } from '../../../components/icon/icon';
+import { Tone } from '../../../core/utils/visuals';
+import { CatalogCrud, CrudColumn, CrudField, Row, RowVisual } from './catalog-crud';
+
+const CARDIO: Record<string, { icon: IconName; tone: Tone }> = {
+  Continuo: { icon: 'run', tone: 'emerald' },
+  Intervalos: { icon: 'flame', tone: 'coral' },
+  NEAT: { icon: 'steps', tone: 'steel' },
+  Mixto: { icon: 'heart', tone: 'amber' },
+};
 import { CatalogPage } from './catalog-page';
 
 @Component({
@@ -17,9 +26,9 @@ import { CatalogPage } from './catalog-page';
     <div class="body">
       @if (catalog(); as c) {
         @if (kind() === 'cardio') {
-          <app-catalog-crud resource="cardio-protocols" addLabel="Agregar protocolo" [items]="rows(c.cardioProtocols)" [columns]="cardioColumns" [fields]="cardioFields" (changed)="reload()" />
+          <app-catalog-crud resource="cardio-protocols" addLabel="Agregar protocolo" [items]="rows(c.cardioProtocols)" [columns]="cardioColumns" [fields]="cardioFields" [visual]="cardioVisual" (changed)="reload()" />
         } @else {
-          <app-catalog-crud resource="warmup-protocols" addLabel="Agregar protocolo" [items]="rows(c.warmupProtocols)" [columns]="warmupColumns" [fields]="warmupFields" (changed)="reload()" />
+          <app-catalog-crud resource="warmup-protocols" addLabel="Agregar protocolo" [items]="rows(c.warmupProtocols)" [columns]="warmupColumns" [fields]="warmupFields" [visual]="warmupVisual" (changed)="reload()" />
         }
       } @else {
         <div class="card"><app-skeleton-table /></div>
@@ -34,9 +43,13 @@ import { CatalogPage } from './catalog-page';
 export class ProtocolsAdmin extends CatalogPage {
   protected readonly kind = signal<'cardio' | 'warmup'>('cardio');
 
+  protected readonly cardioVisual = (row: Row): RowVisual => CARDIO[String(row['type'])] ?? { icon: 'sliders', tone: 'slate' };
+  protected readonly warmupVisual = (row: Row): RowVisual =>
+    /inferior/i.test(String(row['name'])) ? { icon: 'stretch', tone: 'amber' } : /empuje|tracci/i.test(String(row['name'])) ? { icon: 'dumbbell', tone: 'steel' } : /molestia/i.test(String(row['name'])) ? { icon: 'scanHeart', tone: 'coral' } : { icon: 'flame', tone: 'emerald' };
+
   protected readonly cardioColumns: CrudColumn[] = [
-    { key: 'name', label: 'Nombre' },
-    { key: 'type', label: 'Tipo' },
+    { key: 'name', label: 'Nombre', sub: (row) => String(row['notes'] ?? '') },
+    { key: 'type', label: 'Tipo', tone: (value) => CARDIO[String(value)]?.tone ?? 'slate' },
     { key: 'durationMin', label: 'Min', numeric: true },
     { key: 'intervals', label: 'Intervalos' },
     { key: 'rpe', label: 'RPE' },
@@ -53,7 +66,7 @@ export class ProtocolsAdmin extends CatalogPage {
   ];
 
   protected readonly warmupColumns: CrudColumn[] = [
-    { key: 'name', label: 'Nombre' },
+    { key: 'name', label: 'Nombre', sub: (row) => String(row['general'] ?? '') },
     { key: 'duration', label: 'Duración' },
     { key: 'rampUpSets', label: 'Series de aproximación' },
   ];

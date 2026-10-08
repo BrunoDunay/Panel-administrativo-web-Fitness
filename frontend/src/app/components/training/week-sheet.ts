@@ -3,6 +3,8 @@ import { SYMBOLS } from '../../core/config/tracking-lists';
 import { ClientStore } from '../../core/services/client-store';
 import { CardioDay, LoggedSet, REST, TrainingWeek, WeekDay, WeekExercise } from '../../core/types/training.model';
 import { formatNumber, toNumber } from '../../core/utils/format';
+import { exerciseEquipment, movementPattern, muscleTone } from '../../core/utils/visuals';
+import { MovementFigure } from '../visual/movement-figure';
 
 /**
  * Hoja de la semana: la pauta del coach y el registro de carga y reps por serie.
@@ -10,6 +12,7 @@ import { formatNumber, toNumber } from '../../core/utils/format';
  */
 @Component({
   selector: 'app-week-sheet',
+  imports: [MovementFigure],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (day of trainingDays(); track day.day) {
@@ -32,12 +35,16 @@ import { formatNumber, toNumber } from '../../core/utils/format';
         </header>
 
         @for (exercise of day.exercises; track exercise.id; let i = $index) {
-          <section class="exercise">
+          <section [class]="'exercise icon-hover tone--' + tone(exercise.muscle)">
             <div class="exercise__head">
-              <span class="exercise__index">{{ i + 1 }}</span>
+              @if (pattern(exercise.exercise, exercise.muscle); as p) {
+                <span class="thumb thumb--lg figure"><app-movement-figure [pattern]="p" [size]="44" /></span>
+              } @else {
+                <span class="exercise__index">{{ i + 1 }}</span>
+              }
               <div class="exercise__name">
                 <strong>{{ exercise.exercise }}</strong>
-                <span class="text-muted">{{ exercise.muscle }}</span>
+                <span><b class="muscle">{{ exercise.muscle }}</b>@if (equipment(exercise.exercise)) { · {{ equipment(exercise.exercise) }} }</span>
               </div>
               @if (exercise.symbol) {
                 <span class="badge badge--warning" [title]="hint(exercise.symbol)">{{ exercise.symbol }} {{ symbolLabel(exercise.symbol) }}</span>
@@ -131,7 +138,10 @@ import { formatNumber, toNumber } from '../../core/utils/format';
     .exercise__head { display: flex; align-items: center; gap: var(--space-3); }
     .exercise__index { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--color-secondary); font-size: var(--text-xs); font-weight: 700; color: var(--color-text-inverse); }
     .exercise__name { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
-    .exercise__name span { font-size: var(--text-xs); }
+    .exercise__name span { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .exercise__name strong { font-size: var(--text-base); }
+    .muscle { color: var(--tone-ink); }
+    .figure { --figure-accent: var(--tone); --figure-surface: var(--tone-soft); }
     .pauta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; }
     .pauta dt { font-size: var(--text-xs); color: var(--color-text-muted); }
     .pauta dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -140,7 +150,7 @@ import { formatNumber, toNumber } from '../../core/utils/format';
     .set { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: 0; border: 0; min-width: 0; }
     .set legend { float: left; width: 3.6rem; padding: 0; font-size: var(--text-xs); font-weight: 600; color: var(--color-text-muted); }
     .set label { flex: 1; min-width: 0; }
-    .cardio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-steel-soft); font-size: var(--text-sm); }
+    .cardio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--tone-steel-soft); font-size: var(--text-sm); }
     .cardio--rest { background: var(--color-surface); }
     .cardio__log { width: 9rem; }
   `,
@@ -168,6 +178,9 @@ export class WeekSheet {
   }
 
   protected fmt = formatNumber;
+  protected readonly tone = muscleTone;
+  protected readonly pattern = movementPattern;
+  protected readonly equipment = exerciseEquipment;
   protected hint = (symbol: string) => SYMBOLS.find((s) => s.symbol === symbol)?.hint ?? '';
   protected symbolLabel = (symbol: string) => SYMBOLS.find((s) => s.symbol === symbol)?.label ?? '';
 

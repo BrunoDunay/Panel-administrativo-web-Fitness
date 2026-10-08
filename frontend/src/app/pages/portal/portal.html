@@ -42,7 +42,7 @@
             <section class="todo no-print">
               @if (!weighedToday()) {
                 <button type="button" class="todo__item" (click)="tab.set('tracking')">
-                  <app-icon name="chart" /><span><b>Registra tu peso de hoy</b>En ayunas, al despertar.</span><app-icon name="arrowRight" [size]="18" />
+                  <app-icon name="scale" /><span><b>Registra tu peso de hoy</b>En ayunas, al despertar.</span><app-icon name="arrowRight" [size]="18" />
                 </button>
               }
               @if (checkinPending()) {
@@ -55,20 +55,23 @@
 
           <div class="grid" style="--min: 230px">
             @if (weekProgress(); as progress) {
-              <button type="button" class="card stat tile" (click)="tab.set('training')">
+              <button type="button" class="card card--vivid tone--emerald stat tile" (click)="tab.set('training')">
+                <span class="tile-icon"><app-icon name="dumbbell" [size]="22" /></span>
                 <span class="stat__label">Semana {{ progress.number }} · series hechas</span>
                 <span class="stat__value">{{ progress.done }}<small> de {{ progress.planned }}</small></span>
                 <div class="meter"><span [style.width.%]="progress.pct"></span></div>
               </button>
             }
             @if (today(); as day) {
-              <button type="button" class="card stat tile" (click)="tab.set('nutrition')">
+              <button type="button" class="card card--tint tone--amber stat tile" (click)="tab.set('nutrition')">
+                <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="22" /></span>
                 <span class="stat__label">Hoy · día de {{ day.trains ? 'entreno' : 'descanso' }}</span>
                 <span class="stat__value">{{ num(day.kcal, 0) }}<small> kcal</small></span>
-                <span class="stat__note">P {{ day.proteinG }} g · C {{ day.carbsG }} g · G {{ day.fatG }} g</span>
+                <span class="stat__note"><b>P</b> {{ day.proteinG }} g · <b>C</b> {{ day.carbsG }} g · <b>G</b> {{ day.fatG }} g</span>
               </button>
             }
-            <button type="button" class="card stat tile" (click)="tab.set('tracking')">
+            <button type="button" class="card card--tint tone--steel stat tile" (click)="tab.set('tracking')">
+              <span class="tile-icon tile-icon--solid"><app-icon name="scale" [size]="22" /></span>
               <span class="stat__label">Peso · promedio de la semana</span>
               <span class="stat__value">{{ num(weightSummary().average ?? weightSummary().latest ?? client.initialWeightKg) }}<small> kg</small></span>
               <span class="stat__note">

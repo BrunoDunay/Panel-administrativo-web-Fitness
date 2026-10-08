@@ -549,3 +549,190 @@
     break-inside: avoid;
   }
 }
+
+/* =========================================================================
+   Color por tipo: familias que tiñen tarjetas, etiquetas e íconos.
+   Se usan con .tone--<familia> sobre el elemento (o un contenedor).
+   ========================================================================= */
+.tone--emerald { --tone-soft: var(--tone-emerald-soft); --tone-ink: var(--tone-emerald-ink); --tone: var(--tone-emerald); --tone-gradient: var(--gradient-emerald); }
+.tone--steel { --tone-soft: var(--tone-steel-soft); --tone-ink: var(--tone-steel-ink); --tone: var(--tone-steel); --tone-gradient: var(--gradient-steel); }
+.tone--amber { --tone-soft: var(--tone-amber-soft); --tone-ink: var(--tone-amber-ink); --tone: var(--tone-amber); --tone-gradient: var(--gradient-amber); }
+.tone--coral { --tone-soft: var(--tone-coral-soft); --tone-ink: var(--tone-coral-ink); --tone: var(--tone-coral); --tone-gradient: var(--gradient-coral); }
+.tone--slate { --tone-soft: var(--tone-slate-soft); --tone-ink: var(--tone-slate-ink); --tone: var(--tone-slate); --tone-gradient: var(--gradient-forest); }
+
+/* Tarjeta teñida: fondo suave del color de su tipo. */
+.card--tint {
+  background: var(--tone-soft, var(--color-primary-soft));
+  box-shadow: none;
+}
+
+.card--tint .stat__label,
+.card--tint .stat__note,
+.card--tint .card__hint,
+.card--tint .stat__value small {
+  color: var(--tone-ink, var(--color-primary));
+}
+
+/* Tarjeta destacada: degradado y texto claro. */
+.card--vivid,
+.card--dark {
+  position: relative;
+  background: var(--tone-gradient, var(--gradient-forest));
+  color: var(--color-text-inverse);
+  box-shadow: 0 14px 30px -18px var(--tone, var(--color-secondary));
+  overflow: hidden;
+}
+
+/* Un brillo suave en la esquina le quita lo plano al color. */
+.card--vivid::after,
+.card--dark::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -12%;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 68%);
+  pointer-events: none;
+}
+
+.card--vivid > *,
+.card--dark > * {
+  position: relative;
+  z-index: 1;
+}
+
+.card--vivid .stat__label,
+.card--vivid .stat__note,
+.card--vivid .stat__value small,
+.card--vivid .card__hint {
+  color: color-mix(in srgb, var(--color-text-inverse) 78%, transparent);
+}
+
+.card--vivid .meter,
+.card--dark .meter {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.card--vivid .meter > span,
+.card--dark .meter > span {
+  background: var(--color-text-inverse);
+}
+
+/* Franja de color a la izquierda: marca el tipo sin teñir toda la tarjeta. */
+.card--edge {
+  border-left: 4px solid var(--tone, var(--color-primary));
+}
+
+/* Insignia con ícono: cuadro redondeado del color de la familia. */
+.tile-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  background: var(--tone-soft, var(--color-primary-soft));
+  color: var(--tone-ink, var(--color-primary));
+}
+
+.tile-icon--solid {
+  background: var(--tone-gradient, var(--gradient-emerald));
+  color: var(--color-text-inverse);
+  box-shadow: 0 8px 16px -8px var(--tone, var(--color-primary));
+}
+
+.card--vivid .tile-icon,
+.card--dark .tile-icon {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--color-text-inverse);
+}
+
+/* Miniatura de un alimento, suplemento o ejercicio. */
+.thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-md);
+  background: var(--tone-soft, var(--color-surface-alt));
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--tone-ink, var(--color-text));
+}
+
+.thumb--lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.9rem;
+}
+
+.thumb--sm {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
+}
+
+.badge--tone {
+  background: var(--tone-soft);
+  color: var(--tone-ink);
+}
+
+.dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--tone, var(--color-accent));
+}
+
+/* Encabezado de tarjeta con ícono a la izquierda. */
+.card__head--icon {
+  justify-content: flex-start;
+}
+
+.card__head--icon > :last-child:not(:nth-child(2)) {
+  margin-left: auto;
+}
+
+/* Barra de macros: proteína, carbohidratos y grasa en proporción de sus calorías. */
+.macro-bar {
+  display: flex;
+  gap: 2px;
+  height: 0.5rem;
+  min-width: 5rem;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.macro-bar > span {
+  min-width: 2px;
+}
+
+.macro-bar .is-protein { background: var(--tone-coral); }
+.macro-bar .is-carbs { background: var(--tone-steel); }
+.macro-bar .is-fat { background: var(--tone-amber); }
+
+/* ---------- Énfasis ---------- */
+.table td:first-child {
+  font-weight: 600;
+}
+
+.table--plain td:first-child {
+  font-weight: 400;
+}
+
+.dl dd {
+  font-weight: 600;
+}
+
+.card__title {
+  letter-spacing: -0.01em;
+}
+
+.stat__label {
+  font-weight: 700;
+}

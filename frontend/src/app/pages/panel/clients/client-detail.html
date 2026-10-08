@@ -19,13 +19,13 @@
   @switch (tab()) {
     @case ('summary') {
       <div class="stack">
-        <section class="card card--dark link">
+        <section class="card card--vivid tone--slate link">
           <div>
             <p class="link__eyebrow">Enlace privado del cliente</p>
             <p class="link__url">{{ client.portalUrl }}</p>
             <p class="link__hint">
               @if (client.portalEnabled) {
-                Con este enlace tu cliente ve su plan y registra sus series, su peso y su cuestionario. No necesita contraseña: no lo compartas con nadie más.
+                Con este enlace tu cliente <b>ve su plan y registra</b> sus series, su peso y su cuestionario. No necesita contraseña: <b>no lo compartas con nadie más</b>.
               } @else {
                 El acceso está desactivado. Actívalo en la pestaña Expediente.
               }
@@ -41,7 +41,8 @@
         </section>
 
         <div class="grid" style="--min: 200px">
-          <button type="button" class="card stat tile" (click)="tab.set('training')">
+          <button type="button" class="card card--tint tone--amber stat tile" (click)="tab.set('training')">
+            <span class="tile-icon tile-icon--solid"><app-icon name="dumbbell" [size]="20" /></span>
             <span class="stat__label">Entrenamiento</span>
             @if (store.training(); as plan) {
               <span class="stat__value">{{ plan.blockPhase || 'Plan activo' }}</span>
@@ -51,7 +52,8 @@
               <span class="stat__note">Todavía no tiene plan</span>
             }
           </button>
-          <button type="button" class="card stat tile" (click)="tab.set('nutrition')">
+          <button type="button" class="card card--tint tone--steel stat tile" (click)="tab.set('nutrition')">
+            <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="20" /></span>
             <span class="stat__label">Nutrición</span>
             @if (store.nutrition()?.id && store.nutrition()?.computed; as computed) {
               <span class="stat__value">{{ num(computed.targetKcal, 0) }}<small> kcal</small></span>
@@ -61,14 +63,16 @@
               <span class="stat__note">Todavía no tiene plan</span>
             }
           </button>
-          <button type="button" class="card stat tile" (click)="tab.set('tracking')">
+          <button type="button" class="card card--tint tone--emerald stat tile" (click)="tab.set('tracking')">
+            <span class="tile-icon tile-icon--solid"><app-icon name="scale" [size]="20" /></span>
             <span class="stat__label">Peso · promedio semanal</span>
             <span class="stat__value">{{ num(weightSummary().average ?? client.initialWeightKg) }}<small> kg</small></span>
             <span class="stat__note">
               @if (weightSummary().change !== null) { {{ signed(weightSummary().change, 2) }} kg vs. semana anterior · esperado {{ num(weightSummary().expected, 2) }} } @else { Sin registros de peso }
             </span>
           </button>
-          <button type="button" class="card stat tile" (click)="tab.set('tracking')">
+          <button type="button" class="card card--tint tone--coral stat tile" (click)="tab.set('tracking')">
+            <span class="tile-icon tile-icon--solid"><app-icon name="heart" [size]="20" /></span>
             <span class="stat__label">Bienestar · último cuestionario</span>
             @if (lastCheckin(); as checkin) {
               <span class="stat__value">{{ num(checkin.wellbeingIndex) }}<small> de 5</small></span>

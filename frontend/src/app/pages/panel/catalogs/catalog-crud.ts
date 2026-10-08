@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Btn } from '../../../components/buttons/btn';
-import { Icon } from '../../../components/icon/icon';
+import { Icon, IconName } from '../../../components/icon/icon';
 import { PanelApi } from '../../../core/services/api/panel-api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CatalogResource } from '../../../core/types/catalog.model';
 import { ApiError } from '../../../core/types/common.model';
+import { Tone } from '../../../core/utils/visuals';
 import { ConfirmService } from '../shared/confirm.service';
 
 export interface CrudField {
@@ -23,9 +24,22 @@ export interface CrudColumn {
   key: string;
   label: string;
   numeric?: boolean;
+  /** Muestra el valor como etiqueta del color que devuelva. */
+  tone?: (value: unknown, row: Row) => Tone;
+  /** Barra con la proporción de calorías de proteína, carbos y grasa de la fila. */
+  macros?: boolean;
+  /** Texto secundario bajo el valor (otra columna de la fila). */
+  sub?: (row: Row) => string;
 }
 
-type Row = Record<string, unknown> & { id?: number };
+/** Miniatura de la fila: un emoji o un ícono sobre el color de su tipo. */
+export interface RowVisual {
+  emoji?: string;
+  icon?: IconName;
+  tone: Tone;
+}
+
+export type Row = Record<string, unknown> & { id?: number };
 
 /** Tabla con búsqueda y formulario para un catálogo (alimentos, suplementos, protocolos). */
 @Component({
@@ -39,9 +53,18 @@ type Row = Record<string, unknown> & { id?: number };
         <span class="visually-hidden">Buscar</span>
         <input type="search" placeholder="Buscar" [value]="search()" (input)="search.set($any($event.target).value)" />
       </label>
-      <span class="card__hint">{{ filtered().length }} de {{ items().length }}</span>
+      <span class="card__hint"><b>{{ filtered().length }}</b> de {{ items().length }}</span>
       <button appBtn type="button" (click)="start()"><app-icon name="plus" [size]="18" />{{ addLabel() }}</button>
     </div>
+
+    @if (filterOptions().length > 1) {
+      <div class="chips no-print" role="group" [attr.aria-label]="'Filtrar por ' + filterLabel()">
+        <button type="button" class="chip" [attr.aria-pressed]="filter() === null" (click)="filter.set(null)">Todos</button>
+        @for (option of filterOptions(); track option) {
+          <button type="button" class="chip" [attr.aria-pressed]="filter() === option" (click)="filter.set(option)">{{ option }}</button>
+        }
+      </div>
+    }
 
     @if (editing(); as row) {
       <form class="card editor" (ngSubmit)="save()" novalidate>
@@ -88,7 +111,24 @@ type Row = Record<string, unknown> & { id?: number };
           <tbody>
             @for (row of filtered(); track row.id) {
               <tr>
-                @for (column of columns(); track column.key) { <td [class.num]="column.numeric">{{ display(row[column.key]) }}</td> }
+                @for (column of columns(); track column.key; let first = $first) {
+                  <td [class.num]="column.numeric">
+                    @if (first && visual(); as getVisual) {
+                      @let v = getVisual(row);
+                      <span class="lead">
+                        <span class="thumb" [class]="'thumb tone--' + v.tone">@if (v.icon) { <app-icon [name]="v.icon" [size]="22" /> } @else { {{ v.emoji }} }</span>
+                        <span class="lead__text">{{ display(row[column.key]) }}@if (column.sub) { <small>{{ column.sub(row) }}</small> }</span>
+                      </span>
+                    } @else if (column.macros) {
+                      @let m = macroShares(row);
+                      <span class="macro-bar" [title]="m.title"><span class="is-protein" [style.flex]="m.protein"></span><span class="is-carbs" [style.flex]="m.carbs"></span><span class="is-fat" [style.flex]="m.fat"></span></span>
+                    } @else if (column.tone && row[column.key]) {
+                      <span [class]="'badge badge--tone tone--' + column.tone(row[column.key], row)">{{ display(row[column.key]) }}</span>
+                    } @else {
+                      {{ display(row[column.key]) }}
+                    }
+                  </td>
+                }
                 <td class="row-actions">
                   <button type="button" class="icon-btn" (click)="edit(row)" [attr.aria-label]="'Editar ' + row['name']"><app-icon name="edit" [size]="16" /></button>
                   <button type="button" class="icon-btn icon-btn--danger" (click)="remove(row)" [attr.aria-label]="'Eliminar ' + row['name']"><app-icon name="trash" [size]="16" /></button>
@@ -111,6 +151,11 @@ type Row = Record<string, unknown> & { id?: number };
     .search:focus-within { box-shadow: 0 0 0 3px var(--color-primary-soft); }
     .toolbar button { margin-left: auto; }
     .editor { display: grid; gap: var(--space-4); }
+    .lead { display: flex; align-items: center; gap: var(--space-3); min-width: 14rem; }
+    .lead__text { display: grid; line-height: 1.3; }
+    .lead__text small { display: -webkit-box; max-width: 30rem; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: var(--text-xs); font-weight: 400; color: var(--color-text-muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: var(--space-4); font-size: var(--text-xs); color: var(--color-text-muted); }
+    .legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
     .row-actions { white-space: nowrap; text-align: right; }
     .icon-btn { display: inline-grid; place-items: center; width: 2.2rem; height: 2.2rem; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); }
     @media (hover: hover) and (pointer: fine) {
@@ -129,25 +174,48 @@ export class CatalogCrud {
   readonly columns = input.required<CrudColumn[]>();
   readonly fields = input.required<CrudField[]>();
   readonly addLabel = input('Agregar');
+  readonly visual = input<((row: Row) => RowVisual) | null>(null);
+  /** Columna por la que se puede filtrar con botones (por ejemplo, el grupo). */
+  readonly filterKey = input<string | null>(null);
+  readonly filterLabel = input('tipo');
   /** Valores iniciales de un registro nuevo. */
   readonly defaults = input<Row>({});
   /** Se emite tras crear, editar o eliminar: la página vuelve a pedir el catálogo. */
   readonly changed = output<void>();
 
   protected readonly search = signal('');
+  protected readonly filter = signal<string | null>(null);
+  protected readonly filterOptions = computed(() => {
+    const key = this.filterKey();
+    if (!key) return [];
+    return [...new Set(this.items().map((row) => row[key]).filter((value): value is string => typeof value === 'string' && value !== ''))].sort((a, b) => a.localeCompare(b, 'es'));
+  });
   protected readonly editing = signal<Row | null>(null);
   protected readonly saving = signal(false);
   protected readonly errors = signal<Record<string, string>>({});
 
   protected readonly filtered = computed(() => {
     const term = this.search().trim().toLowerCase();
-    return term ? this.items().filter((row) => this.columns().some((column) => String(row[column.key] ?? '').toLowerCase().includes(term))) : this.items();
+    const key = this.filterKey();
+    const selected = this.filter();
+    return this.items().filter(
+      (row) => (!selected || !key || row[key] === selected) && (!term || this.columns().some((column) => String(row[column.key] ?? '').toLowerCase().includes(term))),
+    );
   });
 
   protected display(value: unknown): string {
     if (value === null || value === undefined || value === '') return '—';
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
     return String(value);
+  }
+
+  protected macroShares(row: Row) {
+    const protein = Number(row['proteinG']) * 4 || 0;
+    const carbs = Number(row['carbsG']) * 4 || 0;
+    const fat = Number(row['fatG']) * 9 || 0;
+    const total = protein + carbs + fat || 1;
+    const pct = (value: number) => Math.round((value / total) * 100);
+    return { protein, carbs, fat, title: `Proteína ${pct(protein)} % · Carbos ${pct(carbs)} % · Grasa ${pct(fat)} % de las calorías` };
   }
 
   protected start(): void {

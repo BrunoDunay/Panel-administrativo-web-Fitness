@@ -69,6 +69,10 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
 }
 
+.todo__item:nth-child(2) {
+  background: var(--gradient-steel);
+}
+
 .todo__item {
   display: flex;
   align-items: center;
@@ -76,7 +80,7 @@
   padding: var(--space-3) var(--space-4);
   border: 0;
   border-radius: var(--radius-lg);
-  background: var(--color-primary);
+  background: var(--gradient-emerald);
   text-align: left;
   color: var(--color-text-inverse);
   transition: transform 140ms var(--ease-out);
@@ -100,6 +104,7 @@
 
 /* Tarjetas del resumen que llevan a su sección. */
 .tile {
+  gap: var(--space-2);
   border: 0;
   text-align: left;
   transition:

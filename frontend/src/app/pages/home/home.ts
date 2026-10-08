@@ -9,6 +9,7 @@ import { Reveal } from '../../components/reveal/reveal.directive';
 import { API_URL } from '../../core/config/api.config';
 import { SeoService } from '../../core/services/seo.service';
 import { SiteSettings } from '../../core/types/settings.model';
+import { EmphasisPipe } from '../../core/utils/emphasis.pipe';
 import { whatsappLink } from '../../core/utils/format';
 
 /** Contenido de respaldo: la landing se ve completa aunque la API no responda. */
@@ -30,7 +31,7 @@ const FALLBACK: SiteSettings = {
 /** Landing: qué ofrece el coach, cómo trabaja, quién es y cómo contactarlo. */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, Btn, Icon, Reveal],
+  imports: [RouterLink, Btn, Icon, Reveal, EmphasisPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home.html',
   styleUrl: './home.css',
@@ -45,6 +46,7 @@ export class Home {
   protected readonly site = computed<SiteSettings>(() => ({ ...FALLBACK, ...this.loaded() }));
   protected readonly year = new Date().getFullYear();
   protected readonly serviceIcons = ['dumbbell', 'food', 'chart', 'heart', 'clipboard', 'drop'] as const;
+  protected readonly tones = ['emerald', 'amber', 'steel', 'coral'] as const;
 
   protected readonly whatsapp = computed(() => whatsappLink(this.site().contact.whatsapp, this.site().contact.whatsappMessage));
   protected readonly mailto = computed(() => (this.site().contact.email ? `mailto:${this.site().contact.email}` : null));
