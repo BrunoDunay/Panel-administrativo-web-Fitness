@@ -49,7 +49,7 @@ const gripSeat: Limb = { on: 'hip', d: [3.5, 1], b: -1 };
 
 /** De pie, de frente. */
 const FRONT_HIP: P = [32, G - 22];
-const fstand = (over: Partial<FrontPose> = {}): FrontPose => ({ hip: FRONT_HIP, arm: [6, 3], leg: [4, 0], ...over });
+const fstand = (over: Partial<FrontPose> = {}): FrontPose => ({ hip: FRONT_HIP, lift: 0, arm: [6, 3], leg: [4, 0], ...over });
 /** Sentado, de frente: el muslo se ve corto porque apunta hacia quien mira. */
 const FRONT_SEAT: P = [32, G - 14.94];
 const fsit = (over: Partial<FrontPose> = {}): FrontPose => ({ hip: FRONT_SEAT, thigh: 4, arm: [8, 2], leg: [10, 0], ...over });
@@ -92,9 +92,9 @@ function dips(lean: number): FigureDef {
 
 const pushup = (): FigureDef =>
   side(
-    { hip: [31.1, 49.2], torso: -115, arm: { to: [18, G], b: 1 }, leg: { to: [50, 58], b: 1, ft: 30 } },
-    { hip: [32.3, 55.2], torso: -99 },
-    [{ k: 'db', at: 'chest', d: [1, -3.4], ang: 72, len: 9 }],
+    { hip: [30.5, 47.8], torso: 110.9, arm: { to: [44, G], b: -1 }, leg: { to: [10, 55.6], b: -1, ft: 0 } },
+    { hip: [31.75, 53.74], torso: 94.9 },
+    [{ k: 'db', at: 'chest', d: [-1.2, -3.8], ang: 103, len: 9 }],
   );
 
 const machinePress = (): FigureDef => {
@@ -127,7 +127,7 @@ function crossover(high: boolean): FigureDef {
 function machineRow(open: boolean, chestPad: boolean, plateLoaded: boolean): FigureDef {
   const hip: P = [20, G - 11];
   const sh = shoulderOf(hip, 176);
-  const b = open ? 1 : -1;
+  const b = -1;
   const props: Prop[] = [FLOOR, ...stool(hip)];
   if (chestPad) props.push({ k: 'pad', p: [[sh[0] + 3.8, sh[1] + 1], [sh[0] + 3.8, sh[1] + 11]] }, { k: 'line', p: [[sh[0] + 5.6, sh[1] + 8], [sh[0] + 5.6, FLOOR_Y]] });
   if (!plateLoaded) props.push(stack(53));
@@ -141,7 +141,7 @@ function machineRow(open: boolean, chestPad: boolean, plateLoaded: boolean): Fig
 
 function cableRow(open: boolean): FigureDef {
   const hip: P = [19, 50];
-  const b = open ? 1 : -1;
+  const b = -1;
   const sa = shoulderOf(hip, 170);
   const sb = shoulderOf(hip, 187);
   const leg: Limb = { to: [39, 53.5], b: 1, ft: 172 };
@@ -187,17 +187,17 @@ function pulldownFront(oneArm: boolean): FigureDef {
   const seat: Prop[] = [FLOOR, { k: 'pad', p: [[23.5, 49], [40.5, 49]] }, { k: 'line', p: [[32, 50.6], [32, FLOOR_Y]] }];
   if (oneArm) {
     return front(
-      fsit({ hip, arm: { to: [22, 15], b: -1 }, armR: [10, -8], leg: [10, 0] }),
-      { arm: { to: [21.5, 31], b: -1 } },
+      fsit({ hip, arm: { to: [22, 15], b: 1 }, armR: [10, -8], leg: [10, 0] }),
+      { arm: { to: [20.5, 31], b: 1 } },
       [{ k: 'cable', from: [22, 3], at: 'handL', end: 'bar' }],
       seat,
     );
   }
-  return front(fsit({ hip, arm: { to: [18.5, 15], b: -1 } }), { arm: { to: [20, 29.5], b: -1 } }, [{ k: 'bar', ext: 2.5, plates: false }, { k: 'cable', from: [32, 3], at: 'mid', end: 'none' }], seat);
+  return front(fsit({ hip, arm: { to: [18.5, 15], b: 1 } }), { arm: { to: [20, 29.5], b: 1 } }, [{ k: 'bar', ext: 2.5, plates: false }, { k: 'cable', from: [32, 3], at: 'mid', end: 'none' }], seat);
 }
 
 function pullup(weighted: boolean): FigureDef {
-  const hands: Limb = { to: [23.5, 9], b: -1 };
+  const hands: Limb = { to: [23.5, 9], b: 1 };
   return front(
     { hip: [32, 39.5], arm: hands, leg: [3, 0] },
     { hip: [32, 29] },
@@ -209,9 +209,9 @@ function pullup(weighted: boolean): FigureDef {
 // ---------------------------------------------------------------- Hombro
 
 function overheadFront(seated: boolean, start: P, gear: Gear[]): FigureDef {
-  const base = seated ? fsit({ arm: { to: start, b: -1 } }) : fstand({ arm: { to: start, b: -1 }, leg: [6, 0] });
+  const base = seated ? fsit({ arm: { to: start, b: 1 } }) : fstand({ arm: { to: start, b: 1 }, leg: [6, 0] });
   const sy = base.hip[1] - LEN.torso;
-  return front(base, { arm: { to: [seated ? 25 : 24.5, sy - 16.4], b: -1 } }, gear, seated ? fseat : [FLOOR]);
+  return front(base, { arm: { to: [seated ? 25 : 24.5, sy - 16.4], b: 1 } }, gear, seated ? fseat : [FLOOR]);
 }
 
 function seatedPressSide(handX: number, gear: Gear[], props: Prop[]): FigureDef {
@@ -392,7 +392,7 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
       ['Remo con mancuerna a una mano (codo abierto)', dumbbellRow(true)],
       ['Remo en barra T', bentRow(120, [36, 49], [33, 42], [{ k: 'lever', from: [6, 60], at: 'hand' }, { k: 'plate', at: 'hand', d: [2.5, 1.5], r: 4 }])],
       ['Remo invertido', invertedRow()],
-      ['Remo alto en polea con cuerda', cablePull(sit({ hip: [22, G - 11], torso: 186 }), [36, 24.5], [26.5, 30], [56, 8], 'rope', [...stool([22, G - 11]), post(58, 5), { k: 'line', p: [[56, 5], [58, 5]] }])],
+      ['Remo alto en polea con cuerda', cablePull(sit({ hip: [22, G - 11], torso: 186 }), [36, 24.5], [26.5, 30], [56, 8], 'rope', [...stool([22, G - 11]), post(58, 5), { k: 'line', p: [[56, 5], [58, 5]] }], -1)],
       ['Remo en máquina agarre prono (codos abiertos)', machineRow(true, false, true)],
     ],
   ],
@@ -427,7 +427,7 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
       ['Press militar con barra de pie', overheadFront(false, [22.5, 21.5], [barbell(9)])],
       ['Press militar sentado con mancuernas', overheadFront(true, [20.5, 28.5], dbs)],
       ['Press de hombro en máquina', seatedPressSide(4.5, [{ k: 'lever', from: [9, 20], at: 'hand' }], [stack(3, 28)])],
-      ['Press Arnold', overheadFront(true, [29.3, 27.5], dbs)],
+      ['Press Arnold', front(fsit({ arm: [15, 185] }), { arm: [168, 184] }, dbs, fseat)],
       ['Elevaciones frontales con mancuernas', frontRaise(false)],
       ['Elevaciones frontales en polea', frontRaise(true)],
     ],
@@ -489,7 +489,7 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
       ['Press francés con barra Z', skullCrusher([{ k: 'ez', at: 'hand' }])],
       ['Press francés con mancuernas', skullCrusher([db('hand', true)])],
       ['Fondos en máquina', side(sit({ hip: [24, G - 11], torso: 180, arm: { to: [28.5, 41], b: -1 } }), { arm: { to: [27.5, 50.5], b: -1 } }, [{ k: 'lever', from: [8, 46], at: 'hand', plate: true }], [FLOOR, ...bench([24, G - 11], 180)])],
-      ['Press cerrado con barra', front(lying({ arm: { to: [29, 36.5], b: -1 } }), { arm: { to: [29, 21.4], b: -1 } }, [barbell(14)], lyingBench)],
+      ['Press cerrado con barra', front(lying({ arm: [70, 250] }), { arm: [172, 188] }, [barbell(16)], lyingBench)],
       ['Extensión de tríceps unilateral en polea', pushdown('none', true)],
       ['Patada de tríceps en polea', side({ hip: [22, 39], torso: 105, arm: [-85, 0], arm2: { on: 'knee2', d: [0, -2], b: -1 }, leg: foot(25), leg2: foot(29) }, { arm: [-85, -88] }, [{ k: 'cable', from: [54, 59], at: 'hand', end: 'none' }], [FLOOR, post(57, 30)])],
       ['Fondos en paralelas (énfasis tríceps)', dips(4)],
@@ -511,16 +511,16 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
     [
       ['Flexión de tronco con soga en polea alta', side({ hip: [29, 48.2], torso: 160, arm: { on: 'head', d: [3, 2], b: -1 }, leg: { to: [19, 59.4], b: 1, ft: -90 } }, { hip: [27, 48.5], torso: 105 }, [{ k: 'cable', from: [50, 5], at: 'hand', end: 'rope' }], [FLOOR, post(54, 3), { k: 'line', p: [[50, 3], [54, 3]] }])],
       ['Crunch en máquina', side(sit({ hip: [24, G - 11], torso: 186, arm: { on: 'shoulder', d: [4, -2], b: -1 } }), { torso: 148 }, [{ k: 'roller', at: 'chest', d: [3.6, -2], r: 2.5 }, { k: 'lever', from: [40, 50], at: 'chest', d: [3.6, -2] }], [FLOOR, ...bench([24, G - 11], 186), stack(52)])],
-      ['Elevación de piernas colgado', side({ hip: [30, 36.6], torso: 180, arm: [180, 180], leg: [2, 2, 80] }, { leg: [88, 86, 10] }, [], [{ k: 'ring', at: [30, 4.6], r: 1.5 }, { k: 'line', p: [[30, 0], [30, 3]] }])],
+      ['Elevación de piernas colgado', side({ hip: [30, 36.6], torso: 180, arm: [180, 180], leg: [2, 2, 92] }, { leg: [88, 86, 176] }, [], [{ k: 'ring', at: [30, 4.6], r: 1.5 }, { k: 'line', p: [[30, 0], [30, 3]] }])],
       ['Elevación de rodillas en banco', side({ hip: [26, G - 11], torso: 205, arm: { to: [17, 50.5], b: -1 }, leg: [78, 70, 60] }, { leg: [152, 30, 70] }, [], [FLOOR, ...flatBench(9, 31, 52.1)])],
-      ['Plancha', side({ hip: [31.9, 55.2], torso: -107, arm: [0, 90], leg: { to: [52, 57.5], b: 1, ft: 20 } }, { hip: [32.2, 53.9], torso: -101.5 })],
+      ['Plancha', side({ hip: [32.3, 52.2], torso: -98.4, arm: [0, -90], leg: { to: [54, 55.4], b: 1, ft: 10 } }, { hip: [32.4, 51.4], torso: -95.2 })],
       [
         'Rueda abdominal',
         {
           view: 'side',
-          a: { hip: [20, 48.2], torso: 120, arm: { to: [36, 56], b: 1 }, leg: { to: [11, 59.4], b: 1, ft: -90 } },
-          m: { hip: [25.9, 48.7], torso: 111, arm: { to: [46.7, 56], b: 1 }, leg: { to: [11, 59.4], b: 1, ft: -90 } },
-          b: { hip: [30.5, 52.5], torso: 102, arm: { to: [57.5, 56], b: 1 }, leg: { to: [11, 59.4], b: 1, ft: -90 } },
+          a: { hip: [20, 48.2], torso: 120, arm: { to: [36, 56], b: -1 }, leg: { to: [11, 59.4], b: 1, ft: -90 } },
+          m: { hip: [25.9, 48.7], torso: 111, arm: { to: [46.7, 56], b: -1 }, leg: { to: [11, 59.4], b: 1, ft: -90 } },
+          b: { hip: [30.5, 52.5], torso: 102, arm: { to: [57.5, 56], b: -1 }, leg: { to: [11, 59.4], b: 1, ft: -90 } },
           gear: [plate('hand', 3.4)],
           props: [FLOOR],
         },
@@ -655,10 +655,10 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
       [
         'Copenhagen plank',
         side(
-          { hip: [30.3, 53.5], torso: -100, arm: [0, 90], leg: { to: [50, 45.5], b: 1, ft: 90 }, leg2: [75, 70, 150] },
-          { hip: [30.3, 48.5], torso: -80.1 },
+          { hip: [30.6, 48], torso: -110, arm: { to: [16.5, G], b: -1 }, arm2: { on: 'hip', d: [0, -2.5], b: 1 }, leg: { to: [52.5, 44.5], b: 1, ft: 90 }, leg2: [60, 75, 120] },
+          { hip: [31.5, 43.6], torso: -92.4 },
           [],
-          [FLOOR, ...flatBench(44, 60, 48.6)],
+          [FLOOR, ...flatBench(46, 61, 47.6)],
         ),
       ],
     ],
@@ -687,7 +687,7 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
           [FLOOR, { k: 'line', p: [[15.5, 18.5], [36.5, FLOOR_Y]] }, { k: 'pad', p: [[45, 59.6], [54, 54.4]] }],
         ),
       ],
-      ['Flexión plantar burro', calfRaise([30, 57.5], { torso: 95, arm: { to: [41, 49.6], b: -1 } }, [{ k: 'roller', at: 'hip', d: [-1, -3.6], r: 2.8 }, { k: 'lever', from: [6, 28], at: 'hip', d: [-1, -3.6], plate: true }], [{ k: 'pad', p: [[27, 60], [36.5, 60]] }, ...flatBench(36, 50, 51.6), post(6, 20)])],
+      ['Flexión plantar burro', calfRaise([30, 57.5], { torso: 95, arm: { to: [41, 49.6], b: -1 } }, [], [{ k: 'pad', p: [[27, 60], [36.5, 60]] }, ...flatBench(36, 50, 51.6)])],
     ],
   ],
   [

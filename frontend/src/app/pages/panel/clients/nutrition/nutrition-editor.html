@@ -150,7 +150,7 @@
           </select>
         </label>
       </div>
-      <p class="card__hint">La proteína se reparte igual. En pre y post entreno va más carbo y menos grasa. Para tu propio reparto, escribe tus % en "manual" (se ajustan solos a 100 %).</p>
+      <p class="card__hint">La proteína se reparte igual. En pre y post entreno va más carbo y menos grasa. Para tu propio reparto escribe tus % en "manual": entre todas las comidas <b>no pueden pasar de 100 %</b> y abajo ves cuánto te falta por repartir.</p>
       <div class="table-wrap">
         <table class="table table--compact">
           <thead>
@@ -168,12 +168,31 @@
                 <td class="num">{{ share ? pct(share.protein) : '—' }}</td>
                 <td class="num">{{ share ? pct(share.carbs) : '—' }}</td>
                 <td class="num">{{ share ? pct(share.fat) : '—' }}</td>
-                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mp' + n" [(ngModel)]="meta.manual.proteinPct" [attr.aria-label]="'% manual de proteína, comida ' + n" /></td>
-                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mc' + n" [(ngModel)]="meta.manual.carbsPct" [attr.aria-label]="'% manual de carbohidratos, comida ' + n" /></td>
-                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mf' + n" [(ngModel)]="meta.manual.fatPct" [attr.aria-label]="'% manual de grasa, comida ' + n" /></td>
+                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mp' + n" [ngModel]="meta.manual.proteinPct" (ngModelChange)="setManual(n - 1, 'proteinPct', $event, mpField)" #mpField [attr.aria-label]="'% manual de proteína, comida ' + n" /></td>
+                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mc' + n" [ngModel]="meta.manual.carbsPct" (ngModelChange)="setManual(n - 1, 'carbsPct', $event, mcField)" #mcField [attr.aria-label]="'% manual de carbohidratos, comida ' + n" /></td>
+                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mf' + n" [ngModel]="meta.manual.fatPct" (ngModelChange)="setManual(n - 1, 'fatPct', $event, mfField)" #mfField [attr.aria-label]="'% manual de grasa, comida ' + n" /></td>
               </tr>
             }
           </tbody>
+          @let mt = manualTotals();
+          @if (mt.proteinPct !== null || mt.carbsPct !== null || mt.fatPct !== null) {
+            <tfoot>
+              <tr>
+                <td colspan="7">Repartido a mano</td>
+                @for (total of [mt.proteinPct, mt.carbsPct, mt.fatPct]; track $index) {
+                  <td>
+                    @if (total === null) {
+                      <span class="badge">Automático</span>
+                    } @else if (total >= 99.5) {
+                      <span class="badge badge--success">100 % ✓</span>
+                    } @else {
+                      <span class="badge badge--danger">{{ num(total) }} % · faltan {{ num(100 - total) }}</span>
+                    }
+                  </td>
+                }
+              </tr>
+            </tfoot>
+          }
         </table>
       </div>
     </section>
@@ -183,8 +202,23 @@
       <h3 class="form-section__title">3 · Plan: elige los alimentos y los gramos salen solos</h3>
       <p class="card__hint">Elige 1 o 2 proteínas y 1 o 2 carbos (si eliges 2, se reparten a la mitad), 1 grasa y la verdura o fruta en porciones. En cada alimento puedes dejar hasta 3 cambios equivalentes.</p>
       @if (c) {
+        <!-- ¿Cuadra el plan? Objetivo del día contra lo que suman los alimentos elegidos. -->
+        <div class="fit">
+          @for (row of fit(); track row.label) {
+            <div class="fit__row">
+              <b class="fit__label">{{ row.label }}</b>
+              @for (item of row.items; track item.name) {
+                <div class="fit__item" [class.is-ok]="item.state === 'ok'" [class.is-low]="item.state === 'low'" [class.is-high]="item.state === 'high'">
+                  <small>{{ item.name }}</small>
+                  <span><b>{{ num(item.plan, 0) }}</b> de {{ num(item.goal, 0) }} {{ item.unit }}</span>
+                  <em>{{ item.state === 'ok' ? 'Cuadra' : item.state === 'low' ? 'Faltan ' + num(-item.diff, 0) : 'Sobran ' + num(item.diff, 0) }}</em>
+                </div>
+              }
+            </div>
+          }
+        </div>
         <p class="notice" [class.notice--warning]="c.dayTotals.rest.fiberG < c.dayTotals.rest.fiberGoalG" [class.notice--success]="c.dayTotals.rest.fiberG >= c.dayTotals.rest.fiberGoalG">
-          Día de descanso: {{ num(c.dayTotals.rest.kcal, 0) }} de {{ c.cycle.rest.kcal }} kcal · P {{ num(c.dayTotals.rest.proteinG, 0) }}/{{ c.cycle.rest.proteinG }} · C {{ num(c.dayTotals.rest.carbsG, 0) }}/{{ c.cycle.rest.carbsG }} · G {{ num(c.dayTotals.rest.fatG, 0) }}/{{ c.cycle.rest.fatG }} · Fibra {{ num(c.dayTotals.rest.fiberG, 0) }}/{{ c.dayTotals.rest.fiberGoalG }} g
+          Fibra (día de descanso): {{ num(c.dayTotals.rest.fiberG, 0) }} de {{ c.dayTotals.rest.fiberGoalG }} g
           @if (c.vegetableProteinTarget !== null && c.dayTotals.rest.vegetableProteinPct !== null) { · Proteína vegetal {{ pct(c.dayTotals.rest.vegetableProteinPct) }} (meta {{ pct(c.vegetableProteinTarget) }}) }
         </p>
       }

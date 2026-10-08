@@ -24,9 +24,6 @@ interface ExerciseDraft {
   description: string;
 }
 
-/** Ejercicios que se ven de un músculo antes de pedir "ver todos". */
-const VISIBLE = 6;
-
 /**
  * Base de ejercicios: un músculo por tarjeta (con el color de su zona) y sus ejercicios, cada
  * uno con su dibujo animado. Alimenta los desplegables de las semanas.
@@ -48,15 +45,12 @@ export class ExercisesAdmin extends CatalogPage {
   protected readonly tone = muscleTone;
   protected readonly region = muscleRegion;
   protected readonly regionKey = muscleRegionKey;
-  protected readonly visible = VISIBLE;
 
   protected readonly search = signal('');
   protected readonly newMuscle = signal({ name: '', region: 'push' });
   protected readonly editing = signal<ExerciseDraft | null>(null);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
-  /** Músculos con la lista completa a la vista. */
-  protected readonly expanded = signal<ReadonlySet<number>>(new Set());
   /** Grupo de dibujos abierto en el selector. */
   protected readonly pickerGroup = signal(FIGURE_GROUPS[0]!.group);
 
@@ -64,8 +58,6 @@ export class ExercisesAdmin extends CatalogPage {
     const muscles = this.catalog()?.muscles ?? [];
     return `${muscles.reduce((sum, muscle) => sum + muscle.exercises.length, 0)} ejercicios en ${muscles.length} músculos. Alimentan los desplegables de las semanas y las prioridades.`;
   });
-
-  protected readonly searching = computed(() => this.search().trim().length > 0);
 
   protected readonly muscles = computed(() => {
     const term = this.search().trim().toLowerCase();
@@ -84,17 +76,6 @@ export class ExercisesAdmin extends CatalogPage {
     return draft ? resolveFigure(draft.name, this.editingMuscle()?.name ?? '', draft.movement) : null;
   });
   protected readonly pickerItems = computed(() => FIGURE_GROUPS.find((group) => group.group === this.pickerGroup())?.items ?? []);
-
-  /** Con búsqueda se muestran todas las coincidencias; sin ella, las primeras y un botón para ver el resto. */
-  protected shown(muscle: Muscle): Exercise[] {
-    return this.searching() || this.expanded().has(muscle.id) ? muscle.exercises : muscle.exercises.slice(0, VISIBLE);
-  }
-
-  protected toggle(muscle: Muscle): void {
-    const next = new Set(this.expanded());
-    if (!next.delete(muscle.id)) next.add(muscle.id);
-    this.expanded.set(next);
-  }
 
   protected meta(exercise: Exercise, muscle: Muscle): string {
     const pattern = movementPattern(exercise.name, muscle.name);

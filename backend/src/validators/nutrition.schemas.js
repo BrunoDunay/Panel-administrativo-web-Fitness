@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { number, optionalDate, text } from './common.schemas.js';
 
+/** Máximo de comidas al día que admite un plan. */
+const MAX_MEALS = 8;
+
 const foodId = z.number().int().positive().nullish().transform((v) => v ?? null);
 const pct = number(0, 100);
 const swaps = z.array(z.number().int().positive()).max(3);
@@ -17,13 +20,14 @@ const inputs = z.object({
   cycling: z.boolean(),
   extraTrainingKcal: z.number().min(0).max(1500),
   trainingDays: z.array(z.boolean()).length(7),
-  mealCount: z.number().int().min(3).max(6),
-  preWorkoutMeal: z.number().int().min(1).max(6).nullable(),
-  postWorkoutMeal: z.number().int().min(1).max(6).nullable(),
+  mealCount: z.number().int().min(3).max(MAX_MEALS),
+  preWorkoutMeal: z.number().int().min(1).max(MAX_MEALS).nullable(),
+  postWorkoutMeal: z.number().int().min(1).max(MAX_MEALS).nullable(),
   roundTo: z.union([z.literal(1), z.literal(5), z.literal(10)]),
   mealsMeta: z
     .array(z.object({ name: z.string().trim().min(1).max(40), time: z.string().trim().max(10).default(''), manual: z.object({ proteinPct: pct, carbsPct: pct, fatPct: pct }).partial().default({}) }))
-    .length(6),
+    .min(6)
+    .max(MAX_MEALS),
 });
 
 const meal = z.object({
@@ -44,7 +48,7 @@ export const nutritionPlanBody = z.object({
   startDate: optionalDate,
   allowClientSwaps: z.boolean().default(true),
   inputs,
-  meals: z.array(meal).max(6).default([]),
+  meals: z.array(meal).max(MAX_MEALS).default([]),
   intra: z.object({ foodId, carbsG: number(0, 200) }).default({ foodId: null, carbsG: null }),
   hydration: z
     .object({

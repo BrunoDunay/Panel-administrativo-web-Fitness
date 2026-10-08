@@ -112,7 +112,7 @@
         </header>
 
         <ul>
-          @for (exercise of shown(muscle); track exercise.id) {
+          @for (exercise of muscle.exercises; track exercise.id) {
             <li class="icon-hover">
               <span class="thumb figure"><app-exercise-figure [exercise]="exercise.name" [muscle]="muscle.name" [figure]="exercise.movement" [size]="56" /></span>
               <span class="exercise">
@@ -128,15 +128,7 @@
           }
         </ul>
 
-        <div class="row row--between muscle__foot">
-          <button appBtn type="button" variant="soft" size="sm" (click)="startExercise(muscle)"><app-icon name="plus" [size]="16" />Agregar ejercicio</button>
-          @if (!searching() && muscle.exercises.length > visible) {
-            <button type="button" class="more" [attr.aria-expanded]="expanded().has(muscle.id)" (click)="toggle(muscle)">
-              {{ expanded().has(muscle.id) ? 'Ver menos' : 'Ver los ' + muscle.exercises.length }}
-              <app-icon name="chevronDown" [size]="16" />
-            </button>
-          }
-        </div>
+        <button appBtn type="button" variant="soft" size="sm" (click)="startExercise(muscle)"><app-icon name="plus" [size]="16" />Agregar ejercicio</button>
       </section>
     } @empty {
       <div class="card empty"><h3>Sin resultados</h3><p>Ningún ejercicio coincide con la búsqueda.</p></div>

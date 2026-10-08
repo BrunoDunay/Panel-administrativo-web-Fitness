@@ -23,7 +23,7 @@ export const LISTS = {
   foodStyles: ['Dulce', 'Salado', 'Ambos'],
   mealStyles: ['Mixto', 'Dulce', 'Salado'],
   roundTo: [1, 5, 10],
-  mealCounts: [3, 4, 5, 6],
+  mealCounts: [3, 4, 5, 6, 7, 8],
   blockPhases: ['Adaptación', 'Acumulación', 'Descarga', 'Mantenimiento'],
   cardioTypes: ['Continuo', 'Intervalos', 'NEAT', 'Mixto'],
   cardioMoments: ['Antes del entreno', 'Después del entreno', 'Sesión aparte', 'Día de descanso'],

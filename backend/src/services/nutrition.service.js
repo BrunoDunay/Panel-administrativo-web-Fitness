@@ -23,6 +23,8 @@ export const DEFAULT_MEALS = [
   { name: 'Colación PM', time: '17:00' },
   { name: 'Cena', time: '20:30' },
   { name: 'Colación noche', time: '22:30' },
+  { name: 'Comida 7', time: '' },
+  { name: 'Comida 8', time: '' },
 ];
 
 export const DEFAULT_INPUTS = {
@@ -69,6 +71,8 @@ export async function saveNutritionPlan(clientId, data) {
  */
 export function buildNutritionView(plan, client, catalog, today) {
   const inputs = { ...DEFAULT_INPUTS, ...(plan?.inputs ?? {}) };
+  // Los planes guardados con 6 comidas se completan hasta el máximo actual.
+  inputs.mealsMeta = DEFAULT_MEALS.map((meal, i) => inputs.mealsMeta?.[i] ?? { ...meal, manual: {} });
   const foods = new Map(catalog.foods.map((food) => [food.id, food]));
   const supplements = new Map(catalog.supplements.map((s) => [s.id, s]));
   const foodIcons = new Map(catalog.foods.map((food) => [food.name, food.icon]));

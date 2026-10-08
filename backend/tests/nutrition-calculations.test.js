@@ -83,8 +83,10 @@ describe('reparto por comida', () => {
     expect(meals[1].share.fat).toBeCloseTo(1 / 6);
     expect(meals[1].share.protein).toBeCloseTo(0.25);
   });
-  it('el reparto manual se ajusta a 100 %', () => {
-    const meals = distributeMeals({ mealCount: 2, cycle, manual: [{ carbsPct: 30 }, { carbsPct: 30 }] });
+  it('el reparto manual se respeta tal cual y solo se ajusta si pasa de 100 %', () => {
+    const short = distributeMeals({ mealCount: 2, cycle, manual: [{ carbsPct: 30 }, { carbsPct: 30 }] });
+    expect(short.map((meal) => meal.share.carbs)).toEqual([0.3, 0.3]);
+    const meals = distributeMeals({ mealCount: 2, cycle, manual: [{ carbsPct: 90 }, { carbsPct: 90 }] });
     expect(meals[0].share.carbs).toBe(0.5);
     expect(meals[0].share.protein).toBe(0.5);
   });

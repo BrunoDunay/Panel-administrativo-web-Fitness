@@ -76,7 +76,9 @@ export function weeklyCycle({ targetKcal, proteinG, fatG, trainingDays, cycling 
 /**
  * Reparte los macros del día entre las comidas. La proteína va pareja; en pre y post entreno
  * va más carbohidrato (x1.5) y menos grasa (x0.5). Un reparto manual (% por comida) sustituye
- * al automático macro por macro. Los carbohidratos del intra se restan del día de entreno.
+ * al automático macro por macro y se respeta tal cual: si suma menos de 100 %, lo que falta queda
+ * sin asignar (el plan lo avisa); si suma más, se ajusta a 100 %. Los carbohidratos del intra se
+ * restan del día de entreno.
  *
  * @param {object} p
  * @param {number} p.mealCount            Número de comidas.
@@ -100,7 +102,8 @@ export function distributeMeals({ mealCount, preWorkoutMeal = null, postWorkoutM
   const shares = (macro, manualKey) => {
     const hasManual = manual.some((m) => typeof m?.[manualKey] === 'number');
     const raw = meals.map((meal, i) => (hasManual ? Number(manual[i]?.[manualKey]) || 0 : meal.weights[macro]));
-    const total = raw.reduce((a, b) => a + b, 0);
+    const sum = raw.reduce((a, b) => a + b, 0);
+    const total = hasManual ? Math.max(100, sum) : sum;
     return raw.map((value) => (total ? value / total : 0));
   };
 

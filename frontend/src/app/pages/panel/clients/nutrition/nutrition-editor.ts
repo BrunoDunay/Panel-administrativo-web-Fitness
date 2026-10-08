@@ -20,6 +20,8 @@ const SLOTS: { key: MealSlot; label: string; flag: keyof Food; portions?: 'veget
   { key: 'fruit', label: 'Fruta', flag: 'asFruit', portions: 'fruitPortions' },
 ];
 
+type ManualKey = 'proteinPct' | 'carbsPct' | 'fatPct';
+
 const emptyMeal = (): MealChoice => ({
   style: 'Mixto',
   protein1: null,
@@ -83,7 +85,7 @@ export class NutritionEditor {
         startDate: view.startDate,
         allowClientSwaps: view.allowClientSwaps,
         inputs: structuredClone(view.inputs),
-        meals: Array.from({ length: 6 }, (_, i) => ({ ...emptyMeal(), ...structuredClone(view.meals[i] ?? {}) })),
+        meals: Array.from({ length: view.inputs.mealsMeta.length }, (_, i) => ({ ...emptyMeal(), ...structuredClone(view.meals[i] ?? {}) })),
         intra: { foodId: view.intra.foodId ?? null, carbsG: view.intra.carbsG ?? null },
         hydration: { sessionMin: 75, sweatRateLPerH: 0.8, ...structuredClone(view.hydrationInputs), test: { ...(view.hydrationInputs.test ?? {}) } },
         supplements: structuredClone(view.supplementInputs),
@@ -121,6 +123,44 @@ export class NutritionEditor {
       supplements: draft.supplements.filter((entry) => entry.supplementId),
     };
   }
+
+  // ---- Reparto manual ----
+
+  /** % ya asignado a mano por macro; null si ese macro sigue en automático. */
+  protected readonly manualTotals = computed(() => {
+    const draft = this.draft();
+    const metas = draft?.inputs.mealsMeta.slice(0, draft.inputs.mealCount) ?? [];
+    const total = (key: ManualKey) => (metas.some((meta) => typeof meta.manual[key] === 'number') ? metas.reduce((sum, meta) => sum + (Number(meta.manual[key]) || 0), 0) : null);
+    return { proteinPct: total('proteinPct'), carbsPct: total('carbsPct'), fatPct: total('fatPct') };
+  });
+
+  /** Un % manual nunca deja que el macro pase de 100 % entre todas las comidas. */
+  protected setManual(index: number, key: ManualKey, value: number | null, field: HTMLInputElement): void {
+    const draft = this.draft()!;
+    const metas = draft.inputs.mealsMeta.slice(0, draft.inputs.mealCount);
+    const others = metas.reduce((sum, meta, i) => sum + (i === index ? 0 : Number(meta.manual[key]) || 0), 0);
+    const allowed = typeof value === 'number' ? Math.max(0, Math.min(value, 100 - others)) : null;
+    metas[index]!.manual[key] = allowed;
+    if (allowed !== value) field.value = allowed === null ? '' : String(allowed);
+    this.refresh();
+  }
+
+  /** Objetivo contra plan del día, para ver de un vistazo si las cantidades cuadran. */
+  protected readonly fit = computed(() => {
+    const c = this.computed();
+    if (!c) return [];
+    const row = (label: string, kind: 'training' | 'rest') => {
+      const goal = c.cycle[kind];
+      const plan = c.dayTotals[kind];
+      const item = (name: string, planned: number, target: number, unit: string) => {
+        const diff = Math.round(planned) - Math.round(target);
+        const tolerance = Math.max(unit === 'kcal' ? 30 : 4, target * 0.04);
+        return { name, plan: planned, goal: target, unit, diff, state: Math.abs(diff) <= tolerance ? 'ok' : diff < 0 ? 'low' : 'high' };
+      };
+      return { label, items: [item('Calorías', plan.kcal, goal.kcal, 'kcal'), item('Proteína', plan.proteinG, goal.proteinG, 'g'), item('Carbos', plan.carbsG, goal.carbsG, 'g'), item('Grasa', plan.fatG, goal.fatG, 'g')] };
+    };
+    return [row('Día de entreno', 'training'), row('Día de descanso', 'rest')];
+  });
 
   // ---- Alimentos ----
 
