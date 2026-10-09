@@ -125,6 +125,28 @@ export class NutritionEditor {
     this.draft.update((draft) => (draft ? { ...draft } : draft));
   }
 
+  // ---- Ajuste de calorías: signo aparte del número ----
+
+  /** Signo elegido cuando el ajuste vale 0 (el número solo no lo dice). */
+  private readonly zeroDeficit = signal(false);
+  protected readonly deficit = computed(() => {
+    const value = this.draft()?.inputs.adjustmentKcal ?? 0;
+    return value === 0 ? this.zeroDeficit() : value < 0;
+  });
+  protected readonly abs = (value: number | null | undefined) => Math.abs(value ?? 0);
+
+  protected setAdjustment(value: number | null): void {
+    this.draft()!.inputs.adjustmentKcal = (this.deficit() ? -1 : 1) * Math.abs(Number(value) || 0);
+    this.refresh();
+  }
+
+  protected flipAdjustment(): void {
+    const inputs = this.draft()!.inputs;
+    this.zeroDeficit.set(!this.deficit());
+    inputs.adjustmentKcal = -inputs.adjustmentKcal || 0;
+    this.refresh();
+  }
+
   // ---- Pre y post entreno ----
 
   protected readonly momentTags = MOMENT_TAGS;

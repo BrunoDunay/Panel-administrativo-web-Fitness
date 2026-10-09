@@ -367,3 +367,38 @@ form {
     clip: rect(0 0 0 0);
   }
 }
+
+/* Ajuste de calorías: botón de signo + cantidad. */
+.signed {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.signed .field__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.signed__sign {
+  flex: none;
+  min-height: 2.6rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-primary);
+  transition: transform 140ms var(--ease-out);
+}
+
+.signed__sign:active {
+  transform: scale(0.97);
+}
+
+.signed__sign.is-deficit {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}

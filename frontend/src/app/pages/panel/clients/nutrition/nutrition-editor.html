@@ -50,8 +50,12 @@
           </select>
         </label>
         <label class="field">
-          <span class="field__label">Ajuste de calorías (kcal/día, + o −)</span>
-          <input class="field__control" type="number" inputmode="numeric" step="50" name="adjustmentKcal" [(ngModel)]="d.inputs.adjustmentKcal" />
+          <span class="field__label">Ajuste de calorías (kcal/día)</span>
+          <!-- El teclado numérico del teléfono no trae signo: el déficit o superávit se elige con el botón. -->
+          <span class="signed">
+            <button type="button" class="signed__sign" [class.is-deficit]="deficit()" (click)="flipAdjustment()" [attr.aria-label]="deficit() ? 'Déficit: toca para cambiar a superávit' : 'Superávit: toca para cambiar a déficit'">{{ deficit() ? '− Déficit' : '+ Superávit' }}</button>
+            <input class="field__control" type="number" inputmode="numeric" min="0" step="50" name="adjustmentKcal" [ngModel]="abs(d.inputs.adjustmentKcal)" (ngModelChange)="setAdjustment($event)" />
+          </span>
         </label>
       </div>
 
