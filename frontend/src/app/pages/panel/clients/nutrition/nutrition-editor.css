@@ -342,3 +342,28 @@ form {
     padding: var(--space-3);
   }
 }
+
+/* Teléfono: la barra de guardar va en un solo renglón, sin fondo que tape el contenido. */
+@media (max-width: 720px) {
+  .actions {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    bottom: var(--space-2);
+  }
+
+  .actions .start {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  .actions .start .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}

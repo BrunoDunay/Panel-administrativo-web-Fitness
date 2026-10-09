@@ -171,7 +171,6 @@ const SCORE_TONES: Record<number, Tone> = { 5: 'emerald', 4: 'teal', 3: 'slate',
     @media (max-width: 720px) {
       .session { grid-template-columns: auto minmax(0, 1fr); }
       .session .mini { grid-column: span 2; }
-      .actions button { width: 100%; white-space: normal; }
     }
   `,
 })

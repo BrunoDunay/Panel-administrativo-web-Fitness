@@ -56,6 +56,10 @@ export type BtnVariant = 'solid' | 'outline' | 'ghost' | 'light' | 'danger' | 's
     :host([disabled]), :host([aria-disabled='true']) { opacity: 0.5; pointer-events: none; }
     :host(.btn--sm) { min-height: 2.1rem; padding: 0.3rem 0.9rem; font-size: var(--text-xs); }
     :host(.btn--lg) { min-height: 3.2rem; padding: 0.75rem 1.9rem; font-size: var(--text-base); }
+    /* Teléfono: el botón de guardar que se queda fijo abajo va compacto para no tapar el contenido. */
+    @media (max-width: 720px) {
+      :host-context(.actions).btn--lg { min-height: 2.5rem; padding: 0.4rem 1rem; font-size: var(--text-sm); }
+    }
     :host(.btn--block) { display: flex; width: 100%; }
 
     :host(.btn--solid) { background: var(--color-primary); color: var(--color-text-inverse); }
