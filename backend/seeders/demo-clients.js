@@ -7,7 +7,8 @@
 import { Op } from 'sequelize';
 import { sequelize } from '../src/config/database.js';
 import { Client, Food, Payment, Supplement, WeekExercise } from '../src/models/index.js';
-import { saveNutritionPlan } from '../src/services/nutrition.service.js';
+import { loadCatalog } from '../src/services/catalog.service.js';
+import { buildNutritionView, saveNutritionPlan } from '../src/services/nutrition.service.js';
 import { saveCheckin, saveMeasurement, saveWeight } from '../src/services/tracking.service.js';
 import { addWeek, findActivePlan, logWeek, savePlan, saveWeekPrescription } from '../src/services/training.service.js';
 import { generateAccessCode } from '../src/utils/access-code.js';
@@ -25,6 +26,23 @@ const none = { protocol: null, moment: null, notes: null };
 const cardioWeek = (map) => Array.from({ length: 7 }, (_, i) => ({ ...none, ...(map[i + 1] ?? {}) }));
 const warmupWeek = (map) => Array.from({ length: 7 }, (_, i) => ({ protocol: map[i + 1] ?? null, notes: null }));
 const meals = (names) => Array.from({ length: 6 }, (_, i) => ({ name: names[i]?.[0] ?? `Comida ${i + 1}`, time: names[i]?.[1] ?? '', manual: {} }));
+
+// Menús de ejemplo: [grupo, porciones, alimento] por comida. Las porciones se escalan a las calorías de cada cliente.
+const MENUS = {
+  standard: [
+    { name: 'Desayuno', time: '08:00', items: [['aoa_m', 2, 'Huevo entero fresco'], ['aoa_mb', 1, 'Clara de huevo'], ['cereales_sg', 3, 'Tortilla de maíz'], ['verduras', 2, 'Jitomate'], ['frutas', 1, 'Manzana'], ['grasa_sp', 1, 'Aguacate hass']], notes: 'Huevo a la mexicana: pica el jitomate, saltéalo sin aceite y agrega el huevo y las claras. Acompaña con las tortillas y el aguacate.' },
+    { name: 'Colación', time: '11:30', items: [['leche_d', 1, 'Yogur griego natural'], ['frutas', 1, 'Fresa entera'], ['cereales_sg', 1, 'Avena en hojuelas'], ['grasa_cp', 1, 'Almendra']] },
+    { name: 'Comida', time: '14:30', items: [['aoa_mb', 5, 'Pechuga de pollo sin piel cocida'], ['cereales_sg', 5, 'Arroz cocido'], ['leguminosas', 1, 'Frijol promedio cocido'], ['verduras', 2, 'Brócoli cocido'], ['grasa_sp', 1, 'Aceite de oliva'], ['frutas', 1, 'Naranja']] },
+    { name: 'Cena', time: '20:30', items: [['aoa_b', 4, 'Queso panela'], ['cereales_sg', 3, 'Tortilla de maíz'], ['verduras', 2, 'Calabacita alargada cruda'], ['grasa_sp', 1, 'Aguacate hass']], extras: [['Plátano', 2, 'Solo los días de entreno']] },
+  ],
+  vegan: [
+    { name: 'Desayuno', time: '08:00', items: [['cereales_sg', 3, 'Avena en hojuelas'], ['frutas', 2, 'Plátano'], ['leguminosas', 1, 'Soya texturizada'], ['grasa_cp', 2, 'Almendra']] },
+    { name: 'Colación', time: '11:30', items: [['frutas', 1, 'Manzana'], ['grasa_cp', 1, 'Nuez']] },
+    { name: 'Comida', time: '14:30', items: [['leguminosas', 2, 'Lenteja cocida'], ['cereales_sg', 4, 'Arroz integral cocido'], ['aoa_b', 3, 'Tofu, firme'], ['verduras', 3, 'Espinaca cocida'], ['grasa_sp', 2, 'Aceite de oliva']], notes: 'Guisa las lentejas con la espinaca y sirve sobre el arroz. El tofu va dorado en sartén con el aceite.' },
+    { name: 'Cena', time: '20:30', items: [['aoa_b', 3, 'Tofu, firme'], ['cereales_sg', 3, 'Tortilla de maíz'], ['verduras', 3, 'Nopal cocido'], ['grasa_sp', 1, 'Aguacate hass']] },
+  ],
+};
+const GROUP_KCAL = { verduras: 25, frutas: 60, cereales_sg: 70, leguminosas: 120, aoa_mb: 40, aoa_b: 55, aoa_m: 75, leche_d: 95, grasa_sp: 45, grasa_cp: 70 };
 
 const W = {
   legsHeavy: 'Tren inferior · compuesto pesado (sentadilla, prensa, PM)',
@@ -256,7 +274,7 @@ const RATING_KEYS = ['energy', 'sleep', 'soreness', 'stress', 'mood', 'nutrition
 /** Variación fija (no al azar) para que los datos se vean naturales y siempre salgan igual. */
 const wobble = (i) => [0, 0.3, -0.1, 0.2, 0.4, 0.1, 0.3][i % 7];
 
-async function createDemo(spec, foods, supplements) {
+async function createDemo(spec, foods, supplements, catalog) {
   const email = `${spec.client.fullName.split(' ')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}${DOMAIN}`;
   if (await Client.findOne({ where: { email } })) return false;
 
@@ -309,19 +327,29 @@ async function createDemo(spec, foods, supplements) {
   }
 
   if (spec.nutrition) {
-    const { inputs, meals: chosen, intra, supplements: assigned } = spec.nutrition;
-    const id = (name) => (name ? food(name).id : null);
+    const { inputs, intra, supplements: assigned } = spec.nutrition;
+    const menu = MENUS[inputs.dietType === 'vegan' ? 'vegan' : 'standard'];
+    const base = {
+      formula: 'mifflin', weightKg: inputs.weightKg, activity: inputs.activity, dietType: inputs.dietType, goal: inputs.goal,
+      adjustmentKcal: inputs.adjustmentKcal, proteinPerKg: inputs.proteinPerKg, fatPct: inputs.fatPct,
+      mealCount: menu.length, mealsMeta: menu.map(({ name, time }) => ({ name, time })), portions: {},
+    };
+    // Las porciones del menú base se ajustan a las calorías objetivo del cliente (de media en media porción).
+    const target = buildNutritionView({ inputs: base, meals: [] }, client, catalog, today).computed.targetKcal;
+    const menuKcal = menu.reduce((sum, meal) => sum + meal.items.reduce((kcal, [group, portions]) => kcal + GROUP_KCAL[group] * portions, 0), 0);
+    const scale = (portions) => Math.max(0.5, Math.round((portions * target * 2) / menuKcal) / 2);
+    const mealsDraft = menu.map((meal) => ({
+      items: meal.items.map(([group, portions, name]) => ({ group, portions: scale(portions), foodId: food(name).id })),
+      extras: (meal.extras ?? []).map(([name, portions, note]) => ({ foodId: food(name).id, portions, note })),
+      notes: meal.notes ?? null,
+    }));
+    for (const meal of mealsDraft) for (const item of meal.items) base.portions[item.group] = (base.portions[item.group] ?? 0) + item.portions;
     await saveNutritionPlan(client.id, {
       startDate: spec.client.profile?.logistics?.startDate ?? today,
       allowClientSwaps: true,
-      inputs: { formula: 'mifflin', extraTrainingKcal: 300, roundTo: 5, preWorkoutMeal: null, postWorkoutMeal: null, ...inputs },
-      meals: chosen.map((meal) => ({
-        style: meal.style,
-        protein1: id(meal.protein1), protein2: id(meal.protein2), carb1: id(meal.carb1), carb2: id(meal.carb2), fat: id(meal.fat),
-        vegetable: id(meal.vegetable), vegetablePortions: 1, fruit: id(meal.fruit), fruitPortions: 1,
-        swaps: Object.fromEntries(Object.entries(meal.swaps ?? {}).map(([slot, names]) => [slot, names.map(id)])),
-      })),
-      intra: intra ? { foodId: id(intra.food), carbsG: intra.carbsG } : { foodId: null, carbsG: null },
+      inputs: base,
+      meals: mealsDraft,
+      intra: intra ? { foodId: food(intra.food).id, carbsG: intra.carbsG } : { foodId: null, carbsG: null },
       hydration: { sessionMin: spec.client.profile?.logistics?.sessionMinutes ?? 75, sweatRateLPerH: 0.8, test: {} },
       supplements: assigned.map(([name, assignedDose]) => ({ supplementId: supplements.get(name).id, assignedDose, timing: null })),
     });
@@ -363,11 +391,12 @@ async function main() {
   const supplements = new Map((await Supplement.findAll()).map((s) => [s.name, s]));
   if (!foods.size) throw new Error('Los catálogos están vacíos: arranca el servidor una vez (npm run dev) antes de cargar los ejemplos.');
 
+  const catalog = await loadCatalog();
   let created = 0;
   const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).toLowerCase();
   for (const spec of DEMO) {
     if (only && !spec.client.fullName.toLowerCase().includes(only)) continue;
-    if (await createDemo(spec, foods, supplements)) {
+    if (await createDemo(spec, foods, supplements, catalog)) {
       created++;
       console.log(`  + ${spec.client.fullName}`);
     }

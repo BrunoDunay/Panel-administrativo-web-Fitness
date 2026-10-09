@@ -11,7 +11,7 @@ Panel de trabajo del coach, portal del cliente y landing pública. Sustituye las
 
 ## Qué hace
 
-- **Panel del coach** (`/panel`): clientes con su historia clínica, plan de entrenamiento (bloques, split, prioridades, semanas con pauta por ejercicio, cardio y calentamiento), plan de nutrición (gasto, macros, reparto por comida, gramos automáticos, cambios, lista del súper, hidratación y suplementos), seguimiento, **pagos** y catálogos editables.
+- **Panel del coach** (`/panel`): clientes con su historia clínica, plan de entrenamiento (bloques, split, prioridades, semanas con pauta por ejercicio, cardio y calentamiento), plan de nutrición por porciones del Sistema Mexicano de Alimentos Equivalentes (gasto y macros, dietocálculo por grupo, reparto de porciones por comida, alimentos adicionales, notas de preparación, lista del súper, hidratación y suplementos), seguimiento, **pagos** y catálogos editables.
 - **Portal del cliente** (`/mi-plan/<código>`): cada cliente recibe un enlace privado, sin contraseña. Ahí ve su plan y registra carga y reps por serie, minutos de cardio, peso diario, cuestionario semanal y mediciones. El coach ve y puede corregir lo mismo desde el expediente. Si su pago está por vencer o ya venció, ve un aviso.
 - **Landing** (`/`): servicios, método, coach y contacto. Todo el texto se edita desde el panel.
 
@@ -76,6 +76,17 @@ Las fórmulas de las plantillas están en `backend/src/services/calculations/` c
 | `training.js` | Series hechas, e1RM (Epley), tonelaje, volumen por músculo, fechas de bloques, pasos, cumplimiento de cardio |
 
 El frontend no repite ninguna fórmula: mientras el coach edita el plan de nutrición, el borrador se recalcula en el servidor con el mismo motor que verá el cliente.
+
+## Nutrición por porciones
+
+El plan es un solo menú para todos los días y se arma como lo hace el coach en sus hojas `_DIETOCALCULO` y `MENU SMAE`:
+
+1. **Dietocálculo.** Porciones al día de cada grupo (verduras, frutas, cereales, origen animal…). El aporte de cada porción es el estándar del grupo y el total se compara con el objetivo: cuadra entre 95 y 105 %.
+2. **Menú.** Esas porciones se reparten entre las comidas sin poder pasarse de las del día. En cada renglón se elige el alimento y su cantidad sale sola, porque en el catálogo cada alimento está capturado a 1 porción de su grupo.
+3. **Cambios del cliente.** Al tocar un alimento, el cliente ve los equivalentes del mismo grupo ya con la cantidad para sus porciones. El cambio se guarda solo en su dispositivo.
+4. **Adicionales y notas.** Cada comida admite hasta dos alimentos adicionales (fuera del dietocálculo, con nota: "solo los días de entreno") y notas de preparación.
+
+Las reglas están en `backend/src/services/calculations/equivalents.js`. Un alimento entra a un grupo por el texto de su campo "grupo" en el catálogo (por ejemplo `Cereales y tubérculos sin grasa`).
 
 ## Pagos
 

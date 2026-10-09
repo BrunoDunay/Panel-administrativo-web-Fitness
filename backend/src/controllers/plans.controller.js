@@ -1,6 +1,6 @@
 import { todayInAppTz } from '../utils/dates-mx.js';
 import { loadCatalog } from '../services/catalog.service.js';
-import { buildNutritionView, mealOptionStates, saveNutritionPlan } from '../services/nutrition.service.js';
+import { buildNutritionView, saveNutritionPlan } from '../services/nutrition.service.js';
 import * as tracking from '../services/tracking.service.js';
 import * as training from '../services/training.service.js';
 
@@ -45,11 +45,6 @@ export async function saveNutrition(req, res) {
 /** Calcula el plan con un borrador sin guardarlo: es lo que el coach ve mientras edita. */
 export async function previewNutrition(req, res) {
   res.json(buildNutritionView(req.valid.body, req.client, await loadCatalog(), todayInAppTz()));
-}
-
-/** Marca qué alimentos caben en un renglón de una comida y cuáles la harían pasarse de su meta. */
-export async function nutritionOptions(req, res) {
-  res.json(mealOptionStates(req.valid.body, req.client, await loadCatalog(), todayInAppTz()));
 }
 
 // ---- Seguimiento ----

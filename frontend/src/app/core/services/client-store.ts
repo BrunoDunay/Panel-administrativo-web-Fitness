@@ -4,7 +4,7 @@ import { Observable, finalize, tap } from 'rxjs';
 import { API_URL } from '../config/api.config';
 import { ClientOverview, Payment, PaymentDraft } from '../types/client.model';
 import { ApiError } from '../types/common.model';
-import { MealSlot, NutritionDraft, NutritionView } from '../types/nutrition.model';
+import { NutritionDraft, NutritionView } from '../types/nutrition.model';
 import { LoggedSet, PrescriptionRow, WeekExercise } from '../types/training.model';
 import { ToastService } from './toast.service';
 
@@ -133,11 +133,6 @@ export class ClientStore {
 
   previewNutrition(draft: NutritionDraft) {
     return this.http.post<NutritionView>(`${this.base}/nutrition/preview`, draft);
-  }
-
-  /** Para cada alimento candidato de un renglón: 'ok' si cabe en la comida, 'high' si la haría pasarse. */
-  nutritionOptions(draft: NutritionDraft, mealIndex: number, slot: MealSlot, foodIds: number[]) {
-    return this.http.post<Record<number, 'ok' | 'high'>>(`${this.base}/nutrition/options`, { draft, mealIndex, slot, foodIds });
   }
 
   // ---- Seguimiento ----

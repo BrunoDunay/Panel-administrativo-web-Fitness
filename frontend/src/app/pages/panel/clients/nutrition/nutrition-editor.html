@@ -95,213 +95,163 @@
           <p class="notice notice--danger">Ojo: los carbohidratos quedan negativos. Baja la proteína o la grasa.</p>
         }
       }
-
-      <h4 class="sub">Calorías en la semana</h4>
-      <div class="field">
-        <span class="field__label">¿Qué días entrena?</span>
-        <div class="chips">
-          @for (day of days; track day; let i = $index) {
-            <button type="button" class="chip" [attr.aria-pressed]="d.inputs.trainingDays[i]" (click)="toggleDay(i)">{{ day }}</button>
-          }
-        </div>
-      </div>
-      <div class="form-grid">
-        <label class="check"><input type="checkbox" name="cycling" [(ngModel)]="d.inputs.cycling" />Los días de entreno llevan más calorías</label>
-        @if (d.inputs.cycling) {
-          <label class="field">
-            <span class="field__label">kcal de más en día de entreno vs descanso</span>
-            <input class="field__control" type="number" inputmode="numeric" step="50" min="0" name="extraTrainingKcal" [(ngModel)]="d.inputs.extraTrainingKcal" />
-          </label>
-        }
-      </div>
-      @if (c) {
-        <div class="grid" style="--min: 220px">
-          <div class="card card--tint tone--emerald stat"><span class="stat__label">Día de entreno · {{ c.cycle.trainingDays }} por semana</span><span class="stat__value">{{ num(c.cycle.training.kcal, 0) }}<small> kcal</small></span><span class="stat__note">P {{ c.cycle.training.proteinG }} · C {{ c.cycle.training.carbsG }} · G {{ c.cycle.training.fatG }}</span></div>
-          <div class="card card--tint tone--slate stat"><span class="stat__label">Día de descanso · {{ c.cycle.restDays }} por semana</span><span class="stat__value">{{ num(c.cycle.rest.kcal, 0) }}<small> kcal</small></span><span class="stat__note">P {{ c.cycle.rest.proteinG }} · C {{ c.cycle.rest.carbsG }} · G {{ c.cycle.rest.fatG }}</span></div>
-        </div>
-        <p class="card__hint">El promedio de la semana sigue siendo tus calorías objetivo. Proteína y grasa no cambian; solo se mueven los carbos.</p>
-      }
     </section>
 
-    <!-- 2 · Distribución -->
-    <section class="card form-section">
-      <h3 class="form-section__title">2 · Distribución: comidas, pre y post entreno</h3>
-      <div class="form-grid">
-        <label class="field">
-          <span class="field__label">Número de comidas</span>
-          <select class="field__control" name="mealCount" [(ngModel)]="d.inputs.mealCount">
-            @for (n of catalog().lists.mealCounts; track n) { <option [ngValue]="n">{{ n }}</option> }
-          </select>
-        </label>
-        <label class="field">
-          <span class="field__label">Redondear gramos a</span>
-          <select class="field__control" name="roundTo" [(ngModel)]="d.inputs.roundTo">
-            @for (n of catalog().lists.roundTo; track n) { <option [ngValue]="n">{{ n }} g</option> }
-          </select>
-        </label>
-      </div>
-      <p class="card__hint">La proteína se reparte igual. En pre y post entreno va más carbo y menos grasa. Para tu propio reparto escribe tus % en "manual": entre todas las comidas <b>no pueden pasar de 100 %</b> y abajo ves cuánto te falta por repartir.</p>
-      <div class="moments" [class.is-arming]="armed()">
-        <span class="moments__hint"><b>Pre y post entreno:</b> arrastra cada etiqueta a la columna "Momento" de su comida (o tócala y luego toca la comida).</span>
-        @for (tag of momentTags; track tag.key) {
-          @if (placedAt(tag.key) === null) {
-            <button type="button" class="moment-tag" draggable="true" [class.is-armed]="armed() === tag.key" (dragstart)="startDrag($event, tag.key)" (dragend)="armed.set(null)" (click)="arm(tag.key)">{{ tag.label }}</button>
-          }
-        }
-      </div>
-      <div class="table-wrap">
-        <table class="table table--compact">
-          <thead>
-            <tr><th>#</th><th>Nombre</th><th>Hora</th><th>Momento</th><th class="num">Prot</th><th class="num">Carbo</th><th class="num">Grasa</th><th>Manual: Prot %</th><th>Carbo %</th><th>Grasa %</th></tr>
-          </thead>
-          <tbody>
-            @for (n of mealNumbers(); track n) {
-              @let meta = d.inputs.mealsMeta[n - 1];
-              @let share = c?.meals?.[n - 1]?.share;
-              <tr>
-                <td>{{ n }}</td>
-                <td><input class="cell-input name" [name]="'mealName' + n" [(ngModel)]="meta.name" maxlength="40" [attr.aria-label]="'Nombre de la comida ' + n" /></td>
-                <td><input class="cell-input" type="time" [name]="'mealTime' + n" [(ngModel)]="meta.time" [attr.aria-label]="'Hora de la comida ' + n" /></td>
-                <td class="moment-cell" [class.is-target]="armed()" (dragover)="$event.preventDefault()" (drop)="$event.preventDefault(); place(n)" (click)="place(n)">
-                  @for (tag of momentTags; track tag.key) {
-                    @if (placedAt(tag.key) === n) {
-                      <span class="moment-tag is-placed" draggable="true" (dragstart)="startDrag($event, tag.key)" (dragend)="armed.set(null)">{{ tag.label }}<button type="button" (click)="$event.stopPropagation(); unplace(tag.key)" [attr.aria-label]="'Quitar ' + tag.label">×</button></span>
-                    }
-                  }
-                  @if (placedAt('preWorkoutMeal') !== n && placedAt('postWorkoutMeal') !== n) { <span class="moment-empty">{{ armed() ? 'Soltar aquí' : '—' }}</span> }
-                </td>
-                <td class="num">{{ share ? pct(share.protein) : '—' }}</td>
-                <td class="num">{{ share ? pct(share.carbs) : '—' }}</td>
-                <td class="num">{{ share ? pct(share.fat) : '—' }}</td>
-                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mp' + n" [ngModel]="meta.manual.proteinPct" (ngModelChange)="setManual(n - 1, 'proteinPct', $event, mpField)" #mpField [attr.aria-label]="'% manual de proteína, comida ' + n" /></td>
-                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mc' + n" [ngModel]="meta.manual.carbsPct" (ngModelChange)="setManual(n - 1, 'carbsPct', $event, mcField)" #mcField [attr.aria-label]="'% manual de carbohidratos, comida ' + n" /></td>
-                <td><input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="100" [name]="'mf' + n" [ngModel]="meta.manual.fatPct" (ngModelChange)="setManual(n - 1, 'fatPct', $event, mfField)" #mfField [attr.aria-label]="'% manual de grasa, comida ' + n" /></td>
-              </tr>
-            }
-          </tbody>
-          @let mt = manualTotals();
-          @if (mt.proteinPct !== null || mt.carbsPct !== null || mt.fatPct !== null) {
-            <tfoot>
-              <tr>
-                <td colspan="7">Repartido a mano</td>
-                @for (total of [mt.proteinPct, mt.carbsPct, mt.fatPct]; track $index) {
-                  <td>
-                    @if (total === null) {
-                      <span class="badge">Automático</span>
-                    } @else if (total >= 99.5) {
-                      <span class="badge badge--success">100 % ✓</span>
-                    } @else {
-                      <span class="badge badge--danger">{{ num(total) }} % · faltan {{ num(100 - total) }}</span>
-                    }
-                  </td>
-                }
-              </tr>
-            </tfoot>
-          }
-        </table>
-      </div>
-    </section>
-
-    <!-- 3 y 4 · Plan y cambios -->
-    <section class="card form-section">
-      <h3 class="form-section__title">3 · Plan: elige los alimentos y los gramos salen solos</h3>
-      <p class="card__hint">Elige 1 o 2 proteínas y 1 o 2 carbos (si eliges 2, se reparten a la mitad), 1 grasa y la verdura o fruta en porciones. En cada alimento puedes dejar hasta 3 cambios equivalentes.</p>
-      <div class="plan">
+    <div class="plan">
+      <!-- Panel fijo: cómo va el dietocálculo contra el ideal y qué falta por repartir. -->
       @if (c) {
-        <!-- ¿Cuadra el plan? Panel fijo: objetivo del día contra lo que suman los alimentos elegidos. -->
         <aside class="plan__fit">
-        <h4 class="plan__title">¿Cuadra el plan? <small>margen de ±5 %</small></h4>
-        <div class="fit">
-          @for (row of fit(); track row.label) {
-            <div class="fit__row">
-              <b class="fit__label">{{ row.label }}</b>
-              @for (item of row.items; track item.name) {
-                <div class="fit__item" [class.is-ok]="item.state === 'ok'" [class.is-low]="item.state === 'low'" [class.is-high]="item.state === 'high'">
-                  <small>{{ item.name }}</small>
-                  <span><b>{{ num(item.plan, 0) }}</b> de {{ num(item.goal, 0) }} {{ item.unit }}</span>
-                  <em>{{ item.state === 'ok' ? 'Cuadra' : item.state === 'low' ? 'Faltan ' + num(-item.diff, 0) : 'Sobran ' + num(item.diff, 0) }}</em>
-                </div>
-              }
-            </div>
-          }
-        </div>
-        <p class="notice" [class.notice--warning]="c.dayTotals.rest.fiberG < c.dayTotals.rest.fiberGoalG" [class.notice--success]="c.dayTotals.rest.fiberG >= c.dayTotals.rest.fiberGoalG">
-          Fibra (día de descanso): {{ num(c.dayTotals.rest.fiberG, 0) }} de {{ c.dayTotals.rest.fiberGoalG }} g
-          @if (c.vegetableProteinTarget !== null && c.dayTotals.rest.vegetableProteinPct !== null) { · Proteína vegetal {{ pct(c.dayTotals.rest.vegetableProteinPct) }} (meta {{ pct(c.vegetableProteinTarget) }}) }
-        </p>
+          <h4 class="plan__title">¿Cuadra el plan? <small>entre {{ c.diet.range.min }} y {{ c.diet.range.max }} % del ideal</small></h4>
+          <div class="fit">
+            @for (metric of metrics; track metric.key) {
+              @let item = c.diet.adequacy[metric.key];
+              <div class="fit__item" [class.is-ok]="item.state === 'ok'" [class.is-low]="item.state === 'low'" [class.is-high]="item.state === 'high'">
+                <small>{{ metric.label }}</small>
+                <span><b>{{ num(item.total, 0) }}</b> de {{ num(item.ideal, 0) }} {{ metric.unit }}</span>
+                <em>{{ item.pct === null ? '—' : num(item.pct, 0) + ' %' }} · {{ stateLabel(item, metric.unit) }}</em>
+              </div>
+            }
+          </div>
+          <div class="left">
+            <h5>Porciones por repartir</h5>
+            @if (!activeGroups().length) {
+              <p class="left__none">Define primero las porciones del día.</p>
+            } @else if (!pending().length) {
+              <p class="left__done"><app-icon name="check" [size]="14" />Todo repartido</p>
+            } @else {
+              <ul>
+                @for (group of pending(); track group.key) {
+                  <li [class.is-over]="left(group.key) < 0"><span><i [class]="'dot tone--' + group.tone"></i>{{ group.label }}</span><b>{{ left(group.key) < 0 ? 'sobran ' + num(-left(group.key)) : num(left(group.key)) }}</b></li>
+                }
+              </ul>
+            }
+          </div>
         </aside>
       }
-      <div class="plan__meals">
 
-      @for (n of mealNumbers(); track n) {
-        @let meal = d.meals[n - 1];
-        @let cm = c?.meals?.[n - 1];
-        <article class="meal">
-          <header class="meal__head">
-            <div>
-              <h4>{{ n }} · {{ d.inputs.mealsMeta[n - 1].name }} @if (cm?.moment) { <span class="badge badge--success">{{ cm!.moment }}</span> }</h4>
-              @if (cm) {
-                <p class="card__hint">
-                  Meta entreno: P {{ num(cm.target.training.proteinG, 0) }} · C {{ num(cm.target.training.carbsG, 0) }} · G {{ num(cm.target.training.fatG, 0) }}
-                  — Plan: P {{ num(cm.totals.training.proteinG, 0) }} · C {{ num(cm.totals.training.carbsG, 0) }} · G {{ num(cm.totals.training.fatG, 0) }} · {{ num(cm.totals.training.kcal, 0) }} kcal
-                </p>
-              }
+      <div class="plan__meals">
+        <!-- 2 · Dietocálculo -->
+        <section class="card form-section">
+          <h3 class="form-section__title">2 · Dietocálculo: porciones al día por grupo</h3>
+          <p class="card__hint">Escribe cuántas porciones de cada grupo come al día. En el panel "¿Cuadra el plan?" ves si las calorías y los macros <b>cuadran con el objetivo</b>. Es un solo menú para todos los días.</p>
+          @if (groups().length) {
+            <div class="table-wrap">
+              <table class="table table--compact diet">
+                <thead><tr><th>Grupo</th><th class="num">kcal</th><th class="num">Prot</th><th class="num">Grasa</th><th class="num">Carb</th><th>Porciones al día</th><th class="num">Total kcal</th></tr></thead>
+                <tbody>
+                  @for (group of groups(); track group.key) {
+                    <tr [class.is-used]="daily(group.key) > 0">
+                      <td><span class="grp-name"><i [class]="'dot tone--' + group.tone"></i>{{ group.label }}</span></td>
+                      <td class="num">{{ group.kcal }}</td>
+                      <td class="num">{{ group.proteinG }}</td>
+                      <td class="num">{{ group.fatG }}</td>
+                      <td class="num">{{ group.carbsG }}</td>
+                      <td>
+                        <span class="stepper">
+                          <button type="button" (click)="setDaily(group.key, daily(group.key) - 0.5)" [disabled]="daily(group.key) <= 0" [attr.aria-label]="'Quitar media porción de ' + group.label">−</button>
+                          <input type="number" inputmode="decimal" min="0" max="60" step="0.5" [value]="daily(group.key) || ''" placeholder="0" (change)="setDaily(group.key, +$any($event.target).value)" [attr.aria-label]="'Porciones al día de ' + group.label" />
+                          <button type="button" (click)="setDaily(group.key, daily(group.key) + 0.5)" [attr.aria-label]="'Agregar media porción de ' + group.label">+</button>
+                        </span>
+                      </td>
+                      <td class="num"><b>{{ daily(group.key) ? num(daily(group.key) * group.kcal, 0) : '—' }}</b></td>
+                    </tr>
+                  }
+                </tbody>
+                @if (c) {
+                  <tfoot><tr><td>Total del día</td><td></td><td class="num">{{ num(c.diet.totals.proteinG, 0) }} g</td><td class="num">{{ num(c.diet.totals.fatG, 0) }} g</td><td class="num">{{ num(c.diet.totals.carbsG, 0) }} g</td><td></td><td class="num">{{ num(c.diet.totals.kcal, 0) }}</td></tr></tfoot>
+                }
+              </table>
             </div>
-            <label class="field style">
-              <span class="field__label">Estilo</span>
-              <select class="cell-input" [name]="'style' + n" [(ngModel)]="meal.style">
-                @for (style of catalog().lists.mealStyles; track style) { <option [value]="style">{{ style }}</option> }
+          } @else {
+            <p class="text-muted">Completa los datos del expediente para empezar el dietocálculo.</p>
+          }
+        </section>
+
+        <!-- 3 · Menú -->
+        <section class="card form-section">
+          <div class="row row--between">
+            <h3 class="form-section__title">3 · Menú: reparte las porciones y elige el alimento</h3>
+            <label class="row count">
+              <span class="card__hint">Comidas al día</span>
+              <select class="cell-input" name="mealCount" [(ngModel)]="d.inputs.mealCount">
+                @for (n of catalog().lists.mealCounts; track n) { <option [ngValue]="n">{{ n }}</option> }
               </select>
             </label>
-          </header>
-          <div class="table-wrap">
-            <table class="table table--compact">
-              <thead><tr><th>Tipo</th><th>Alimento</th><th>Porc.</th><th class="num">Entreno</th><th class="num">Descanso</th><th>Cambios (se igualan solos)</th></tr></thead>
-              <tbody>
-                @for (slot of slots; track slot.key) {
-                  @let it = item(n - 1, slot.key);
-                  <tr>
-                    <td>{{ slot.label }}</td>
-                    <td>
-                      @let choices = options(meal, slot.flag, meal[slot.key]);
-                      <app-food-picker [foods]="choices" [value]="meal[slot.key]" [states]="optionStates()[n - 1 + slot.key]" [label]="slot.label + ' de la comida ' + n" (opened)="loadStates(n - 1, slot.key, choices)" (valueChange)="setFood(meal, slot.key, $event)" />
-                    </td>
-                    <td>
-                      @if (slot.portions) {
-                        <input class="cell-input cell-input--num narrow" type="number" inputmode="decimal" min="0" max="10" step="0.5" [name]="slot.portions + n" [(ngModel)]="meal[slot.portions]" [attr.aria-label]="'Porciones de ' + slot.label" />
-                      }
-                    </td>
-                    <td class="num">@if (it?.trainingGrams) { <b>{{ it!.trainingGrams }} g</b><br /><small class="text-muted">{{ it!.trainingMeasure }}</small> } @else { — }</td>
-                    <td class="num">@if (it?.restGrams) { <b>{{ it!.restGrams }} g</b><br /><small class="text-muted">{{ it!.restMeasure }}</small> } @else { — }</td>
-                    <td>
-                      @if (meal[slot.key]) {
-                        <div class="swaps">
-                          @for (swap of swapsOf(meal, slot.key); track $index; let s = $index) {
-                            <label>
-                              <span class="visually-hidden">Cambio {{ s + 1 }} de {{ slot.label }}</span>
-                              <select class="cell-input swap" [name]="'swap' + slot.key + n + s" [ngModel]="swap" (ngModelChange)="setSwap(meal, slot.key, s, $event)">
-                                <option [ngValue]="null">—</option>
-                                @for (food of options(meal, slot.flag, swap); track food.id) {
-                                  @if (food.id !== meal[slot.key]) { <option [ngValue]="food.id">{{ emoji(food) }} {{ food.name }}</option> }
-                                }
-                              </select>
-                              @if (it?.swaps?.[s]; as result) { <small class="text-muted">{{ result.trainingGrams }} g / {{ result.restGrams }} g</small> }
-                            </label>
-                          }
-                        </div>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
           </div>
-        </article>
-      }
+          <p class="card__hint">En cada comida pon cuántas porciones de cada grupo van: <b>no te deja pasarte</b> de las del día. Luego elige el alimento y la cantidad sale sola.</p>
+          @if (c?.diet?.exceeded?.length) {
+            <p class="notice notice--danger"><app-icon name="alert" [size]="18" /><span>Repartiste más porciones de las del día en: <b>{{ c!.diet.exceeded.join(', ') }}</b>. Quita porciones de alguna comida o sube las del día.</span></p>
+          }
+          @if (!activeGroups().length) {
+            <p class="notice"><app-icon name="info" [size]="18" /><span>Primero define las porciones del día en el dietocálculo; aquí aparecerán para repartirlas.</span></p>
+          }
+
+          @for (n of mealNumbers(); track n) {
+            @let meal = d.meals[n - 1];
+            @let meta = d.inputs.mealsMeta[n - 1];
+            <article class="meal">
+              <header class="meal__head">
+                <span class="meal__num">{{ n }}</span>
+                <label class="meal__name"><span class="visually-hidden">Nombre de la comida {{ n }}</span><input class="cell-input" [name]="'mealName' + n" [(ngModel)]="meta.name" maxlength="40" /></label>
+                <label class="meal__time"><span class="visually-hidden">Hora de la comida {{ n }}</span><input class="cell-input" type="time" [name]="'mealTime' + n" [(ngModel)]="meta.time" /></label>
+                @if (c?.meals?.[n - 1]?.kcal; as kcal) { <span class="badge badge--success">{{ num(kcal, 0) }} kcal</span> }
+              </header>
+
+              @for (group of activeGroups(); track group.key) {
+                @let rows = rowsOf(meal, group.key);
+                <div [class]="'grp tone--' + group.tone" [class.is-empty]="!rows.length">
+                  <div class="grp__head">
+                    <span class="grp-name"><i class="dot"></i>{{ group.label }}</span>
+                    <span class="grp__left" [class.is-over]="left(group.key) < 0">{{ left(group.key) < 0 ? 'sobran ' + num(-left(group.key)) : left(group.key) === 0 ? 'ya repartidas' : 'quedan ' + num(left(group.key)) }}</span>
+                    <button type="button" class="grp__add" (click)="addItem(meal, group.key)" [disabled]="left(group.key) <= 0"><app-icon name="plus" [size]="14" />{{ rows.length ? 'Otro alimento' : 'Agregar' }}</button>
+                  </div>
+                  @for (item of rows; track item) {
+                    @let amt = amount(n - 1, meal, item);
+                    <div class="it">
+                      <span class="stepper">
+                        <button type="button" (click)="setPortions(meal, item, item.portions - 0.5)" aria-label="Quitar media porción">−</button>
+                        <input #portionsField type="number" inputmode="decimal" min="0" step="0.5" [value]="item.portions" (change)="setPortions(meal, item, +portionsField.value, portionsField)" [attr.aria-label]="'Porciones de ' + group.label + ' en la comida ' + n" />
+                        <button type="button" (click)="setPortions(meal, item, item.portions + 0.5)" [disabled]="left(group.key) <= 0" aria-label="Agregar media porción">+</button>
+                      </span>
+                      <app-food-picker class="it__food" [foods]="foodsOf(group.key)" [value]="item.foodId" [label]="group.label + ' de la comida ' + n" (valueChange)="setFood(item, $event)" />
+                      <span class="it__amount">@if (amt) { <b>{{ amt.grams }} g</b><small>{{ amt.measure }}</small> } @else { <small>{{ item.foodId ? '…' : 'elige el alimento' }}</small> }</span>
+                      <button type="button" class="icon-btn" (click)="removeItem(meal, item)" aria-label="Quitar este renglón"><app-icon name="trash" [size]="15" /></button>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- Alimentos adicionales: fuera del dietocálculo. -->
+              <div class="extras">
+                <div class="grp__head">
+                  <span class="grp-name"><app-icon name="plus" [size]="14" />Alimento adicional <small>no cuenta en el dietocálculo</small></span>
+                  <button type="button" class="grp__add" (click)="addExtra(meal)" [disabled]="meal.extras.length >= maxExtras">Agregar</button>
+                </div>
+                @for (extra of meal.extras; track extra; let e = $index) {
+                  @let extraAmt = extraAmount(n - 1, extra);
+                  <div class="it it--extra">
+                    <label class="mini"><span class="visually-hidden">Porciones del alimento adicional</span><input class="cell-input cell-input--num" type="number" inputmode="decimal" min="0.5" max="30" step="0.5" [name]="'extraPortions' + n + e" [(ngModel)]="extra.portions" /></label>
+                    <app-food-picker class="it__food" [foods]="allFoods()" [value]="extra.foodId" [label]="'Alimento adicional de la comida ' + n" (valueChange)="setFood(extra, $event)" />
+                    <span class="it__amount">@if (extraAmt) { <b>{{ extraAmt.grams }} g</b><small>{{ extraAmt.measure || extraAmt.kcal + ' kcal' }}</small> } @else { <small>porciones</small> }</span>
+                    <button type="button" class="icon-btn" (click)="removeExtra(meal, extra)" aria-label="Quitar alimento adicional"><app-icon name="trash" [size]="15" /></button>
+                    <label class="it__note"><span class="visually-hidden">Nota del alimento adicional</span><input class="cell-input" [name]="'extraNote' + n + e" [(ngModel)]="extra.note" list="extra-notes" maxlength="200" placeholder="Cuándo aplica: solo los días de entreno…" /></label>
+                  </div>
+                }
+              </div>
+
+              <label class="field">
+                <span class="field__label">Notas de preparación (opcional, las ve el cliente)</span>
+                <textarea class="field__control" [name]="'mealNotes' + n" [(ngModel)]="meal.notes" maxlength="3000" rows="2" placeholder="Ej. Huevo a la mexicana: pica el jitomate y la calabaza y saltéalos antes de agregar el huevo."></textarea>
+              </label>
+            </article>
+          }
+          <datalist id="extra-notes">
+            @for (note of extraNotes; track note) { <option [value]="note"></option> }
+          </datalist>
+          <label class="check"><input type="checkbox" name="allowClientSwaps" [(ngModel)]="d.allowClientSwaps" />Permitir al cliente cambiar un alimento por otro equivalente (misma cantidad de porciones)</label>
+        </section>
       </div>
-      </div>
-      <label class="check"><input type="checkbox" name="allowClientSwaps" [(ngModel)]="d.allowClientSwaps" />Mostrar los cambios al cliente en su panel</label>
-    </section>
+    </div>
 
     <!-- Intra, hidratación y suplementos -->
     <div class="grid grid--2">
@@ -321,7 +271,7 @@
           </label>
           <div class="field"><span class="field__label">Cantidad</span><span class="computed">{{ c?.intra ? c!.intra!.amount + ' ' + c!.intra!.unit : '—' }} <small>{{ c?.intra?.measure }}</small></span></div>
         </div>
-        <p class="card__hint">Los carbos del intra se restan de las comidas del día de entreno, así el total del día no cambia.</p>
+        <p class="card__hint">Va aparte del menú: se toma durante el entrenamiento, solo los días que entrena.</p>
       </section>
 
       <section class="card form-section">

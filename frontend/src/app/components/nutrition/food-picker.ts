@@ -1,13 +1,18 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
-import { Food } from '../../core/types/catalog.model';
 import { foodEmoji } from '../../core/utils/visuals';
 
 export type OptionState = 'ok' | 'high';
 
+/** Lo mínimo que el selector necesita de un alimento. */
+export interface PickerFood {
+  id: number;
+  name: string;
+  icon?: string | null;
+}
+
 /**
- * Selector de alimento con apoyo visual: cada opción lleva su ícono y una barra de color a la
- * derecha (verde = cabe en la comida, rojo = la haría pasarse de su meta). Los colores se piden
- * al abrir (`opened`) porque dependen de lo que ya está elegido en la comida.
+ * Selector de alimento con buscador: cada opción lleva su ícono. Opcionalmente, una barra de color
+ * a la derecha marca un estado por alimento (`states`).
  */
 @Component({
   selector: 'app-food-picker',
@@ -18,7 +23,7 @@ export type OptionState = 'ok' | 'high';
       @if (selected(); as food) {
         <span class="emoji" aria-hidden="true">{{ emoji(food) }}</span><span class="name">{{ food.name }}</span>
       } @else {
-        <span class="name muted">—</span>
+        <span class="name muted">{{ placeholder() }}</span>
       }
       <span class="caret" aria-hidden="true">▾</span>
     </button>
@@ -42,7 +47,7 @@ export type OptionState = 'ok' | 'high';
             <li class="none">Sin resultados</li>
           }
         </ul>
-        <p class="legend"><span><i class="ok"></i>Cabe en la comida</span><span><i class="high"></i>Se pasa del margen (5 %)</span></p>
+        @if (states()) { <p class="legend"><span><i class="ok"></i>Cabe</span><span><i class="high"></i>Se pasa</span></p> }
       </div>
     }
   `,
@@ -77,11 +82,12 @@ export type OptionState = 'ok' | 'high';
   `,
 })
 export class FoodPicker {
-  readonly foods = input.required<Food[]>();
+  readonly foods = input.required<PickerFood[]>();
   readonly value = input<number | null>(null);
   /** Estado de cada alimento candidato; null mientras se calcula. */
   readonly states = input<Record<number, OptionState> | null | undefined>(null);
   readonly label = input('Alimento');
+  readonly placeholder = input('Elige el alimento');
   readonly valueChange = output<number | null>();
   readonly opened = output<void>();
 
@@ -95,7 +101,7 @@ export class FoodPicker {
     return term ? this.foods().filter((food) => food.name.toLowerCase().includes(term)) : this.foods();
   });
 
-  protected emoji(food: Food): string {
+  protected emoji(food: PickerFood): string {
     return foodEmoji(food.name, food.icon);
   }
 

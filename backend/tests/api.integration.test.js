@@ -38,7 +38,7 @@ describe.skipIf(!enabled)('API', () => {
     catalog = (await auth(request(app).get('/api/catalog'))).body;
     expect(catalog.muscles).toHaveLength(17);
     expect(catalog.muscles.reduce((sum, m) => sum + m.exercises.length, 0)).toBe(149);
-    expect(catalog.foods).toHaveLength(120);
+    expect(catalog.foods).toHaveLength(147);
     expect(catalog.supplements).toHaveLength(17);
     expect(catalog.cardioProtocols).toHaveLength(8);
     expect(catalog.warmupProtocols).toHaveLength(7);
@@ -138,66 +138,69 @@ describe.skipIf(!enabled)('API', () => {
     expect(after.progress[0].weeks[0]).toMatchObject({ e1rm: 80, tonnage: 1140 });
   });
 
-  it('calcula el plan de nutrición igual que la plantilla', async () => {
+  it('nutrición por porciones: dietocálculo, reparto por comida y equivalentes', async () => {
     const base = `/api/clients/${client.id}`;
+    // Porciones del ejemplo de la hoja "_DIETOCALCULO" del coach.
+    const portions = { verduras: 6, frutas: 3, cereales_sg: 12, leguminosas: 1, aoa_b: 8.5, aoa_m: 3, leche_d: 1, grasa_sp: 1 };
     const draft = {
+      startDate: '2026-09-01',
       inputs: {
-        weightKg: 80,
-        formula: 'mifflin',
-        activity: 'moderate',
-        dietType: 'omnivore',
-        goal: 'Definición',
-        adjustmentKcal: -500,
-        proteinPerKg: 2.2,
-        fatPct: 0.25,
-        cycling: false,
-        extraTrainingKcal: 400,
-        trainingDays: [true, true, false, true, true, false, false],
-        mealCount: 5,
-        preWorkoutMeal: null,
-        postWorkoutMeal: null,
-        roundTo: 5,
-        mealsMeta: ['Desayuno', 'Colación AM', 'Comida', 'Colación PM', 'Cena', 'Colación noche'].map((name) => ({ name, time: '', manual: {} })),
+        weightKg: 80, formula: 'mifflin', activity: 'moderate', dietType: 'omnivore', goal: 'Definición', adjustmentKcal: -500, proteinPerKg: 2, fatPct: 0.25,
+        portions,
+        mealCount: 3,
+        mealsMeta: ['Desayuno', 'Comida', 'Cena'].map((name) => ({ name, time: '' })),
       },
       meals: [
-        {
-          protein1: foodId('Clara de huevo'),
-          protein2: foodId('Huevo entero fresco'),
-          carb1: foodId('Avena en hojuelas'),
-          fat: foodId('Aguacate hass'),
-          fruit: foodId('Fresa entera'),
-          swaps: { protein1: [foodId('Pechuga de pollo sin piel cocida')] },
-        },
+        { items: [{ group: 'cereales_sg', portions: 3, foodId: foodId('Arroz cocido') }, { group: 'verduras', portions: 2, foodId: foodId('Jitomate') }, { group: 'aoa_m', portions: 3, foodId: foodId('Huevo entero fresco') }], notes: 'Huevo a la mexicana.' },
+        { items: [{ group: 'cereales_sg', portions: 4, foodId: foodId('Tortilla de maíz') }, { group: 'frutas', portions: 1, foodId: null }], extras: [{ foodId: foodId('Plátano'), portions: 2, note: 'Solo los días de entreno' }] },
+        { items: [] },
       ],
-      intra: { foodId: foodId('Gatorade'), carbsG: 30 },
-      supplements: [{ supplementId: catalog.supplements.find((s) => s.name === 'Cafeína').id, assignedDose: '200 mg' }],
     };
 
     const preview = await auth(request(app).post(`${base}/nutrition/preview`)).send(draft);
     expect(preview.status).toBe(200);
-    expect(preview.body.computed.targetKcal).toBe(2211);
+    const c = preview.body.computed;
+
+    // Dietocálculo: igual que la hoja del coach.
+    expect(c.diet.totals).toEqual({ kcal: 2122.5, proteinG: 133.5, fatG: 48.5, carbsG: 281 });
+    expect(c.diet.adequacy.kcal).toMatchObject({ ideal: c.targetKcal, total: 2122.5 });
+    expect(['ok', 'low', 'high']).toContain(c.diet.adequacy.kcal.state);
+
+    // Reparto: 12 porciones de cereal, 3 + 4 repartidas, quedan 5.
+    const cereal = c.diet.groups.find((group) => group.key === 'cereales_sg');
+    expect(cereal).toMatchObject({ daily: 12, assigned: 7, remaining: 5 });
+    expect(c.diet.groups.find((group) => group.key === 'verduras')).toMatchObject({ assigned: 2, remaining: 4 });
+    expect(c.diet.exceeded).toEqual([]);
+
+    // La cantidad sale de las porciones: 3 de arroz = 141 g (3/4 de taza); 4 tortillas = 120 g.
+    expect(c.meals[0].items[0]).toMatchObject({ name: 'Arroz cocido', portions: 3, grams: 141, measure: '3/4 taza' });
+    expect(c.meals[1].items[0]).toMatchObject({ name: 'Tortilla de maíz', grams: 120, measure: '4 pieza' });
+    expect(c.meals[0].notes).toBe('Huevo a la mexicana.');
+    expect(c.meals[0].kcal).toBe(3 * 70 + 2 * 25 + 3 * 75);
+
+    // El alimento adicional no cuenta para el dietocálculo y conserva su nota.
+    expect(c.meals[1].extras[0]).toMatchObject({ name: 'Plátano', portions: 2, grams: 108, note: 'Solo los días de entreno' });
+    expect(c.diet.groups.find((group) => group.key === 'frutas').assigned).toBe(1);
+
+    // Equivalentes del grupo para que el cliente cambie un alimento por otro sin alterar las porciones.
+    expect(c.equivalents.cereales_sg.some((food) => food.name === 'Tortilla de maíz' && food.grams === 30)).toBe(true);
+    expect(c.grocery.find((item) => item.name === 'Arroz cocido').grams).toBe(141 * 7);
+
+    // Repartir de más se señala.
+    const over = structuredClone(draft);
+    over.meals[2].items.push({ group: 'verduras', portions: 5, foodId: null });
+    expect((await auth(request(app).post(`${base}/nutrition/preview`)).send(over)).body.computed.diet.exceeded).toEqual(['Verduras']);
 
     expect((await auth(request(app).put(`${base}/nutrition`)).send(draft)).status).toBe(204);
-    const { nutrition } = (await request(app).get(`/api/portal/${code}`)).body;
-    const { computed } = nutrition;
-    expect(computed.bmr).toBe(1748.75);
-    expect(computed.maintenanceKcal).toBe(2711);
-    expect(computed.macros).toMatchObject({ proteinG: 176, fatG: 61, carbsG: 240 });
-    expect(computed.intra).toMatchObject({ name: 'Gatorade', amount: 500, unit: 'ml' });
+    const saved = (await auth(request(app).get(base))).body.nutrition;
+    expect(saved.id).toBeTruthy();
+    expect(saved.computed.meals[1].extras).toHaveLength(1);
 
-    const desayuno = Object.fromEntries(computed.meals[0].items.map((i) => [i.name, [i.trainingGrams, i.restGrams]]));
-    expect(desayuno).toEqual({
-      'Clara de huevo': [130, 120],
-      'Huevo entero fresco': [110, 105],
-      'Avena en hojuelas': [35, 45],
-      'Aguacate hass': [0, 0],
-      'Fresa entera': [205, 205],
-    });
-    expect(computed.meals[0].items[0].restMeasure).toBe('3.75 pieza');
-    expect(computed.meals[0].items[0].swaps[0]).toMatchObject({ name: 'Pechuga de pollo sin piel cocida', trainingGrams: 50 });
-    expect(computed.grocery.find((g) => g.name === 'Clara de huevo')).toMatchObject({ grams: 880, measure: '26.5 pieza' });
-    expect(computed.supplements[0]).toMatchObject({ name: 'Cafeína', recommendedDose: '240–480 mg', assignedDose: '200 mg' });
-    expect(computed.hydration.trainingDayL).toBeCloseTo(3);
+    // El cliente recibe su menú con equivalentes; si el coach los apaga, no llegan.
+    expect(Object.keys((await request(app).get(`/api/portal/${code}`)).body.nutrition.computed.equivalents).length).toBeGreaterThan(5);
+    await auth(request(app).put(`${base}/nutrition`)).send({ ...draft, allowClientSwaps: false });
+    expect((await request(app).get(`/api/portal/${code}`)).body.nutrition.computed.equivalents).toEqual({});
+    await auth(request(app).put(`${base}/nutrition`)).send(draft);
   });
 
   it('seguimiento: cuestionario, peso y mediciones', async () => {

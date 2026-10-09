@@ -5,6 +5,15 @@ import { FOOD_EMOJI_CHOICES, FoodFlags, foodEmoji, foodRole, foodTone } from '..
 import { CatalogCrud, CrudColumn, CrudField, IconPicker, Row, RowVisual } from './catalog-crud';
 import { CatalogPage } from './catalog-page';
 
+/** Grupos del Sistema Mexicano de Alimentos Equivalentes, más los que quedan fuera del dietocálculo. */
+const FOOD_GROUPS = [
+  'Verduras', 'Frutas', 'Cereales y tubérculos sin grasa', 'Cereales y tubérculos con grasa', 'Leguminosas',
+  'AOA muy bajo en grasa', 'AOA bajo en grasa', 'AOA moderado en grasa', 'AOA alto en grasa',
+  'Leche descremada', 'Leche semidescremada', 'Leche entera', 'Leche con azúcar',
+  'Aceites y grasas sin proteína', 'Aceites y grasas con proteína', 'Azúcares sin grasa', 'Azúcares con grasa',
+  'Bebidas deportivas', 'Suplemento proteico', 'Otros (fuera del dietocálculo)',
+];
+
 @Component({
   selector: 'app-foods-admin',
   imports: [PageHeader, CatalogCrud, SkeletonTable],
@@ -57,7 +66,7 @@ export class FoodsAdmin extends CatalogPage {
 
   protected readonly fields: CrudField[] = [
     { key: 'name', label: 'Alimento', wide: true, section: 'Identificación' },
-    { key: 'group', label: 'Grupo' },
+    { key: 'group', label: 'Grupo de equivalentes', type: 'select', options: FOOD_GROUPS, hint: 'Define en qué grupo del dietocálculo aparece. La porción de abajo debe ser 1 equivalente de ese grupo.' },
     { key: 'portionQty', label: 'Cantidad de la porción', type: 'number', hint: 'Ej. 0.5 (media taza)', section: 'Porción' },
     { key: 'portionUnit', label: 'Unidad (g, pieza, taza…)' },
     { key: 'grossWeightG', label: 'Peso bruto (g)', type: 'number' },

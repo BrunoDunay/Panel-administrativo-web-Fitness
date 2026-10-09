@@ -56,12 +56,10 @@ export class Portal {
 
   protected readonly firstName = computed(() => this.store.client()?.fullName.split(' ')[0] ?? '');
 
-  /** ¿Hoy toca entrenar según el plan de nutrición? Define qué calorías se muestran en el resumen. */
+  /** Lo que suma el menú del día (el mismo todos los días). */
   protected readonly today = computed(() => {
-    const nutrition = this.store.nutrition()?.computed;
-    if (!nutrition) return null;
-    const weekday = (new Date(`${this.store.today()}T00:00:00Z`).getUTCDay() + 6) % 7;
-    return nutrition.week[weekday] ?? null;
+    const diet = this.store.nutrition()?.computed?.diet;
+    return diet && diet.totals.kcal > 0 ? diet.totals : null;
   });
 
   protected readonly weekProgress = computed(() => {

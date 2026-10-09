@@ -1,101 +1,109 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
-import { DayKind, MealItemAmounts, NutritionComputed } from '../../core/types/nutrition.model';
-import { formatNumber, formatPercent, formatSigned } from '../../core/utils/format';
+import { ComputedItem, EquivalentFood, NutritionComputed } from '../../core/types/nutrition.model';
+import { formatNumber, formatSigned, portionAmount } from '../../core/utils/format';
 import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
+import { Icon } from '../icon/icon';
+
+/** Renglón de una comida tal como se muestra: el alimento del plan o el que el cliente eligió en su lugar. */
+interface ShownItem extends ComputedItem {
+  /** Identifica el renglón para recordar el cambio. */
+  key: string;
+  swapped: boolean;
+  canSwap: boolean;
+}
+
+const STORAGE_KEY = 'fbe.cambios';
 
 /**
- * Plan de alimentación ya calculado: resumen del día, comidas con gramos y cambios,
- * intra-entreno, lista del súper, hidratación y suplementos. Solo lectura.
+ * Plan de alimentación ya calculado: el menú de cada día por comida, con la cantidad de cada
+ * alimento, sus notas y los alimentos adicionales. Al tocar un alimento se puede cambiar por otro
+ * equivalente del mismo grupo: la cantidad se recalcula con las mismas porciones.
  */
 @Component({
   selector: 'app-nutrition-plan-view',
+  imports: [Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'swapping.set(null)' },
   template: `
     @let c = computed();
-    @let target = c.cycle[kind()];
-    @let totals = c.dayTotals[kind()];
-
-    <div class="row row--between">
-      <div class="tabs tabs--solid" role="tablist" aria-label="Tipo de día">
-        <button type="button" class="tab" role="tab" [attr.aria-selected]="kind() === 'training'" (click)="kind.set('training')">Día de entreno</button>
-        <button type="button" class="tab" role="tab" [attr.aria-selected]="kind() === 'rest'" (click)="kind.set('rest')">Día de descanso</button>
-      </div>
-      <p class="card__hint">{{ dayNote() }}</p>
-    </div>
 
     <section class="card card--vivid tone--emerald summary">
       <div class="stat">
-        <span class="stat__label">Calorías del día</span>
-        <span class="stat__value big">{{ num(target.kcal, 0) }}<small> kcal</small></span>
-        <span class="stat__note">Plan: {{ num(totals.kcal, 0) }} kcal</span>
+        <span class="stat__label">Tu menú de cada día</span>
+        <span class="stat__value big">{{ num(c.diet.totals.kcal, 0) }}<small> kcal</small></span>
+        <span class="stat__note">Objetivo: {{ num(c.targetKcal, 0) }} kcal</span>
       </div>
       @for (macro of macros(); track macro.label) {
         <div class="stat">
           <span class="stat__label">{{ macro.label }}</span>
-          <span class="stat__value">{{ num(macro.target, 0) }}<small> g</small></span>
+          <span class="stat__value">{{ num(macro.plan, 0) }}<small> g</small></span>
           <div class="meter"><span [style.width.%]="macro.pct"></span></div>
-          <span class="stat__note">Plan: {{ num(macro.plan, 0) }} g</span>
+          <span class="stat__note">Objetivo: {{ num(macro.target, 0) }} g</span>
         </div>
       }
     </section>
 
-    <p class="notice" [class.notice--warning]="totals.fiberG < totals.fiberGoalG" [class.notice--success]="totals.fiberG >= totals.fiberGoalG">
-      Fibra del día: {{ num(totals.fiberG, 0) }} g · meta {{ totals.fiberGoalG }} g (14 g por cada 1,000 kcal).
-      {{ totals.fiberG < totals.fiberGoalG ? 'Falta fibra: sube verduras, fruta, leguminosas o cereales integrales.' : 'Fibra suficiente.' }}
-      @if (c.vegetableProteinTarget !== null && totals.vegetableProteinPct !== null) {
-        Proteína vegetal: {{ pct(totals.vegetableProteinPct) }} (meta {{ pct(c.vegetableProteinTarget) }}).
-      }
-    </p>
+    @if (canSwap()) {
+      <p class="notice"><app-icon name="swap" [size]="18" /><span>¿No tienes algún alimento? <b>Tócalo</b> y elige otro del mismo grupo: te damos la cantidad equivalente para que tu plan no cambie.</span></p>
+    }
 
     <div class="meals">
-      @for (meal of c.meals; track meal.number) {
+      @for (meal of meals(); track meal.number) {
         <article class="card meal">
           <header class="meal__head">
             <div>
               <h3>{{ meal.name }}</h3>
-              <p class="text-muted">{{ meal.time }} @if (meal.moment) { · <span class="badge badge--success">{{ meal.moment }} entreno</span> }</p>
+              @if (meal.time) { <p class="text-muted">{{ meal.time }}</p> }
             </div>
-            <p class="meal__kcal">{{ num(meal.totals[kind()].kcal, 0) }} <small>kcal</small></p>
+            @if (meal.kcal) { <p class="meal__kcal">{{ num(meal.kcal, 0) }} <small>kcal</small></p> }
           </header>
+
           @if (meal.items.length) {
             <ul class="items">
-              @for (item of meal.items; track item.slot) {
-                @if (grams(item) > 0) {
-                  <li>
-                    <div class="item">
-                      <span [class]="'thumb thumb--sm tone--' + slotTone(item.slot)">{{ emoji(item.name, item.icon) }}</span>
-                      <span class="item__name">{{ item.name }}<small>{{ item.label }}</small></span>
-                      <span class="item__amount">{{ grams(item) }} g<small>{{ measure(item) }}</small></span>
-                    </div>
-                    @if (item.swaps.length) {
-                      <p class="swaps">
-                        <span>Puedes cambiarlo por:</span>
-                        @for (swap of item.swaps; track swap.foodId) {
-                          <span class="badge">{{ swap.name }} · {{ grams(swap) }} g @if (measure(swap)) { ({{ measure(swap) }}) }</span>
-                        }
-                      </p>
-                    }
-                  </li>
-                }
+              @for (item of meal.items; track item.key) {
+                <li>
+                  <button type="button" class="item" [class.is-swapped]="item.swapped" [disabled]="!item.canSwap" (click)="swapping.set(item)" [attr.aria-label]="item.canSwap ? 'Cambiar ' + item.name + ' por un alimento equivalente' : null">
+                    <span [class]="'thumb thumb--sm tone--' + item.tone">{{ emoji(item.name, item.icon) }}</span>
+                    <span class="item__name">{{ item.name }}<small>{{ num(item.portions) }} {{ item.portions === 1 ? 'porción' : 'porciones' }} · {{ item.groupLabel }}@if (item.swapped) { · <b>cambiado por ti</b> }</small></span>
+                    <span class="item__amount">{{ item.grams }} g<small>{{ item.measure }}</small></span>
+                    @if (item.canSwap) { <app-icon class="item__swap" name="swap" [size]="16" /> }
+                  </button>
+                </li>
               }
             </ul>
           } @else {
-            <p class="text-muted">Sin alimentos elegidos todavía.</p>
+            <p class="text-muted">Tu coach todavía no elige los alimentos de esta comida.</p>
           }
-          <footer class="meal__foot">
-            P {{ num(meal.totals[kind()].proteinG, 0) }} · C {{ num(meal.totals[kind()].carbsG, 0) }} · G {{ num(meal.totals[kind()].fatG, 0) }}
-            <span class="text-muted">(meta P {{ num(meal.target[kind()].proteinG, 0) }} · C {{ num(meal.target[kind()].carbsG, 0) }} · G {{ num(meal.target[kind()].fatG, 0) }})</span>
-          </footer>
+
+          @if (meal.extras.length) {
+            <div class="extras">
+              <p class="extras__title">Adicional</p>
+              @for (extra of meal.extras; track extra.foodId) {
+                <div class="item item--static">
+                  <span class="thumb thumb--sm">{{ emoji(extra.name, extra.icon) }}</span>
+                  <span class="item__name">{{ extra.name }}@if (extra.note) { <small><span class="badge badge--steel">{{ extra.note }}</span></small> }</span>
+                  <span class="item__amount">{{ extra.grams }} g<small>{{ extra.measure }}</small></span>
+                </div>
+              }
+            </div>
+          }
+
+          @if (meal.notes) {
+            <details class="details prep">
+              <summary>Cómo prepararlo</summary>
+              <p class="details__body">{{ meal.notes }}</p>
+            </details>
+          }
         </article>
       }
     </div>
 
-    @if (c.intra && kind() === 'training') {
+    @if (c.intra) {
       <section class="card card--tint tone--teal intra">
         <div>
           <p class="eyebrow">Intra-entreno · solo días de entreno</p>
           <strong>{{ c.intra.name }}</strong>
-          <p class="text-muted">Aporta {{ c.intra.carbsG }} g de carbohidratos. Ya están descontados de las comidas, así el total del día no cambia.</p>
+          <p class="text-muted">Tómalo durante el entrenamiento: aporta {{ c.intra.carbsG }} g de carbohidratos.</p>
         </div>
         <p class="meal__kcal">{{ c.intra.amount }} <small>{{ c.intra.unit }}</small></p>
       </section>
@@ -125,7 +133,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
               </tbody>
             </table>
           </div>
-          <p class="card__hint foot">Peso neto (lo que te comes, sin cáscara ni hueso).</p>
+          <p class="card__hint foot">Con los alimentos de tu plan original, en peso neto (sin cáscara ni hueso). Los adicionales no se incluyen.</p>
         } @else {
           <p class="text-muted">Se arma sola cuando el plan tenga alimentos.</p>
         }
@@ -147,7 +155,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
           <h3 class="card__title head">Objetivo</h3>
           <dl class="dl">
             <dt>Mantenimiento</dt><dd>{{ num(c.maintenanceKcal, 0) }} kcal/día</dd>
-            <dt>Objetivo</dt><dd>{{ num(c.targetKcal, 0) }} kcal/día (promedio semanal)</dd>
+            <dt>Objetivo</dt><dd>{{ num(c.targetKcal, 0) }} kcal/día</dd>
             <dt>Cambio esperado</dt><dd>{{ signed(c.weeklyChangeKg, 2) }} kg por semana · {{ signed(c.fourWeekChangeKg) }} kg en 4 semanas</dd>
           </dl>
         </section>
@@ -178,6 +186,33 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
         </div>
       </section>
     }
+
+    <!-- Alimentos equivalentes: mismas porciones, otro alimento del grupo. -->
+    @if (swapping(); as item) {
+      <div class="modal-backdrop" (click)="swapping.set(null)"></div>
+      <div class="modal fade-up swap" role="dialog" aria-modal="true" aria-labelledby="swap-title">
+        <header class="modal__head">
+          <span [class]="'thumb tone--' + item.tone">{{ emoji(item.name, item.icon) }}</span>
+          <div>
+            <h2 id="swap-title">Cambiar {{ item.name }}</h2>
+            <p class="card__hint">{{ num(item.portions) }} {{ item.portions === 1 ? 'porción' : 'porciones' }} de {{ item.groupLabel }}. Cualquiera de estos equivale a lo mismo:</p>
+          </div>
+        </header>
+        <ul class="options">
+          @for (option of options(); track option.foodId) {
+            <li>
+              <button type="button" class="option" [class.is-current]="option.foodId === item.foodId" (click)="choose(item, option.foodId)">
+                <span class="thumb thumb--sm">{{ emoji(option.name, option.icon) }}</span>
+                <span class="item__name">{{ option.name }}@if (option.original) { <small>el de tu plan</small> }</span>
+                <span class="item__amount">{{ option.grams }} g<small>{{ option.measure }}</small></span>
+              </button>
+            </li>
+          }
+        </ul>
+        <p class="card__hint">El cambio es solo en este dispositivo, para tu referencia: el plan de tu coach no se modifica.</p>
+        <button type="button" class="close" (click)="swapping.set(null)">Cerrar</button>
+      </div>
+    }
   `,
   styles: `
     :host { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
@@ -185,6 +220,7 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
     .summary .meter { background: rgba(255, 255, 255, 0.14); }
     .summary .meter > span { background: var(--color-mint); }
     .big { font-size: var(--text-3xl); }
+    .notice { align-items: center; }
     .meals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: var(--space-4); }
     .meal { display: grid; gap: var(--space-3); align-content: start; }
     .meal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
@@ -193,15 +229,21 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
     .meal__kcal { font-size: var(--text-xl); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
     .meal__kcal small { font-size: var(--text-xs); font-weight: 600; color: var(--color-text-muted); }
     .items { display: grid; list-style: none; }
-    .items li { padding: var(--space-2) 0; border-top: var(--hairline); }
-    .item { display: flex; align-items: center; gap: var(--space-3); }
-    .item small { display: block; font-size: var(--text-xs); font-weight: 400; color: var(--color-text-muted); }
+    .items li { border-top: var(--hairline); }
+    .item { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-2) var(--space-1); border: 0; border-radius: var(--radius-sm); background: transparent; text-align: left; color: inherit; transition: background-color var(--duration-fast), transform 140ms var(--ease-out); }
+    button.item:not(:disabled):active { transform: scale(0.99); }
+    button.item:disabled { cursor: default; opacity: 1; }
+    .item.is-swapped { background: var(--tone-steel-soft); }
+    .item small, .option small { display: block; font-size: var(--text-xs); font-weight: 400; color: var(--color-text-muted); }
+    .item small b { color: var(--tone-steel-ink); }
     .item__name { flex: 1; min-width: 0; font-weight: 700; }
     .item__amount { font-weight: 700; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .swaps { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted); }
-    .swaps .badge { white-space: normal; }
-    .meal__foot { padding-top: var(--space-2); border-top: var(--hairline); font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
-    .meal__foot span { display: block; font-size: var(--text-xs); font-weight: 400; }
+    .item__swap { flex: none; color: var(--color-text-muted); }
+    .extras { display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); }
+    .extras__title { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--color-text-muted); }
+    .item--static { padding-inline: 0; }
+    .item--static .badge { margin-top: 2px; white-space: normal; }
+    .prep p { white-space: pre-line; }
     .intra { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
     .intra p { font-size: var(--text-sm); }
     .head { margin-bottom: var(--space-3); }
@@ -209,33 +251,64 @@ import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
     .weeks select { width: 4rem; }
     .grocery { display: inline-flex; align-items: center; gap: var(--space-3); }
     .link { font-weight: 600; color: var(--color-primary); text-decoration: underline; }
+
+    .swap { gap: var(--space-3); }
+    .options { display: grid; gap: 2px; max-height: 50dvh; margin: 0; padding: 0; list-style: none; overflow-y: auto; }
+    .option { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; text-align: left; color: inherit; }
+    .option.is-current { border-color: var(--color-primary); background: var(--color-primary-soft); }
+    .close { justify-self: end; min-height: 2.4rem; padding: 0.3rem 1.2rem; border: 0; border-radius: var(--radius-pill); background: var(--color-surface-alt); font-size: var(--text-sm); font-weight: 600; }
+    @media (hover: hover) and (pointer: fine) {
+      button.item:not(:disabled):hover, .option:hover { background: var(--color-background); }
+    }
   `,
 })
 export class NutritionPlanView {
   readonly computed = input.required<NutritionComputed>();
-  protected readonly kind = signal<DayKind>('training');
   protected readonly weeks = signal(1);
   protected readonly num = formatNumber;
-  protected readonly pct = formatPercent;
   protected readonly signed = formatSigned;
   protected readonly emoji = foodEmoji;
   protected readonly supplement = supplementEmoji;
 
-  protected slotTone(slot: string): string {
-    return slot.startsWith('protein') ? 'coral' : slot === 'fat' ? 'amber' : slot === 'vegetable' ? 'emerald' : 'steel';
-  }
+  /** Renglón cuyo cambio se está eligiendo. */
+  protected readonly swapping = signal<ShownItem | null>(null);
+  /** Cambios del cliente: renglón → alimento elegido. Se guardan en el dispositivo. */
+  private readonly swaps = signal<Record<string, number>>(this.restore());
+
+  /** El coach puede apagar los cambios: entonces no llegan equivalentes. */
+  protected readonly canSwap = computed(() => Object.keys(this.computed().equivalents).length > 0);
 
   protected readonly macros = computed(() => {
-    const target = this.computed().cycle[this.kind()];
-    const totals = this.computed().dayTotals[this.kind()];
-    const row = (label: string, goal: number, plan: number) => ({ label, target: goal, plan, pct: goal ? Math.min(100, (plan / goal) * 100) : 0 });
-    return [row('Proteína', target.proteinG, totals.proteinG), row('Carbohidratos', target.carbsG, totals.carbsG), row('Grasa', target.fatG, totals.fatG)];
+    const { totals } = this.computed().diet;
+    const ideal = this.computed().ideal;
+    const row = (label: string, plan: number, target: number) => ({ label, plan, target, pct: target ? Math.min(100, (plan / target) * 100) : 0 });
+    return [row('Proteína', totals.proteinG, ideal.proteinG), row('Carbohidratos', totals.carbsG, ideal.carbsG), row('Grasa', totals.fatG, ideal.fatG)];
   });
 
-  protected readonly dayNote = computed(() => {
-    const { training, rest, trainingDays, restDays } = this.computed().cycle;
-    if (training.kcal === rest.kcal && !this.computed().intra) return 'Con tu configuración, el día de entreno y el de descanso son iguales.';
-    return `${trainingDays} días de entreno y ${restDays} de descanso por semana. Proteína y grasa son iguales los dos días: solo cambian los carbos.`;
+  /** Las comidas con los cambios del cliente aplicados; solo se muestran renglones con alimento. */
+  protected readonly meals = computed(() => {
+    const { meals, equivalents } = this.computed();
+    const swaps = this.swaps();
+    return meals.map((meal) => ({
+      ...meal,
+      items: meal.items
+        .filter((item) => item.foodId)
+        .map((item, index): ShownItem => {
+          const key = `${meal.number}|${index}|${item.group}|${item.foodId}`;
+          const options = equivalents[item.group] ?? [];
+          const chosen = options.find((food) => food.foodId === swaps[key] && food.foodId !== item.foodId);
+          const base = { ...item, key, canSwap: options.length > 1, swapped: false };
+          return chosen ? { ...base, ...portionAmount(chosen, item.portions), foodId: chosen.foodId, name: chosen.name, icon: chosen.icon, swapped: true } : base;
+        }),
+    }));
+  });
+
+  /** Equivalentes del renglón que se está cambiando, ya con la cantidad para sus porciones. */
+  protected readonly options = computed(() => {
+    const item = this.swapping();
+    if (!item) return [];
+    const original = Number(item.key.split('|')[3]);
+    return (this.computed().equivalents[item.group] ?? []).map((food: EquivalentFood) => ({ ...food, ...portionAmount(food, item.portions), original: food.foodId === original }));
   });
 
   protected readonly grocery = computed(() =>
@@ -245,11 +318,25 @@ export class NutritionPlanView {
     }),
   );
 
-  protected grams(item: MealItemAmounts): number {
-    return this.kind() === 'training' ? item.trainingGrams : item.restGrams;
+  protected choose(item: ShownItem, foodId: number): void {
+    const original = Number(item.key.split('|')[3]);
+    const next = { ...this.swaps() };
+    if (foodId === original) delete next[item.key];
+    else next[item.key] = foodId;
+    this.swaps.set(next);
+    this.swapping.set(null);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Sin almacenamiento (modo privado): el cambio dura mientras la página siga abierta.
+    }
   }
 
-  protected measure(item: MealItemAmounts): string {
-    return this.kind() === 'training' ? item.trainingMeasure : item.restMeasure;
+  private restore(): Record<string, number> {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Record<string, number>;
+    } catch {
+      return {};
+    }
   }
 }

@@ -108,10 +108,8 @@ export async function overview(req, res) {
   const [catalog, trainingPlan, nutritionPlan] = await Promise.all([loadCatalog(), findActivePlan(client.id), findActiveNutritionPlan(client.id)]);
 
   const nutrition = nutritionPlan || isCoach ? buildNutritionView(nutritionPlan, client, catalog, todayInAppTz()) : null;
-  // Si el coach no quiere mostrar los cambios, el portal no los recibe.
-  if (!isCoach && nutrition?.computed && !nutrition.allowClientSwaps) {
-    for (const meal of nutrition.computed.meals) for (const item of meal.items) item.swaps = [];
-  }
+  // Si el coach no quiere que el cliente cambie alimentos, el portal no recibe los equivalentes.
+  if (!isCoach && nutrition?.computed && !nutrition.allowClientSwaps) nutrition.computed.equivalents = {};
   const today = todayInAppTz();
   const [tracking, payments] = await Promise.all([
     buildTrackingView(client.id, { weeklyChangeKg: nutrition?.computed?.weeklyChangeKg ?? null }),

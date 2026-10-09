@@ -1,12 +1,15 @@
 import { z } from 'zod';
+import { SMAE_KEYS } from '../services/calculations/equivalents.js';
 import { number, optionalDate, text } from './common.schemas.js';
 
 /** Máximo de comidas al día que admite un plan. */
 const MAX_MEALS = 8;
+/** Alimentos adicionales por comida (fuera del dietocálculo). */
+const MAX_EXTRAS = 2;
 
 const foodId = z.number().int().positive().nullish().transform((v) => v ?? null);
-const pct = number(0, 100);
-const swaps = z.array(z.number().int().positive()).max(3);
+const group = z.enum(SMAE_KEYS);
+const portions = z.number().min(0).max(60);
 
 const inputs = z.object({
   weightKg: number(25, 350),
@@ -17,41 +20,22 @@ const inputs = z.object({
   adjustmentKcal: z.number().min(-2000).max(2000),
   proteinPerKg: z.number().min(0.5, 'Mínimo 0.5 g/kg').max(4, 'Máximo 4 g/kg'),
   fatPct: z.number().min(0.1, 'Mínimo 10 %').max(0.6, 'Máximo 60 %'),
-  cycling: z.boolean(),
-  extraTrainingKcal: z.number().min(0).max(1500),
-  trainingDays: z.array(z.boolean()).length(7),
+  // Dietocálculo: porciones al día de cada grupo de alimentos.
+  portions: z.partialRecord(group, portions).default({}),
   mealCount: z.number().int().min(1).max(MAX_MEALS),
-  preWorkoutMeal: z.number().int().min(1).max(MAX_MEALS).nullable(),
-  postWorkoutMeal: z.number().int().min(1).max(MAX_MEALS).nullable(),
-  roundTo: z.union([z.literal(1), z.literal(5), z.literal(10)]),
   mealsMeta: z
-    .array(z.object({ name: z.string().trim().min(1).max(40), time: z.string().trim().max(10).default(''), manual: z.object({ proteinPct: pct, carbsPct: pct, fatPct: pct }).partial().default({}) }))
-    .min(6)
+    .array(z.object({ name: z.string().trim().min(1).max(40), time: z.string().trim().max(10).default('') }))
+    .min(1)
     .max(MAX_MEALS),
 });
 
 const meal = z.object({
-  style: z.enum(['Mixto', 'Dulce', 'Salado']).default('Mixto'),
-  protein1: foodId,
-  protein2: foodId,
-  carb1: foodId,
-  carb2: foodId,
-  fat: foodId,
-  vegetable: foodId,
-  vegetablePortions: z.number().min(0).max(10).default(1),
-  fruit: foodId,
-  fruitPortions: z.number().min(0).max(10).default(1),
-  swaps: z.partialRecord(z.enum(['protein1', 'protein2', 'carb1', 'carb2', 'fat', 'vegetable', 'fruit']), swaps).default({}),
-});
-
-const SLOT_KEYS = ['protein1', 'protein2', 'carb1', 'carb2', 'fat', 'vegetable', 'fruit'];
-
-/** Para evaluar las opciones de un renglón: el borrador, la comida, el renglón y los alimentos candidatos. */
-export const nutritionOptionsBody = z.object({
-  draft: z.lazy(() => nutritionPlanBody),
-  mealIndex: z.number().int().min(0).max(MAX_MEALS - 1),
-  slot: z.enum(SLOT_KEYS),
-  foodIds: z.array(z.number().int().positive()).max(400),
+  // Cada renglón: cuántas porciones de un grupo van en esta comida y con qué alimento.
+  items: z.array(z.object({ group, portions, foodId })).max(60).default([]),
+  // Alimentos adicionales: no cuentan para el dietocálculo y llevan su nota ("solo días de entreno"…).
+  extras: z.array(z.object({ foodId, portions: z.number().min(0).max(30).default(1), note: text(200) })).max(MAX_EXTRAS).default([]),
+  // Recomendaciones de preparación (opcional).
+  notes: text(3000),
 });
 
 export const nutritionPlanBody = z.object({

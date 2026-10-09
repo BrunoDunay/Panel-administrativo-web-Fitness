@@ -1,19 +1,8 @@
 import { NutritionPlan } from '../models/index.js';
 import { round } from '../utils/rounding.js';
-import {
-  ACTIVITY_LEVELS,
-  DIET_TYPES,
-  basalMetabolicRate,
-  distributeMeals,
-  energyTargets,
-  fiberGoalG,
-  hydration,
-  macroTargets,
-  supplementDose,
-  sweatRate,
-  weeklyCycle,
-} from './calculations/nutrition.js';
-import { groceryList, householdMeasure, intraWorkoutAmount, mealTotals, solveMeal, swapGrams } from './calculations/meal-plan.js';
+import { ACTIVITY_LEVELS, basalMetabolicRate, energyTargets, hydration, macroTargets, supplementDose, sweatRate } from './calculations/nutrition.js';
+import { ADEQUACY_RANGE, SMAE_GROUPS, adequacy, dietCalculation, equivalentAmount, portionBalance, smaeGroupOf } from './calculations/equivalents.js';
+import { householdMeasure, intraWorkoutAmount } from './calculations/meal-plan.js';
 import { ageOn } from './calculations/training.js';
 
 export const DEFAULT_MEALS = [
@@ -36,26 +25,10 @@ export const DEFAULT_INPUTS = {
   adjustmentKcal: 0,
   proteinPerKg: 2,
   fatPct: 0.25,
-  cycling: false,
-  extraTrainingKcal: 400,
-  trainingDays: [true, true, false, true, true, false, false],
+  portions: {},
   mealCount: 4,
-  preWorkoutMeal: null,
-  postWorkoutMeal: null,
-  roundTo: 5,
-  mealsMeta: DEFAULT_MEALS.map((meal) => ({ ...meal, manual: {} })),
+  mealsMeta: DEFAULT_MEALS.map((meal) => ({ ...meal })),
 };
-
-/** Con qué macro se iguala cada tipo de alimento al hacer un cambio. */
-const SLOTS = [
-  { key: 'protein1', role: 'protein', label: 'Proteína 1', basis: 'protein' },
-  { key: 'protein2', role: 'protein', label: 'Proteína 2', basis: 'protein' },
-  { key: 'carb1', role: 'carb', label: 'Carbo 1', basis: 'carbs' },
-  { key: 'carb2', role: 'carb', label: 'Carbo 2', basis: 'carbs' },
-  { key: 'fat', role: 'fat', label: 'Grasa', basis: 'fat' },
-  { key: 'vegetable', role: 'vegetable', label: 'Verdura', basis: 'kcal' },
-  { key: 'fruit', role: 'fruit', label: 'Fruta', basis: 'carbs' },
-];
 
 export const findActiveNutritionPlan = (clientId) => NutritionPlan.findOne({ where: { clientId, isActive: true } });
 
@@ -65,185 +38,105 @@ export async function saveNutritionPlan(clientId, data) {
   return NutritionPlan.create({ ...data, clientId });
 }
 
-/** Margen con el que una cantidad se considera "cuadrada" contra su meta: ±5 %. */
-export const FIT_TOLERANCE = 0.05;
+/** Una comida guardada con el formato anterior (gramos automáticos) se lee como vacía. */
+const mealOf = (meal) => ({ items: Array.isArray(meal?.items) ? meal.items : [], extras: Array.isArray(meal?.extras) ? meal.extras : [], notes: meal?.notes ?? null });
 
-/**
- * Qué pasaría con la comida si en un renglón se eligiera cada alimento candidato:
- * 'high' si algún macro de la comida se pasa de su meta más allá del margen; 'ok' si no.
- */
-export function mealOptionStates({ draft, mealIndex, slot, foodIds }, client, catalog, today) {
-  const states = {};
-  for (const foodId of foodIds) {
-    const meals = draft.meals.map((meal, i) => (i === mealIndex ? { ...meal, [slot]: foodId } : meal));
-    while (meals.length <= mealIndex) meals.push({});
-    meals[mealIndex] = { ...meals[mealIndex], [slot]: foodId };
-    const meal = buildNutritionView({ ...draft, meals }, client, catalog, today).computed?.meals[mealIndex];
-    if (!meal) continue;
-    const over = ['training', 'rest'].some((kind) =>
-      ['proteinG', 'carbsG', 'fatG'].some((macro) => {
-        const goal = meal.target[kind][macro];
-        // En metas muy chicas, 5 % son décimas de gramo: se dejan al menos 3 g de holgura.
-        return meal.totals[kind][macro] - goal > Math.max(goal * FIT_TOLERANCE, 3);
-      }),
-    );
-    states[foodId] = over ? 'high' : 'ok';
-  }
-  return states;
-}
+const KCAL = (food) => food.kcal ?? 4 * food.proteinG + 4 * food.carbsG + 9 * food.fatG;
 
 /**
  * Calcula todo el plan a partir de lo que el coach capturó. `plan` puede ser el registro
  * guardado o un borrador sin guardar (vista previa mientras edita).
+ *
+ * El plan es un solo menú para todos los días: el coach fija las porciones diarias de cada grupo
+ * (dietocálculo), las reparte entre las comidas y elige el alimento de cada renglón.
  */
 export function buildNutritionView(plan, client, catalog, today) {
-  const inputs = { ...DEFAULT_INPUTS, ...(plan?.inputs ?? {}) };
-  // Los planes guardados con 6 comidas se completan hasta el máximo actual.
-  inputs.mealsMeta = DEFAULT_MEALS.map((meal, i) => inputs.mealsMeta?.[i] ?? { ...meal, manual: {} });
+  const stored = plan?.inputs ?? {};
+  const inputs = Object.fromEntries(Object.keys(DEFAULT_INPUTS).map((key) => [key, stored[key] ?? DEFAULT_INPUTS[key]]));
+  // Los planes guardados con menos comidas se completan hasta el máximo actual.
+  inputs.mealsMeta = DEFAULT_MEALS.map((meal, i) => ({ name: inputs.mealsMeta?.[i]?.name ?? meal.name, time: inputs.mealsMeta?.[i]?.time ?? meal.time }));
+
   const foods = new Map(catalog.foods.map((food) => [food.id, food]));
   const supplements = new Map(catalog.supplements.map((s) => [s.id, s]));
-  const foodIcons = new Map(catalog.foods.map((food) => [food.name, food.icon]));
+  const draftMeals = Array.from({ length: inputs.mealCount }, (_, i) => mealOf(plan?.meals?.[i]));
 
   const weightKg = inputs.weightKg ?? client.initialWeightKg;
   const age = client.birthDate ? ageOn(client.birthDate, today) : null;
-  const missing = [
-    !weightKg && 'peso',
-    !client.heightCm && 'estatura',
-    age === null && 'fecha de nacimiento',
-    !client.sex && 'sexo',
-  ].filter(Boolean);
+  const missing = [!weightKg && 'peso', !client.heightCm && 'estatura', age === null && 'fecha de nacimiento', !client.sex && 'sexo'].filter(Boolean);
 
   const base = {
     id: plan?.id ?? null,
     startDate: plan?.startDate ?? null,
     allowClientSwaps: plan?.allowClientSwaps ?? true,
     inputs,
-    meals: plan?.meals ?? [],
+    meals: draftMeals,
     intra: plan?.intra ?? {},
     hydrationInputs: plan?.hydration ?? {},
     supplementInputs: plan?.supplements ?? [],
   };
   if (missing.length) return { ...base, ready: false, missing, computed: null };
 
+  // 1 · Gasto, objetivo y macros ideales.
   const activity = ACTIVITY_LEVELS.find((level) => level.key === inputs.activity) ?? ACTIVITY_LEVELS[2];
-  const diet = DIET_TYPES.find((type) => type.key === inputs.dietType) ?? DIET_TYPES[0];
   const bmr = basalMetabolicRate({ sex: client.sex, age, weightKg, heightCm: client.heightCm, formula: inputs.formula });
   const energy = energyTargets({ bmr, activityFactor: activity.factor, adjustmentKcal: inputs.adjustmentKcal, weightKg });
   const macros = macroTargets({ targetKcal: energy.targetKcal, weightKg, proteinPerKg: inputs.proteinPerKg, fatPct: inputs.fatPct });
-  const trainingDays = inputs.trainingDays.filter(Boolean).length;
-  const cycle = weeklyCycle({
-    targetKcal: energy.targetKcal,
-    proteinG: macros.proteinG,
-    fatG: macros.fatG,
-    trainingDays,
-    cycling: inputs.cycling,
-    extraTrainingKcal: inputs.extraTrainingKcal,
+  const ideal = { kcal: energy.targetKcal, proteinG: macros.proteinG, fatG: macros.fatG, carbsG: macros.carbsG };
+
+  // 2 · Dietocálculo: porciones del día contra el ideal.
+  const diet = dietCalculation(inputs.portions);
+  const balance = portionBalance(inputs.portions, draftMeals);
+  const groups = diet.groups.map((group) => ({ ...group, ...balance[group.key] }));
+
+  // 3 · Menú: cada renglón es porciones de un grupo con su alimento y la cantidad que le toca.
+  const labels = new Map(SMAE_GROUPS.map((group) => [group.key, group]));
+  const grocery = new Map();
+  const meals = draftMeals.map((meal, index) => {
+    const meta = inputs.mealsMeta[index];
+    const items = meal.items.map((item) => {
+      const food = foods.get(item.foodId) ?? null;
+      const { grams, measure } = equivalentAmount(food, item.portions);
+      if (food && grams) {
+        const entry = grocery.get(food.id) ?? { food, grams: 0 };
+        entry.grams += grams * 7;
+        grocery.set(food.id, entry);
+      }
+      const group = labels.get(item.group);
+      return { group: item.group, groupLabel: group?.label ?? '', tone: group?.tone ?? 'slate', portions: item.portions, foodId: food?.id ?? null, name: food?.name ?? '', icon: food?.icon ?? null, grams, measure };
+    });
+    const extras = meal.extras
+      .map((extra) => ({ extra, food: foods.get(extra.foodId) }))
+      .filter(({ food }) => food)
+      .map(({ extra, food }) => {
+        const { grams, measure } = equivalentAmount(food, extra.portions || 1);
+        return { foodId: food.id, name: food.name, icon: food.icon ?? null, portions: extra.portions || 1, grams, measure, note: extra.note ?? null, kcal: round(KCAL(food) * (extra.portions || 1)) };
+      });
+    return {
+      number: index + 1,
+      name: meta.name,
+      time: meta.time,
+      notes: meal.notes,
+      // Calorías de la comida con el aporte estándar de cada grupo (igual que el dietocálculo).
+      kcal: items.reduce((sum, item) => sum + (labels.get(item.group)?.kcal ?? 0) * item.portions, 0),
+      items,
+      extras,
+    };
   });
+
+  // Alimentos equivalentes de cada grupo: con ellos el cliente cambia uno por otro sin alterar las porciones.
+  const equivalents = {};
+  for (const food of catalog.foods) {
+    const key = smaeGroupOf(food);
+    if (key) (equivalents[key] ??= []).push({ foodId: food.id, name: food.name, icon: food.icon ?? null, grams: food.netWeightG, qty: food.portionQty, unit: food.portionUnit, foodType: food.foodType });
+  }
 
   const intraFood = foods.get(base.intra.foodId);
   const intraCarbsG = intraFood ? Number(base.intra.carbsG) || 0 : 0;
   const intraAmount = intraFood ? intraWorkoutAmount(intraFood, intraCarbsG) : 0;
 
-  const distribution = distributeMeals({
-    mealCount: inputs.mealCount,
-    preWorkoutMeal: inputs.preWorkoutMeal,
-    postWorkoutMeal: inputs.postWorkoutMeal,
-    manual: inputs.mealsMeta.slice(0, inputs.mealCount).map((meal) => meal.manual ?? {}),
-    cycle,
-    intraCarbsG,
-  });
-
-  const groceryItems = [];
-  const meals = distribution.map((target, index) => {
-    const meta = inputs.mealsMeta[index] ?? DEFAULT_MEALS[index];
-    const chosen = base.meals[index] ?? {};
-    const pick = (key) => foods.get(chosen[key]) ?? null;
-    const args = {
-      proteins: [pick('protein1'), pick('protein2')],
-      carbs: [pick('carb1'), pick('carb2')],
-      fat: pick('fat'),
-      vegetable: pick('vegetable') ? { food: pick('vegetable'), portions: chosen.vegetablePortions ?? 1 } : null,
-      fruit: pick('fruit') ? { food: pick('fruit'), portions: chosen.fruitPortions ?? 1 } : null,
-      vegetableProteinShare: diet.vegetableProteinShare,
-      roundTo: inputs.roundTo,
-    };
-    const training = solveMeal({ ...args, target: target.training });
-    const rest = solveMeal({ ...args, target: target.rest });
-    const gramsOf = (solved, food) => solved.items.find((item) => item.food === food)?.grams ?? 0;
-
-    const items = SLOTS.filter((slot) => pick(slot.key)).map((slot) => {
-      const food = pick(slot.key);
-      const trainingGrams = gramsOf(training, food);
-      const restGrams = gramsOf(rest, food);
-      groceryItems.push({ food, trainingGrams, restGrams });
-      return {
-        slot: slot.key,
-        label: slot.label,
-        foodId: food.id,
-        name: food.name,
-        icon: food.icon ?? null,
-        trainingGrams,
-        restGrams,
-        trainingMeasure: householdMeasure(food, trainingGrams),
-        restMeasure: householdMeasure(food, restGrams),
-        swaps: (chosen.swaps?.[slot.key] ?? [])
-          .map((id) => foods.get(id))
-          .filter(Boolean)
-          .map((to) => {
-            const grams = (amount) => swapGrams({ from: food, to, grams: amount, basis: slot.basis, roundTo: inputs.roundTo });
-            return {
-              foodId: to.id,
-              name: to.name,
-              icon: to.icon ?? null,
-              trainingGrams: grams(trainingGrams),
-              restGrams: grams(restGrams),
-              trainingMeasure: householdMeasure(to, grams(trainingGrams)),
-              restMeasure: householdMeasure(to, grams(restGrams)),
-            };
-          }),
-      };
-    });
-
-    return {
-      number: target.number,
-      name: meta?.name ?? `Comida ${target.number}`,
-      time: meta?.time ?? '',
-      moment: target.moment,
-      style: chosen.style ?? 'Mixto',
-      share: target.share,
-      target: { training: target.training, rest: target.rest },
-      totals: { training: training.totals, rest: rest.totals },
-      items,
-    };
-  });
-
-  const dayTotals = (kind) => {
-    const totals = meals.reduce(
-      (sum, meal) => {
-        for (const key of Object.keys(sum)) sum[key] += meal.totals[kind][key];
-        return sum;
-      },
-      { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0, vegetableProteinG: 0 },
-    );
-    if (kind === 'training' && intraFood) {
-      const intra = mealTotals([{ food: intraFood, grams: intraAmount }]);
-      for (const key of Object.keys(totals)) totals[key] += intra[key];
-    }
-    return {
-      ...totals,
-      vegetableProteinPct: totals.proteinG ? totals.vegetableProteinG / totals.proteinG : null,
-      fiberGoalG: fiberGoalG(cycle[kind].kcal),
-    };
-  };
-
   const hydrationInputs = { sessionMin: 75, sweatRateLPerH: 0.8, ...base.hydrationInputs };
   const measuredSweat = sweatRate(hydrationInputs.test ?? {});
-  const water = hydration({
-    sex: client.sex,
-    weightKg,
-    sessionMin: hydrationInputs.sessionMin,
-    sweatRateLPerH: measuredSweat ?? hydrationInputs.sweatRateLPerH,
-  });
+  const water = hydration({ sex: client.sex, weightKg, sessionMin: hydrationInputs.sessionMin, sweatRateLPerH: measuredSweat ?? hydrationInputs.sweatRateLPerH });
 
   return {
     ...base,
@@ -254,28 +147,25 @@ export function buildNutritionView(plan, client, catalog, today) {
       bmr: round(bmr, 2),
       activityFactor: activity.factor,
       ...energy,
-      macros: {
-        ...macros,
-        proteinPerKg: macros.proteinG / weightKg,
-        fatPerKg: macros.fatG / weightKg,
-        carbsPerKg: macros.carbsG / weightKg,
+      macros: { ...macros, proteinPerKg: macros.proteinG / weightKg, fatPerKg: macros.fatG / weightKg, carbsPerKg: macros.carbsG / weightKg },
+      ideal,
+      diet: {
+        groups,
+        totals: diet.totals,
+        adequacy: adequacy(diet.totals, ideal),
+        range: ADEQUACY_RANGE,
+        // Porciones del día que todavía no están en ninguna comida (negativo = se repartieron de más).
+        pending: groups.reduce((sum, group) => sum + Math.max(0, group.remaining), 0),
+        exceeded: groups.filter((group) => group.remaining < 0).map((group) => group.label),
       },
-      vegetableProteinTarget: diet.vegetableProteinShare,
-      cycle,
-      week: inputs.trainingDays.map((trains, i) => ({ day: i + 1, trains, ...(trains ? cycle.training : cycle.rest) })),
       meals,
-      dayTotals: { training: dayTotals('training'), rest: dayTotals('rest') },
+      equivalents,
       intra: intraFood
-        ? {
-            foodId: intraFood.id,
-            name: intraFood.name,
-            carbsG: intraCarbsG,
-            amount: intraAmount,
-            unit: /ml/.test(intraFood.portionUnit) ? 'ml' : 'g',
-            measure: householdMeasure(intraFood, intraAmount),
-          }
+        ? { foodId: intraFood.id, name: intraFood.name, carbsG: intraCarbsG, amount: intraAmount, unit: /ml/.test(intraFood.portionUnit) ? 'ml' : 'g', measure: householdMeasure(intraFood, intraAmount) }
         : null,
-      grocery: groceryList(groceryItems, { trainingDays, weeks: 1 }).map((item) => ({ ...item, icon: foodIcons.get(item.name) ?? null })),
+      grocery: [...grocery.values()]
+        .sort((a, b) => a.food.name.localeCompare(b.food.name, 'es'))
+        .map(({ food, grams }) => ({ name: food.name, icon: food.icon ?? null, grams: round(grams), kg: round(grams) / 1000, measure: equivalentAmount(food, grams / food.netWeightG).measure })),
       hydration: { ...water, measuredSweatRate: measuredSweat },
       supplements: base.supplementInputs
         .map((entry) => ({ entry, supplement: supplements.get(entry.supplementId) }))

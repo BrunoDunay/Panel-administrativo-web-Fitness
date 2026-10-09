@@ -1,5 +1,7 @@
-export type DayKind = 'training' | 'rest';
-export type MealSlot = 'protein1' | 'protein2' | 'carb1' | 'carb2' | 'fat' | 'vegetable' | 'fruit';
+import { Tone } from '../utils/visuals';
+
+/** Grupos del Sistema Mexicano de Alimentos Equivalentes; las claves las define el servidor. */
+export type SmaeGroupKey = string;
 
 export interface MacroSet {
   proteinG: number;
@@ -16,28 +18,30 @@ export interface NutritionInputs {
   adjustmentKcal: number;
   proteinPerKg: number;
   fatPct: number;
-  cycling: boolean;
-  extraTrainingKcal: number;
-  trainingDays: boolean[];
+  /** Dietocálculo: porciones al día de cada grupo. */
+  portions: Record<SmaeGroupKey, number>;
   mealCount: number;
-  preWorkoutMeal: number | null;
-  postWorkoutMeal: number | null;
-  roundTo: 1 | 5 | 10;
-  mealsMeta: { name: string; time: string; manual: { proteinPct?: number | null; carbsPct?: number | null; fatPct?: number | null } }[];
+  mealsMeta: { name: string; time: string }[];
 }
 
-export interface MealChoice {
-  style: 'Mixto' | 'Dulce' | 'Salado';
-  protein1: number | null;
-  protein2: number | null;
-  carb1: number | null;
-  carb2: number | null;
-  fat: number | null;
-  vegetable: number | null;
-  vegetablePortions: number;
-  fruit: number | null;
-  fruitPortions: number;
-  swaps: Partial<Record<MealSlot, number[]>>;
+/** Renglón de una comida: porciones de un grupo y el alimento con que se cubren. */
+export interface MealItemDraft {
+  group: SmaeGroupKey;
+  portions: number;
+  foodId: number | null;
+}
+
+/** Alimento adicional: no cuenta para el dietocálculo y lleva su nota. */
+export interface MealExtraDraft {
+  foodId: number | null;
+  portions: number;
+  note: string | null;
+}
+
+export interface MealDraft {
+  items: MealItemDraft[];
+  extras: MealExtraDraft[];
+  notes: string | null;
 }
 
 export interface HydrationInputs {
@@ -57,53 +61,82 @@ export interface NutritionDraft {
   startDate: string | null;
   allowClientSwaps: boolean;
   inputs: NutritionInputs;
-  meals: MealChoice[];
+  meals: MealDraft[];
   intra: { foodId: number | null; carbsG: number | null };
   hydration: HydrationInputs;
   supplements: SupplementInput[];
 }
 
-export interface MealTotals extends MacroSet {
+export type AdequacyState = 'ok' | 'low' | 'high' | 'none';
+
+export interface Adequacy {
+  total: number;
+  ideal: number;
+  /** % de adecuación: total × 100 / ideal. */
+  pct: number | null;
+  state: AdequacyState;
+  diff: number;
+}
+
+/** Un grupo en el dietocálculo: aporte por porción, porciones del día y cuántas faltan por repartir. */
+export interface DietGroup extends MacroSet {
+  key: SmaeGroupKey;
+  label: string;
+  family: string;
+  tone: Tone;
   kcal: number;
-  fiberG: number;
-  vegetableProteinG: number;
+  portions: number;
+  totalKcal: number;
+  totalProteinG: number;
+  totalFatG: number;
+  totalCarbsG: number;
+  daily: number;
+  assigned: number;
+  remaining: number;
 }
 
-export interface DayTotals extends MealTotals {
-  vegetableProteinPct: number | null;
-  fiberGoalG: number;
+export interface ComputedItem {
+  group: SmaeGroupKey;
+  groupLabel: string;
+  tone: Tone;
+  portions: number;
+  foodId: number | null;
+  name: string;
+  icon: string | null;
+  grams: number;
+  measure: string;
 }
 
-export interface MealItemAmounts {
+export interface ComputedExtra {
   foodId: number;
   name: string;
   icon: string | null;
-  trainingGrams: number;
-  restGrams: number;
-  trainingMeasure: string;
-  restMeasure: string;
-}
-
-export interface MealItem extends MealItemAmounts {
-  slot: MealSlot;
-  label: string;
-  swaps: MealItemAmounts[];
+  portions: number;
+  grams: number;
+  measure: string;
+  note: string | null;
+  kcal: number;
 }
 
 export interface ComputedMeal {
   number: number;
   name: string;
   time: string;
-  moment: string;
-  style: string;
-  share: { protein: number; carbs: number; fat: number };
-  target: Record<DayKind, MacroSet>;
-  totals: Record<DayKind, MealTotals>;
-  items: MealItem[];
+  notes: string | null;
+  kcal: number;
+  items: ComputedItem[];
+  extras: ComputedExtra[];
 }
 
-export interface DayTarget extends MacroSet {
-  kcal: number;
+/** Alimento de un grupo a 1 porción: con él se calcula cualquier cambio equivalente. */
+export interface EquivalentFood {
+  foodId: number;
+  name: string;
+  icon: string | null;
+  grams: number;
+  qty: number;
+  unit: string;
+  foodType: string;
 }
 
 export interface NutritionComputed {
@@ -116,11 +149,19 @@ export interface NutritionComputed {
   weeklyChangePct: number;
   fourWeekChangeKg: number;
   macros: MacroSet & { kcal: number; carbsNegative: boolean; proteinPerKg: number; fatPerKg: number; carbsPerKg: number };
-  vegetableProteinTarget: number | null;
-  cycle: { trainingDays: number; restDays: number; training: DayTarget; rest: DayTarget };
-  week: (DayTarget & { day: number; trains: boolean })[];
+  ideal: MacroSet & { kcal: number };
+  diet: {
+    groups: DietGroup[];
+    totals: MacroSet & { kcal: number };
+    adequacy: Record<'kcal' | 'proteinG' | 'fatG' | 'carbsG', Adequacy>;
+    range: { min: number; max: number };
+    /** Porciones del día que aún no están en ninguna comida. */
+    pending: number;
+    /** Grupos en los que se repartieron más porciones de las del día. */
+    exceeded: string[];
+  };
   meals: ComputedMeal[];
-  dayTotals: Record<DayKind, DayTotals>;
+  equivalents: Record<SmaeGroupKey, EquivalentFood[]>;
   intra: { foodId: number; name: string; carbsG: number; amount: number; unit: string; measure: string } | null;
   grocery: { name: string; icon: string | null; grams: number; kg: number; measure: string }[];
   hydration: {
@@ -151,7 +192,7 @@ export interface NutritionView {
   startDate: string | null;
   allowClientSwaps: boolean;
   inputs: NutritionInputs;
-  meals: Partial<MealChoice>[];
+  meals: MealDraft[];
   intra: { foodId?: number | null; carbsG?: number | null };
   hydrationInputs: Partial<HydrationInputs>;
   supplementInputs: SupplementInput[];

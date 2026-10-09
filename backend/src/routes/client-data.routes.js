@@ -4,7 +4,7 @@ import * as plans from '../controllers/plans.controller.js';
 import { coachOnly, portalUnlocked } from '../middlewares/load-client.js';
 import { validate } from '../middlewares/validate.js';
 import { checkinBody, checkinParams, clientBody, dateParams, dueDateBody, measurementBody, overdueAccessBody, paymentBody, paymentParams, weightBody } from '../validators/client.schemas.js';
-import { nutritionOptionsBody, nutritionPlanBody } from '../validators/nutrition.schemas.js';
+import { nutritionPlanBody } from '../validators/nutrition.schemas.js';
 import { exerciseLogBody, trainingPlanBody, weekLogBody, weekPrescriptionBody } from '../validators/training.schemas.js';
 
 /**
@@ -39,7 +39,6 @@ export function clientDataRoutes() {
       // Nutrición
       .put('/nutrition', coachOnly, validate({ body: nutritionPlanBody }), plans.saveNutrition)
       .post('/nutrition/preview', coachOnly, validate({ body: nutritionPlanBody }), plans.previewNutrition)
-      .post('/nutrition/options', coachOnly, validate({ body: nutritionOptionsBody }), plans.nutritionOptions)
 
       // Seguimiento
       .put('/checkins/:weekNumber', validate({ params: checkinParams, body: checkinBody }), plans.saveCheckin)

@@ -54,6 +54,27 @@ export function delayLabel(days: number | null | undefined): string {
   return days > 0 ? `${plural(days, 'día')} tarde` : `${plural(-days, 'día')} antes`;
 }
 
+const FRACTIONS: [number, string][] = [[0.25, '1/4'], [0.333, '1/3'], [0.5, '1/2'], [0.667, '2/3'], [0.75, '3/4']];
+
+/** Cantidad de cocina: "3/4", "1 1/2", "4". */
+function quantityText(quantity: number): string {
+  const whole = Math.floor(quantity + 1e-6);
+  const rest = quantity - whole;
+  if (rest < 0.06) return String(whole);
+  const fraction = FRACTIONS.find(([value]) => Math.abs(value - rest) < 0.045);
+  if (!fraction) return formatNumber(quantity, 1);
+  return whole ? `${whole} ${fraction[1]}` : fraction[1];
+}
+
+/**
+ * Cantidad de un alimento que equivale a `portions` porciones de su grupo. `food` trae lo que
+ * pesa y mide UNA porción. Devuelve los gramos y la medida casera ("141 g", "3/4 taza").
+ */
+export function portionAmount(food: { grams: number; qty: number; unit: string }, portions: number): { grams: number; measure: string } {
+  const grams = Math.round(food.grams * portions);
+  return { grams, measure: !food.unit || food.unit === 'g' ? '' : `${quantityText(food.qty * portions)} ${food.unit}` };
+}
+
 /** Valor de un <input type="number">: vacío o inválido = null. */
 export function toNumber(value: unknown): number | null {
   if (value === '' || value === null || value === undefined) return null;
