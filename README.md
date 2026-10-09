@@ -41,7 +41,7 @@ npm run dev            # http://localhost:3000/api
 Al arrancar, el servidor:
 
 1. aplica las migraciones pendientes (`backend/migrations/`);
-2. crea la cuenta del coach con `ADMIN_EMAIL` / `ADMIN_PASSWORD` si todavía no existe;
+2. crea la cuenta del coach con `ADMIN_EMAIL` / `ADMIN_PASSWORD` si todavía no existe ninguna, y la cuenta de soporte con `SUPPORT_ADMIN_EMAIL` / `SUPPORT_ADMIN_PASSWORD` si están definidas y no existe (segundo acceso al panel para mantenimiento; cada cuenta cambia su propia contraseña en **Panel → Cuenta**);
 3. carga los catálogos de las plantillas (149 ejercicios, 120 alimentos, 17 suplementos y los protocolos de cardio y calentamiento) y el contenido inicial de la landing, **solo si las tablas están vacías**. Nunca sobrescribe lo editado desde el panel.
 
 Otros comandos: `npm test`, `npm run migrate`, `npm run migrate:down`.

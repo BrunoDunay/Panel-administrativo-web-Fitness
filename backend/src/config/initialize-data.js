@@ -19,6 +19,18 @@ async function ensureAdmin() {
   return true;
 }
 
+/**
+ * Cuenta de soporte: una segunda cuenta para quien da mantenimiento, independiente de la del coach.
+ * Se crea si no existe; si ya existe no se toca (su contraseña se cambia desde el panel).
+ */
+async function ensureSupportAdmin() {
+  if (!env.SUPPORT_ADMIN_EMAIL) return false;
+  const email = env.SUPPORT_ADMIN_EMAIL.toLowerCase();
+  if (await Admin.count({ where: { email } })) return false;
+  await Admin.create({ email, name: env.SUPPORT_ADMIN_NAME, passwordHash: await bcrypt.hash(env.SUPPORT_ADMIN_PASSWORD, BCRYPT_ROUNDS) });
+  return true;
+}
+
 /** Inserta solo las secciones de configuración que falten (nunca sobrescribe lo editado). */
 async function seedSettings(transaction) {
   const existing = new Set((await SiteSetting.findAll({ attributes: ['key'], transaction })).map((s) => s.key));
@@ -47,6 +59,7 @@ const ordered = (rows) => rows.map((row, index) => ({ ...row, sortOrder: index }
 /** Idempotente: se puede ejecutar en cada arranque sin duplicar ni pisar datos. */
 export async function initializeData() {
   const adminCreated = await ensureAdmin();
+  const supportCreated = await ensureSupportAdmin();
 
   const seeded = await sequelize.transaction(async (transaction) => ({
     settings: await seedSettings(transaction),
@@ -58,5 +71,5 @@ export async function initializeData() {
   }));
 
   const { settings, ...catalogs } = seeded;
-  return { adminCreated, settings, catalogs: Object.keys(catalogs).filter((key) => catalogs[key]) };
+  return { adminCreated, supportCreated, settings, catalogs: Object.keys(catalogs).filter((key) => catalogs[key]) };
 }

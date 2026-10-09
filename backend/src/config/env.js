@@ -13,12 +13,19 @@ const schema = z.object({
   ADMIN_EMAIL: z.email('ADMIN_EMAIL debe ser un email válido'),
   ADMIN_PASSWORD: z.string().min(10, 'ADMIN_PASSWORD debe tener al menos 10 caracteres'),
   ADMIN_NAME: z.string().default('Germain Camarillo'),
+  // Segunda cuenta, opcional: acceso de soporte de quien da mantenimiento al sistema.
+  SUPPORT_ADMIN_EMAIL: z.email('SUPPORT_ADMIN_EMAIL debe ser un email válido').optional().or(z.literal('').transform(() => undefined)),
+  SUPPORT_ADMIN_PASSWORD: z.string().min(10, 'SUPPORT_ADMIN_PASSWORD debe tener al menos 10 caracteres').optional().or(z.literal('').transform(() => undefined)),
+  SUPPORT_ADMIN_NAME: z.string().default('Soporte'),
   CORS_ORIGINS: z.string().default('http://localhost:4200'),
   PUBLIC_SITE_URL: z.string().default('http://localhost:4200'),
   APP_TIMEZONE: z.string().default('America/Mexico_City'),
 });
 
-const parsed = schema.safeParse(process.env);
+const parsed = schema
+  .refine((v) => Boolean(v.SUPPORT_ADMIN_EMAIL) === Boolean(v.SUPPORT_ADMIN_PASSWORD), { path: ['SUPPORT_ADMIN_PASSWORD'], message: 'SUPPORT_ADMIN_EMAIL y SUPPORT_ADMIN_PASSWORD van juntas: define las dos o ninguna' })
+  .refine((v) => !v.SUPPORT_ADMIN_EMAIL || v.SUPPORT_ADMIN_EMAIL.toLowerCase() !== v.ADMIN_EMAIL.toLowerCase(), { path: ['SUPPORT_ADMIN_EMAIL'], message: 'SUPPORT_ADMIN_EMAIL debe ser distinto de ADMIN_EMAIL' })
+  .safeParse(process.env);
 
 if (!parsed.success) {
   const details = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');

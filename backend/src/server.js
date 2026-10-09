@@ -17,6 +17,7 @@ async function start() {
 
   const init = await initializeData();
   if (init.adminCreated) console.log(`Cuenta del coach creada: ${env.ADMIN_EMAIL}`);
+  if (init.supportCreated) console.log(`Cuenta de soporte creada: ${env.SUPPORT_ADMIN_EMAIL}`);
   if (init.catalogs.length) console.log('Catálogos cargados:', init.catalogs.join(', '));
 
   const server = createApp().listen(env.PORT, () => {
