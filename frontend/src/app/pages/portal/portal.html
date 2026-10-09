@@ -2,7 +2,8 @@
 
 <header class="topbar">
   <div class="topbar__inner">
-    <a class="brand" href="/" aria-label="Fitness by Evidence">
+    <!-- El logo no saca del plan: al coach (con sesión) lo regresa al panel; al cliente, a su resumen. -->
+    <a class="brand" [attr.href]="isCoach ? '/panel' : null" [attr.aria-label]="isCoach ? 'Volver al panel' : 'Ir al resumen de mi plan'" role="link" tabindex="0" (click)="goHome()" (keydown.enter)="goHome()">
       <img src="/brand/mark-light.png" alt="" width="640" height="356" />
       <span class="display">Fitness by Evidence</span>
     </a>

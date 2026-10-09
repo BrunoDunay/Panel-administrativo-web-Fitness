@@ -9,6 +9,7 @@ import { TrainingOverview } from '../../components/training/training-overview';
 import { TrainingReports } from '../../components/training/training-reports';
 import { WeekSheet } from '../../components/training/week-sheet';
 import { SYMBOLS } from '../../core/config/tracking-lists';
+import { AuthService } from '../../core/services/auth.service';
 import { ClientStore } from '../../core/services/client-store';
 import { SeoService } from '../../core/services/seo.service';
 import { dueLabel, formatDate, formatNumber, formatSigned } from '../../core/utils/format';
@@ -37,6 +38,8 @@ export class Portal {
   readonly code = input.required<string>();
 
   protected readonly store = inject(ClientStore);
+  /** Quien abre el enlace con sesión del panel es el coach ("Ver como cliente"). */
+  protected readonly isCoach = inject(AuthService).admin() !== null;
   protected readonly tabs = TABS;
   protected readonly symbols = SYMBOLS;
   protected readonly tab = signal<Tab>('summary');
@@ -98,6 +101,13 @@ export class Portal {
   constructor() {
     inject(SeoService).setPage({ title: 'Mi plan | Fitness by Evidence', noindex: true });
     effect(() => this.store.init(`portal/${encodeURIComponent(this.code())}`, false));
+  }
+
+  /** Clic en el logo: el cliente vuelve a su resumen (el coach navega al panel con el enlace). */
+  protected goHome(): void {
+    if (this.isCoach) return;
+    this.tab.set('summary');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   protected selectWeek(id: string): void {

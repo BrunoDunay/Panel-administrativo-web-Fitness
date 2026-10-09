@@ -45,7 +45,7 @@
       <button type="button" class="menu-btn" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menú">
         <app-icon name="menu" [size]="22" />
       </button>
-      <img src="/brand/mark.png" alt="Fitness by Evidence" width="640" height="356" />
+      <a routerLink="/panel" aria-label="Inicio del panel"><img src="/brand/mark.png" alt="Fitness by Evidence" width="640" height="356" /></a>
     </header>
 
     <main class="content">
