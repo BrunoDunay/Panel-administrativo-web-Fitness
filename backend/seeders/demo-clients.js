@@ -3,6 +3,7 @@
 //
 //   npm run seed:demo            crea los que falten
 //   npm run seed:demo -- --reset borra los de ejemplo y los vuelve a crear
+//   npm run seed:demo -- --only=Diego   crea solo el cliente cuyo nombre contiene ese texto
 import { Op } from 'sequelize';
 import { sequelize } from '../src/config/database.js';
 import { Client, Food, Payment, Supplement, WeekExercise } from '../src/models/index.js';
@@ -363,7 +364,9 @@ async function main() {
   if (!foods.size) throw new Error('Los catálogos están vacíos: arranca el servidor una vez (npm run dev) antes de cargar los ejemplos.');
 
   let created = 0;
+  const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).toLowerCase();
   for (const spec of DEMO) {
+    if (only && !spec.client.fullName.toLowerCase().includes(only)) continue;
     if (await createDemo(spec, foods, supplements)) {
       created++;
       console.log(`  + ${spec.client.fullName}`);
