@@ -40,6 +40,8 @@ export interface SidePose {
   leg2?: Limb;
   /** Ángulo de la mano (para ejercicios de muñeca). */
   wrist?: number;
+  /** Escala del brazo: menos de 1 = el codo abre hacia quien mira y el brazo se ve más corto. */
+  reach?: number;
 }
 
 export interface FrontPose {
@@ -153,7 +155,8 @@ export function sideSkeleton(pose: SidePose): Skeleton {
   }
 
   // Los brazos van después de las piernas: pueden apoyarse en la rodilla.
-  const arm = solve(shoulder, pose.arm, LEN.upper, LEN.fore, pts, dir);
+  const reach = pose.reach ?? 1;
+  const arm = solve(shoulder, pose.arm, LEN.upper * reach, LEN.fore * reach, pts, dir);
   pts['elbow'] = arm.joint;
   pts['hand'] = arm.end;
   let armPath = line(shoulder, arm.joint, arm.end);
@@ -162,7 +165,7 @@ export function sideSkeleton(pose: SidePose): Skeleton {
     armPath += `L${n(pts['tip'][0])} ${n(pts['tip'][1])}`;
   }
   if (pose.arm2) {
-    const arm2 = solve(shoulder, pose.arm2, LEN.upper, LEN.fore, pts, dir);
+    const arm2 = solve(shoulder, pose.arm2, LEN.upper * reach, LEN.fore * reach, pts, dir);
     pts['elbow2'] = arm2.joint;
     pts['hand2'] = arm2.end;
     far += line(shoulder, arm2.joint, arm2.end);

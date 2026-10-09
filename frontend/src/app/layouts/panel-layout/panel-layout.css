@@ -224,6 +224,11 @@
     border-radius: 0;
   }
 
+  /* Lo que se queda fijo al desplazarse debe librar la barra superior. */
+  .shell {
+    --sticky-top: calc(2.75rem + 2 * var(--space-2) + 1px);
+  }
+
   .topbar {
     position: sticky;
     top: 0;

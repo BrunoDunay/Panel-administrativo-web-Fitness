@@ -1055,3 +1055,79 @@
   min-width: 0;
   width: 1.5rem;
 }
+
+/* =========================================================================
+   Teléfono: distribución de las tablas apiladas. Cada fila es una tarjeta con
+   aire en los bordes; los datos van en dos columnas, con su etiqueta arriba.
+   ========================================================================= */
+@media (max-width: 720px) {
+  .table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .card:not(.card--flush) > .table-wrap .table tr,
+  .card:not(.card--flush) .table tr {
+    padding-inline: 0;
+  }
+
+  .table td,
+  .table--compact td {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+  }
+
+  .table td::before {
+    max-width: none;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .table .num,
+  .table th.num {
+    text-align: left;
+  }
+
+  /* Ocupan todo el ancho: el título de la fila, lo que lleva controles anchos y las acciones. */
+  .table td:first-child,
+  .table td:has(.swaps, app-food-picker, textarea, .macro-bar, .moment-tag, .moment-empty),
+  .table td[colspan] {
+    grid-column: 1 / -1;
+  }
+
+  .table td:has(.macro-bar) {
+    justify-items: stretch;
+  }
+
+  .table td.row-actions,
+  .table td:last-child:has(> .icon-btn, > button.icon-btn) {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: calc(var(--space-2) * -1);
+  }
+
+  .table td > .cell-input,
+  .table td > label,
+  .table td > div,
+  .table td > select,
+  .table td > app-food-picker {
+    width: 100%;
+    max-width: none;
+  }
+
+  .table td:empty,
+  .table td[data-label='']:empty {
+    display: none;
+  }
+}
