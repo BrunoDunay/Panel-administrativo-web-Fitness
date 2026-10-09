@@ -45,5 +45,6 @@ if (parsed.data.NODE_ENV === 'production') {
 export const env = {
   ...parsed.data,
   isProduction: parsed.data.NODE_ENV === 'production',
-  corsOrigins: parsed.data.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
+  // Sin diagonal final: el navegador manda el origen sin ella y la comparación es exacta.
+  corsOrigins: parsed.data.CORS_ORIGINS.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean),
 };
