@@ -35,13 +35,18 @@ import { ExerciseFigure } from '../visual/exercise-figure';
         </header>
 
         @for (exercise of day.exercises; track exercise.id) {
-          <section [class]="'exercise icon-hover tone--' + tone(exercise.muscle)">
+          <section [class]="'exercise icon-hover tone--' + tone(exercise.muscle)" [class.is-done]="done(exercise)">
             <div class="exercise__head">
               <span class="thumb figure"><app-exercise-figure [exercise]="exercise.exercise" [muscle]="exercise.muscle" [figure]="exercise.movement" [size]="62" /></span>
               <div class="exercise__name">
                 <strong>{{ exercise.exercise }}</strong>
                 <span><b class="muscle">{{ exercise.muscle }}</b>@if (equipment(exercise.exercise)) { · {{ equipment(exercise.exercise) }} }</span>
               </div>
+              @if (done(exercise)) {
+                <span class="badge badge--success done-badge"><span aria-hidden="true">✓</span> Completado</span>
+              } @else if (started(exercise)) {
+                <span class="badge">{{ exercise.setsDone }} de {{ exercise.sets }} series</span>
+              }
               @if (exercise.symbol) {
                 <span class="badge badge--warning" [title]="hint(exercise.symbol)">{{ exercise.symbol }} {{ symbolLabel(exercise.symbol) }}</span>
               }
@@ -138,7 +143,10 @@ import { ExerciseFigure } from '../visual/exercise-figure';
     .day__date { width: 10rem; }
     .day__sets { font-size: var(--text-xl); }
     .exercise { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-background); }
-    .exercise__head { display: flex; align-items: center; gap: var(--space-3); }
+    .exercise__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+    /* Completado: todas las series con carga y repeticiones. */
+    .exercise { border-left: 4px solid transparent; transition: background-color var(--duration); }
+    .exercise.is-done { border-left-color: var(--color-success); background: var(--color-success-soft); }
     .exercise__index { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--color-secondary); font-size: var(--text-xs); font-weight: 700; color: var(--color-text-inverse); }
     .exercise__name { display: grid; flex: 1; min-width: 0; line-height: 1.3; }
     .exercise__name span { font-size: var(--text-xs); color: var(--color-text-muted); }
@@ -180,6 +188,15 @@ export class WeekSheet {
     return [cardio.durationMin ? `${cardio.durationMin} min` : null, cardio.intervals && cardio.intervals !== '—' ? cardio.intervals : null, cardio.rpe && cardio.rpe !== '—' ? `RPE ${cardio.rpe}` : null, cardio.hrZone && cardio.hrZone !== '—' ? cardio.hrZone : null, cardio.instructions, cardio.notes]
       .filter(Boolean)
       .join(' · ');
+  }
+
+  /** Completado = todas las series tienen carga y repeticiones. Es solo visual. */
+  protected done(exercise: WeekExercise): boolean {
+    return exercise.logged.length > 0 && exercise.logged.every((set) => set.load !== null && set.reps !== null);
+  }
+
+  protected started(exercise: WeekExercise): boolean {
+    return exercise.logged.some((set) => set.load !== null || set.reps !== null);
   }
 
   protected fmt = formatNumber;

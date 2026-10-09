@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { catchError, debounceTime, filter, of, switchMap, tap } from 'rxjs';
 import { Btn } from '../../../../components/buttons/btn';
 import { Icon } from '../../../../components/icon/icon';
+import { FoodPicker, OptionState } from '../../../../components/nutrition/food-picker';
 import { ClientStore } from '../../../../core/services/client-store';
 import { Catalog, Food } from '../../../../core/types/catalog.model';
 import { MealChoice, MealSlot, NutritionDraft, NutritionView } from '../../../../core/types/nutrition.model';
 import { WEEK_DAYS } from '../../../../core/types/training.model';
 import { formatNumber, formatPercent, formatSigned } from '../../../../core/utils/format';
+import { foodEmoji } from '../../../../core/utils/visuals';
 
 const SLOTS: { key: MealSlot; label: string; flag: keyof Food; portions?: 'vegetablePortions' | 'fruitPortions' }[] = [
   { key: 'protein1', label: 'Proteína 1', flag: 'asProtein' },
@@ -21,6 +23,16 @@ const SLOTS: { key: MealSlot; label: string; flag: keyof Food; portions?: 'veget
 ];
 
 type ManualKey = 'proteinPct' | 'carbsPct' | 'fatPct';
+type MomentKey = 'preWorkoutMeal' | 'postWorkoutMeal';
+
+/** Etiquetas que se arrastran a la comida que va antes y después de entrenar. */
+const MOMENT_TAGS: { key: MomentKey; label: string }[] = [
+  { key: 'preWorkoutMeal', label: 'Pre-entreno' },
+  { key: 'postWorkoutMeal', label: 'Post-entreno' },
+];
+
+/** Margen con el que una cantidad se da por cuadrada: ±5 % de su objetivo. */
+const FIT_TOLERANCE = 0.05;
 
 const emptyMeal = (): MealChoice => ({
   style: 'Mixto',
@@ -43,7 +55,7 @@ const emptyMeal = (): MealChoice => ({
  */
 @Component({
   selector: 'app-nutrition-editor',
-  imports: [FormsModule, Btn, Icon],
+  imports: [FormsModule, Btn, Icon, FoodPicker],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './nutrition-editor.html',
   styleUrl: './nutrition-editor.css',
@@ -108,7 +120,62 @@ export class NutritionEditor {
 
   /** Los campos escriben directo en el borrador; esto dispara el recálculo. */
   protected refresh(): void {
+    // Lo que cabe o no en cada comida depende del borrador: se vuelve a pedir al abrir un selector.
+    this.optionStates.set({});
     this.draft.update((draft) => (draft ? { ...draft } : draft));
+  }
+
+  // ---- Pre y post entreno ----
+
+  protected readonly momentTags = MOMENT_TAGS;
+  /** Etiqueta que se está arrastrando (o que se tocó para colocarla con otro toque). */
+  protected readonly armed = signal<MomentKey | null>(null);
+
+  protected placedAt(key: MomentKey): number | null {
+    const meal = this.draft()?.inputs[key] ?? null;
+    return meal !== null && meal <= (this.draft()?.inputs.mealCount ?? 0) ? meal : null;
+  }
+
+  protected startDrag(event: DragEvent, key: MomentKey): void {
+    event.dataTransfer?.setData('text/plain', key);
+    this.armed.set(key);
+  }
+
+  protected arm(key: MomentKey): void {
+    this.armed.update((current) => (current === key ? null : key));
+  }
+
+  protected place(meal: number): void {
+    const key = this.armed();
+    if (!key) return;
+    this.draft()!.inputs[key] = meal;
+    this.armed.set(null);
+    this.refresh();
+  }
+
+  protected unplace(key: MomentKey): void {
+    this.draft()!.inputs[key] = null;
+    this.refresh();
+  }
+
+  // ---- Qué alimentos caben en cada renglón ----
+
+  protected readonly optionStates = signal<Record<string, Record<number, OptionState>>>({});
+  protected readonly emoji = (food: Food) => foodEmoji(food.name, food.icon);
+
+  protected loadStates(mealIndex: number, slot: MealSlot, foods: Food[]): void {
+    const draft = this.draft();
+    if (!draft || mealIndex >= draft.inputs.mealCount) return;
+    const key = mealIndex + slot;
+    this.store.nutritionOptions(this.payload(draft), mealIndex, slot, foods.map((food) => food.id)).subscribe({
+      next: (states) => this.optionStates.update((all) => ({ ...all, [key]: states })),
+      error: () => undefined,
+    });
+  }
+
+  protected setFood(meal: MealChoice, slot: MealSlot, id: number | null): void {
+    meal[slot] = id;
+    this.clearSlot(meal, slot);
   }
 
   private payload(draft: NutritionDraft): NutritionDraft {
@@ -154,7 +221,7 @@ export class NutritionEditor {
       const plan = c.dayTotals[kind];
       const item = (name: string, planned: number, target: number, unit: string) => {
         const diff = Math.round(planned) - Math.round(target);
-        const tolerance = Math.max(unit === 'kcal' ? 30 : 4, target * 0.04);
+        const tolerance = Math.max(1, target * FIT_TOLERANCE);
         return { name, plan: planned, goal: target, unit, diff, state: Math.abs(diff) <= tolerance ? 'ok' : diff < 0 ? 'low' : 'high' };
       };
       return { label, items: [item('Calorías', plan.kcal, goal.kcal, 'kcal'), item('Proteína', plan.proteinG, goal.proteinG, 'g'), item('Carbos', plan.carbsG, goal.carbsG, 'g'), item('Grasa', plan.fatG, goal.fatG, 'g')] };

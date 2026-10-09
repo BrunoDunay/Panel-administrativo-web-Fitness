@@ -8,6 +8,8 @@ export const Client = sequelize.define(
     id: uuidKey,
     accessCode: { type: DataTypes.STRING(32), allowNull: false, unique: true },
     portalEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    // El coach permite ver el plan aunque el pago esté vencido (se apaga al registrar un pago).
+    overdueAccess: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     status: { type: DataTypes.ENUM('active', 'paused', 'archived'), allowNull: false, defaultValue: 'active' },
     fullName: { type: DataTypes.STRING(160), allowNull: false },
     birthDate: DataTypes.DATEONLY,

@@ -65,6 +65,33 @@ export async function saveNutritionPlan(clientId, data) {
   return NutritionPlan.create({ ...data, clientId });
 }
 
+/** Margen con el que una cantidad se considera "cuadrada" contra su meta: ±5 %. */
+export const FIT_TOLERANCE = 0.05;
+
+/**
+ * Qué pasaría con la comida si en un renglón se eligiera cada alimento candidato:
+ * 'high' si algún macro de la comida se pasa de su meta más allá del margen; 'ok' si no.
+ */
+export function mealOptionStates({ draft, mealIndex, slot, foodIds }, client, catalog, today) {
+  const states = {};
+  for (const foodId of foodIds) {
+    const meals = draft.meals.map((meal, i) => (i === mealIndex ? { ...meal, [slot]: foodId } : meal));
+    while (meals.length <= mealIndex) meals.push({});
+    meals[mealIndex] = { ...meals[mealIndex], [slot]: foodId };
+    const meal = buildNutritionView({ ...draft, meals }, client, catalog, today).computed?.meals[mealIndex];
+    if (!meal) continue;
+    const over = ['training', 'rest'].some((kind) =>
+      ['proteinG', 'carbsG', 'fatG'].some((macro) => {
+        const goal = meal.target[kind][macro];
+        // En metas muy chicas, 5 % son décimas de gramo: se dejan al menos 3 g de holgura.
+        return meal.totals[kind][macro] - goal > Math.max(goal * FIT_TOLERANCE, 3);
+      }),
+    );
+    states[foodId] = over ? 'high' : 'ok';
+  }
+  return states;
+}
+
 /**
  * Calcula todo el plan a partir de lo que el coach capturó. `plan` puede ser el registro
  * guardado o un borrador sin guardar (vista previa mientras edita).

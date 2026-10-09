@@ -28,13 +28,16 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
               @case ('none') { Registra el primer pago o define la fecha para empezar a llevar el control. }
               @case ('ok') { <b>Al corriente.</b> {{ due(status.days) }}. }
               @case ('soon') { <b>{{ due(status.days) }}.</b> Tu cliente ya ve el aviso en su panel. }
-              @case ('overdue') { <b>{{ due(status.days) }}.</b> Tu cliente ve el aviso de pago vencido en su panel. }
+              @case ('overdue') { <b>{{ due(status.days) }}.</b> {{ status.locked ? 'Su enlace está bloqueado: solo ve el aviso de pago.' : 'Le permitiste el acceso: ve su plan con el aviso de pago vencido.' }} }
             }
           </p>
         </div>
         <div class="status__actions">
           <button appBtn type="button" variant="light" (click)="mode.set('pay')"><app-icon name="dollar" [size]="16" />Registrar pago</button>
           <button appBtn type="button" variant="light" (click)="startDue(status.dueDate)"><app-icon name="edit" [size]="16" />Cambiar fecha</button>
+          @if (status.state === 'overdue') {
+            <button appBtn type="button" variant="light" (click)="store.setOverdueAccess(!status.overdueAccess).subscribe()"><app-icon name="lock" [size]="16" />{{ status.overdueAccess ? 'Volver a bloquear acceso' : 'Permitir acceso' }}</button>
+          }
         </div>
       </section>
 

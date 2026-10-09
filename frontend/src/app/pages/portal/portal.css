@@ -141,6 +141,33 @@
   }
 }
 
+/* Pago vencido: el enlace abre, pero solo muestra este aviso. */
+.locked {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+}
+
+.locked .tile-icon {
+  width: 4rem;
+  height: 4rem;
+}
+
+.locked h1 {
+  font-size: var(--text-2xl);
+}
+
+.locked p {
+  max-width: 48ch;
+}
+
+.locked__hint {
+  font-size: var(--text-sm);
+  opacity: 0.85;
+}
+
 /* Aviso de pago próximo o vencido. */
 .pay-alert {
   display: flex;

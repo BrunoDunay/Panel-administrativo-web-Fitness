@@ -20,16 +20,25 @@
       <h1>No pudimos abrir tu plan</h1>
       <p>{{ error.message }}</p>
     </section>
+  } @else if (store.locked()) {
+    <section class="card card--vivid tone--coral locked icon-hover">
+      <span class="tile-icon"><app-icon name="lock" [size]="28" /></span>
+      <h1>{{ firstName() }}, tu acceso está en pausa</h1>
+      @if (store.payment(); as payment) {
+        <p>Tu pago venció el <b>{{ date(payment.dueDate) }}</b>. Para volver a ver tu plan y registrar tu avance, ponte al corriente con tu coach.</p>
+      }
+      <p class="locked__hint">En cuanto tu coach registre el pago, este mismo enlace vuelve a funcionar. Tus datos y tu avance siguen guardados.</p>
+    </section>
   } @else if (store.client(); as client) {
     <section class="welcome">
       <div>
         <p class="eyebrow">Tu plan personalizado</p>
         <h1>Hola, {{ firstName() }}</h1>
       </div>
-      <nav class="tabs" role="tablist" aria-label="Secciones de tu plan">
+      <nav class="tabs tabs--icons" role="tablist" aria-label="Secciones de tu plan">
         @for (item of tabs; track item.key) {
-          <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" (click)="tab.set(item.key)">
-            <app-icon [name]="item.icon" [size]="16" />{{ item.label }}
+          <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" [attr.aria-label]="item.label" (click)="tab.set(item.key)">
+            <app-icon [name]="item.icon" [size]="18" /><span class="tab__label">{{ item.label }}</span>
           </button>
         }
       </nav>
@@ -71,7 +80,7 @@
             }
             @if (today(); as day) {
               <button type="button" class="card card--tint tone--teal stat tile" (click)="tab.set('nutrition')">
-                <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="22" /></span>
+                <span class="tile-icon tile-icon--solid"><app-icon name="apple" [size]="22" /></span>
                 <span class="stat__label">Hoy · día de {{ day.trains ? 'entreno' : 'descanso' }}</span>
                 <span class="stat__value">{{ num(day.kcal, 0) }}<small> kcal</small></span>
                 <span class="stat__note"><b>P</b> {{ day.proteinG }} g · <b>C</b> {{ day.carbsG }} g · <b>G</b> {{ day.fatG }} g</span>

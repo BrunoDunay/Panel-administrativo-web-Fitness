@@ -4,7 +4,7 @@ import { Observable, finalize, tap } from 'rxjs';
 import { API_URL } from '../config/api.config';
 import { ClientOverview, Payment, PaymentDraft } from '../types/client.model';
 import { ApiError } from '../types/common.model';
-import { NutritionDraft, NutritionView } from '../types/nutrition.model';
+import { MealSlot, NutritionDraft, NutritionView } from '../types/nutrition.model';
 import { LoggedSet, PrescriptionRow, WeekExercise } from '../types/training.model';
 import { ToastService } from './toast.service';
 
@@ -32,6 +32,7 @@ export class ClientStore {
   readonly training = computed(() => this.data()?.training ?? null);
   readonly nutrition = computed(() => this.data()?.nutrition ?? null);
   readonly tracking = computed(() => this.data()?.tracking ?? null);
+  readonly locked = computed(() => this.data()?.locked === true);
   readonly payment = computed(() => this.data()?.payment ?? null);
   readonly payments = computed(() => this.data()?.payments ?? []);
   readonly today = computed(() => this.data()?.today ?? new Date().toISOString().slice(0, 10));
@@ -92,6 +93,10 @@ export class ClientStore {
     return this.mutate(this.http.delete(`${this.base}/payments/${paymentId}`), 'Pago eliminado.');
   }
 
+  setOverdueAccess(allow: boolean) {
+    return this.mutate(this.http.put(`${this.base}/payments/access`, { allow }), allow ? 'Acceso permitido aunque el pago esté vencido.' : 'Acceso bloqueado hasta que pague.');
+  }
+
   setPaymentDueDate(dueDate: string | null) {
     return this.mutate(this.http.put(`${this.base}/payments/due-date`, { dueDate }), 'Fecha de pago actualizada.');
   }
@@ -128,6 +133,11 @@ export class ClientStore {
 
   previewNutrition(draft: NutritionDraft) {
     return this.http.post<NutritionView>(`${this.base}/nutrition/preview`, draft);
+  }
+
+  /** Para cada alimento candidato de un renglón: 'ok' si cabe en la comida, 'high' si la haría pasarse. */
+  nutritionOptions(draft: NutritionDraft, mealIndex: number, slot: MealSlot, foodIds: number[]) {
+    return this.http.post<Record<number, 'ok' | 'high'>>(`${this.base}/nutrition/options`, { draft, mealIndex, slot, foodIds });
   }
 
   // ---- Seguimiento ----

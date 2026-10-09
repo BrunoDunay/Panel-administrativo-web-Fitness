@@ -20,7 +20,7 @@ const inputs = z.object({
   cycling: z.boolean(),
   extraTrainingKcal: z.number().min(0).max(1500),
   trainingDays: z.array(z.boolean()).length(7),
-  mealCount: z.number().int().min(3).max(MAX_MEALS),
+  mealCount: z.number().int().min(1).max(MAX_MEALS),
   preWorkoutMeal: z.number().int().min(1).max(MAX_MEALS).nullable(),
   postWorkoutMeal: z.number().int().min(1).max(MAX_MEALS).nullable(),
   roundTo: z.union([z.literal(1), z.literal(5), z.literal(10)]),
@@ -42,6 +42,16 @@ const meal = z.object({
   fruit: foodId,
   fruitPortions: z.number().min(0).max(10).default(1),
   swaps: z.partialRecord(z.enum(['protein1', 'protein2', 'carb1', 'carb2', 'fat', 'vegetable', 'fruit']), swaps).default({}),
+});
+
+const SLOT_KEYS = ['protein1', 'protein2', 'carb1', 'carb2', 'fat', 'vegetable', 'fruit'];
+
+/** Para evaluar las opciones de un renglón: el borrador, la comida, el renglón y los alimentos candidatos. */
+export const nutritionOptionsBody = z.object({
+  draft: z.lazy(() => nutritionPlanBody),
+  mealIndex: z.number().int().min(0).max(MAX_MEALS - 1),
+  slot: z.enum(SLOT_KEYS),
+  foodIds: z.array(z.number().int().positive()).max(400),
 });
 
 export const nutritionPlanBody = z.object({

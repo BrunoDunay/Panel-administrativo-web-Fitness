@@ -130,20 +130,6 @@
           </select>
         </label>
         <label class="field">
-          <span class="field__label">Comida pre-entreno</span>
-          <select class="field__control" name="preWorkoutMeal" [(ngModel)]="d.inputs.preWorkoutMeal">
-            <option [ngValue]="null">Ninguna</option>
-            @for (n of mealNumbers(); track n) { <option [ngValue]="n">{{ n }} · {{ d.inputs.mealsMeta[n - 1].name }}</option> }
-          </select>
-        </label>
-        <label class="field">
-          <span class="field__label">Comida post-entreno</span>
-          <select class="field__control" name="postWorkoutMeal" [(ngModel)]="d.inputs.postWorkoutMeal">
-            <option [ngValue]="null">Ninguna</option>
-            @for (n of mealNumbers(); track n) { <option [ngValue]="n">{{ n }} · {{ d.inputs.mealsMeta[n - 1].name }}</option> }
-          </select>
-        </label>
-        <label class="field">
           <span class="field__label">Redondear gramos a</span>
           <select class="field__control" name="roundTo" [(ngModel)]="d.inputs.roundTo">
             @for (n of catalog().lists.roundTo; track n) { <option [ngValue]="n">{{ n }} g</option> }
@@ -151,6 +137,14 @@
         </label>
       </div>
       <p class="card__hint">La proteína se reparte igual. En pre y post entreno va más carbo y menos grasa. Para tu propio reparto escribe tus % en "manual": entre todas las comidas <b>no pueden pasar de 100 %</b> y abajo ves cuánto te falta por repartir.</p>
+      <div class="moments" [class.is-arming]="armed()">
+        <span class="moments__hint"><b>Pre y post entreno:</b> arrastra cada etiqueta a la columna "Momento" de su comida (o tócala y luego toca la comida).</span>
+        @for (tag of momentTags; track tag.key) {
+          @if (placedAt(tag.key) === null) {
+            <button type="button" class="moment-tag" draggable="true" [class.is-armed]="armed() === tag.key" (dragstart)="startDrag($event, tag.key)" (dragend)="armed.set(null)" (click)="arm(tag.key)">{{ tag.label }}</button>
+          }
+        }
+      </div>
       <div class="table-wrap">
         <table class="table table--compact">
           <thead>
@@ -164,7 +158,14 @@
                 <td>{{ n }}</td>
                 <td><input class="cell-input name" [name]="'mealName' + n" [(ngModel)]="meta.name" maxlength="40" [attr.aria-label]="'Nombre de la comida ' + n" /></td>
                 <td><input class="cell-input" type="time" [name]="'mealTime' + n" [(ngModel)]="meta.time" [attr.aria-label]="'Hora de la comida ' + n" /></td>
-                <td>{{ c?.meals?.[n - 1]?.moment || '—' }}</td>
+                <td class="moment-cell" [class.is-target]="armed()" (dragover)="$event.preventDefault()" (drop)="$event.preventDefault(); place(n)" (click)="place(n)">
+                  @for (tag of momentTags; track tag.key) {
+                    @if (placedAt(tag.key) === n) {
+                      <span class="moment-tag is-placed" draggable="true" (dragstart)="startDrag($event, tag.key)" (dragend)="armed.set(null)">{{ tag.label }}<button type="button" (click)="$event.stopPropagation(); unplace(tag.key)" [attr.aria-label]="'Quitar ' + tag.label">×</button></span>
+                    }
+                  }
+                  @if (placedAt('preWorkoutMeal') !== n && placedAt('postWorkoutMeal') !== n) { <span class="moment-empty">{{ armed() ? 'Soltar aquí' : '—' }}</span> }
+                </td>
                 <td class="num">{{ share ? pct(share.protein) : '—' }}</td>
                 <td class="num">{{ share ? pct(share.carbs) : '—' }}</td>
                 <td class="num">{{ share ? pct(share.fat) : '—' }}</td>
@@ -201,8 +202,11 @@
     <section class="card form-section">
       <h3 class="form-section__title">3 · Plan: elige los alimentos y los gramos salen solos</h3>
       <p class="card__hint">Elige 1 o 2 proteínas y 1 o 2 carbos (si eliges 2, se reparten a la mitad), 1 grasa y la verdura o fruta en porciones. En cada alimento puedes dejar hasta 3 cambios equivalentes.</p>
+      <div class="plan">
       @if (c) {
-        <!-- ¿Cuadra el plan? Objetivo del día contra lo que suman los alimentos elegidos. -->
+        <!-- ¿Cuadra el plan? Panel fijo: objetivo del día contra lo que suman los alimentos elegidos. -->
+        <aside class="plan__fit">
+        <h4 class="plan__title">¿Cuadra el plan? <small>margen de ±5 %</small></h4>
         <div class="fit">
           @for (row of fit(); track row.label) {
             <div class="fit__row">
@@ -221,7 +225,9 @@
           Fibra (día de descanso): {{ num(c.dayTotals.rest.fiberG, 0) }} de {{ c.dayTotals.rest.fiberGoalG }} g
           @if (c.vegetableProteinTarget !== null && c.dayTotals.rest.vegetableProteinPct !== null) { · Proteína vegetal {{ pct(c.dayTotals.rest.vegetableProteinPct) }} (meta {{ pct(c.vegetableProteinTarget) }}) }
         </p>
+        </aside>
       }
+      <div class="plan__meals">
 
       @for (n of mealNumbers(); track n) {
         @let meal = d.meals[n - 1];
@@ -246,17 +252,15 @@
           </header>
           <div class="table-wrap">
             <table class="table table--compact">
-              <thead><tr><th>Tipo</th><th>Alimento</th><th>Porciones</th><th class="num">Entreno</th><th class="num">Descanso</th><th>Cambios (se igualan solos)</th></tr></thead>
+              <thead><tr><th>Tipo</th><th>Alimento</th><th>Porc.</th><th class="num">Entreno</th><th class="num">Descanso</th><th>Cambios (se igualan solos)</th></tr></thead>
               <tbody>
                 @for (slot of slots; track slot.key) {
                   @let it = item(n - 1, slot.key);
                   <tr>
                     <td>{{ slot.label }}</td>
                     <td>
-                      <select class="cell-input food" [name]="slot.key + n" [(ngModel)]="meal[slot.key]" (ngModelChange)="clearSlot(meal, slot.key)" [attr.aria-label]="slot.label + ' de la comida ' + n">
-                        <option [ngValue]="null">—</option>
-                        @for (food of options(meal, slot.flag, meal[slot.key]); track food.id) { <option [ngValue]="food.id">{{ food.name }}</option> }
-                      </select>
+                      @let choices = options(meal, slot.flag, meal[slot.key]);
+                      <app-food-picker [foods]="choices" [value]="meal[slot.key]" [states]="optionStates()[n - 1 + slot.key]" [label]="slot.label + ' de la comida ' + n" (opened)="loadStates(n - 1, slot.key, choices)" (valueChange)="setFood(meal, slot.key, $event)" />
                     </td>
                     <td>
                       @if (slot.portions) {
@@ -274,7 +278,7 @@
                               <select class="cell-input swap" [name]="'swap' + slot.key + n + s" [ngModel]="swap" (ngModelChange)="setSwap(meal, slot.key, s, $event)">
                                 <option [ngValue]="null">—</option>
                                 @for (food of options(meal, slot.flag, swap); track food.id) {
-                                  @if (food.id !== meal[slot.key]) { <option [ngValue]="food.id">{{ food.name }}</option> }
+                                  @if (food.id !== meal[slot.key]) { <option [ngValue]="food.id">{{ emoji(food) }} {{ food.name }}</option> }
                                 }
                               </select>
                               @if (it?.swaps?.[s]; as result) { <small class="text-muted">{{ result.trainingGrams }} g / {{ result.restGrams }} g</small> }
@@ -290,6 +294,8 @@
           </div>
         </article>
       }
+      </div>
+      </div>
       <label class="check"><input type="checkbox" name="allowClientSwaps" [(ngModel)]="d.allowClientSwaps" />Mostrar los cambios al cliente en su panel</label>
     </section>
 

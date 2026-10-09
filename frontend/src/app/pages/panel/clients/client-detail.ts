@@ -34,7 +34,7 @@ const TABS: { key: Tab; label: string; icon: IconName }[] = [
   { key: 'summary', label: 'Resumen', icon: 'home' },
   { key: 'profile', label: 'Expediente', icon: 'user' },
   { key: 'training', label: 'Entrenamiento', icon: 'dumbbell' },
-  { key: 'nutrition', label: 'Nutrición', icon: 'food' },
+  { key: 'nutrition', label: 'Nutrición', icon: 'apple' },
   { key: 'tracking', label: 'Seguimiento', icon: 'chart' },
   { key: 'payments', label: 'Pagos', icon: 'dollar' },
 ];
@@ -113,6 +113,14 @@ export class ClientDetail {
     const client = this.store.client();
     if (!client?.portalUrl) return null;
     return whatsappLink(client.phone, `Hola ${client.fullName.split(' ')[0]}, este es el enlace a tu plan personalizado. Guárdalo, es solo para ti: ${client.portalUrl}`);
+  });
+
+  /** Semana en la que va el cliente y último cuestionario que contestó (atrasado si le falta el de la semana anterior). */
+  protected readonly progress = computed(() => {
+    const week = this.store.training()?.weeks.at(-1)?.number;
+    if (!week) return null;
+    const checkin = this.store.tracking()?.checkins.at(-1)?.weekNumber ?? null;
+    return { week, checkin, behind: (checkin ?? 0) < week - 1 };
   });
 
   /** Punto de aviso en la pestaña de pagos cuando el pago está cerca o vencido. */

@@ -6,11 +6,19 @@ import { nextDueDate, paymentDelay, paymentStatus, periodMonths } from './calcul
 const dueDateOf = (client) => client.profile?.logistics?.paymentDate ?? null;
 const planTypeOf = (client) => client.profile?.logistics?.planType ?? null;
 
-/** Estado del pago de un cliente hoy. Lo usan el expediente, el portal, la lista y el resumen. */
+/**
+ * Estado del pago de un cliente hoy. Lo usan el expediente, el portal, la lista y el resumen.
+ * `locked`: con el pago vencido el cliente no ve su plan, salvo que el coach lo permita.
+ */
 export function clientPaymentStatus(client, today) {
   const planType = planTypeOf(client);
-  return { ...paymentStatus(dueDateOf(client), today), planType, periodMonths: periodMonths(planType) };
+  const status = paymentStatus(dueDateOf(client), today);
+  const overdueAccess = Boolean(client.overdueAccess);
+  return { ...status, planType, periodMonths: periodMonths(planType), overdueAccess, locked: status.state === 'overdue' && !overdueAccess };
 }
+
+/** El coach permite (o vuelve a bloquear) el acceso de un cliente con el pago vencido. */
+export const setOverdueAccess = (client, allow) => client.update({ overdueAccess: allow });
 
 function serializePayment(payment) {
   return {
@@ -39,7 +47,8 @@ export async function listPayments(clientId) {
 /** La fecha del próximo pago vive en la historia clínica del cliente. */
 export function setDueDate(client, date, transaction) {
   const profile = { ...client.profile, logistics: { ...client.profile?.logistics, paymentDate: date } };
-  return client.update({ profile }, { transaction });
+  // Con fecha nueva termina el permiso especial: si vuelve a vencer, se bloquea otra vez.
+  return client.update({ profile, overdueAccess: false }, { transaction });
 }
 
 /**

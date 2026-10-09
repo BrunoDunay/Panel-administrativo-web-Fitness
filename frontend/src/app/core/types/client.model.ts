@@ -63,6 +63,12 @@ export interface ClientListItem {
   planType: string | null;
   paymentDate: string | null;
   paymentState: PaymentState;
+  /** Pago vencido y sin permiso del coach: el cliente no ve su plan. */
+  paymentLocked: boolean;
+  overdueAccess: boolean;
+  /** Semana en la que va (la última de su plan) y último cuestionario contestado. */
+  currentWeek: number | null;
+  lastCheckinWeek: number | null;
   createdAt: string;
 }
 
@@ -122,6 +128,10 @@ export interface PaymentStatus {
   planType: string | null;
   /** Meses que cubre el tipo de plan: sirve para proponer el siguiente vencimiento. */
   periodMonths: number;
+  /** El coach permite el acceso aunque el pago esté vencido. */
+  overdueAccess: boolean;
+  /** Con el pago vencido y sin ese permiso, el cliente no ve su plan. */
+  locked: boolean;
 }
 
 export interface Payment {
@@ -147,6 +157,8 @@ export interface PaymentDraft {
 
 /** Todo lo de un cliente: lo consumen el expediente del coach y el portal. */
 export interface ClientOverview {
+  /** Portal con el pago vencido: solo llega el aviso, sin plan ni seguimiento. */
+  locked?: boolean;
   client: Client;
   training: TrainingView | null;
   nutrition: NutritionView | null;
@@ -165,6 +177,8 @@ export interface DashboardPayment {
   overdue: boolean;
   planType: string | null;
   periodMonths: number;
+  overdueAccess: boolean;
+  locked: boolean;
 }
 
 export interface Dashboard {

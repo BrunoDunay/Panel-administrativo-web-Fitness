@@ -43,6 +43,13 @@ export class Dashboard {
     this.api.dashboard().subscribe((data) => this.data.set(data));
   }
 
+  protected toggleAccess(payment: DashboardPayment): void {
+    this.api.setOverdueAccess(payment.clientId, payment.locked).subscribe(() => {
+      this.toast.success(payment.locked ? `${payment.clientName} ya puede ver su plan.` : `Acceso de ${payment.clientName} bloqueado hasta que pague.`);
+      this.reload();
+    });
+  }
+
   protected pay(payment: DashboardPayment, draft: PaymentDraft): void {
     this.savingPayment.set(true);
     this.api.registerPayment(payment.clientId, draft).subscribe({

@@ -6,7 +6,7 @@ import { Btn } from '../../../components/buttons/btn';
 import { Icon } from '../../../components/icon/icon';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PanelApi } from '../../../core/services/api/panel-api.service';
-import { ClientStatus } from '../../../core/types/client.model';
+import { ClientListItem, ClientStatus } from '../../../core/types/client.model';
 import { formatDate, initials } from '../../../core/utils/format';
 import { PageHeader } from '../shared/page-header';
 
@@ -40,7 +40,7 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
           <div class="table-wrap">
             <table class="table table--hover">
               <thead>
-                <tr><th>Cliente</th><th>Objetivo</th><th>Entrenamiento</th><th>Nutrición</th><th>Plan</th><th>Próximo pago</th></tr>
+                <tr><th>Cliente</th><th>Objetivo</th><th>Semana</th><th>Entrenamiento</th><th>Nutrición</th><th>Plan</th><th>Próximo pago</th><th>Acceso</th></tr>
               </thead>
               <tbody>
                 @for (client of list; track client.id) {
@@ -56,6 +56,16 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
                     </td>
                     <td>{{ client.objective || '—' }}</td>
                     <td>
+                      @if (client.currentWeek) {
+                        <span class="week">
+                          <b>Semana {{ client.currentWeek }}</b>
+                          <small [class.late]="(client.lastCheckinWeek ?? 0) < client.currentWeek - 1">{{ client.lastCheckinWeek ? 'Cuestionario: sem ' + client.lastCheckinWeek : 'Sin cuestionario' }}</small>
+                        </span>
+                      } @else {
+                        —
+                      }
+                    </td>
+                    <td>
                       @if (client.hasTraining) { <span class="badge badge--success">{{ client.blockPhase || 'Activo' }}</span> } @else { <span class="badge badge--warning">Por armar</span> }
                     </td>
                     <td>
@@ -67,6 +77,15 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
                         <span class="badge" [class.badge--danger]="client.paymentState === 'overdue'" [class.badge--steel]="client.paymentState === 'soon'" [class.badge--success]="client.paymentState === 'ok'">{{ date(client.paymentDate, true) }}{{ client.paymentState === 'overdue' ? ' · vencido' : '' }}</span>
                       } @else {
                         —
+                      }
+                    </td>
+                    <td>
+                      @if (client.paymentState === 'overdue') {
+                        <button type="button" class="access" [class.is-locked]="client.paymentLocked" (click)="toggleAccess(client)" [title]="client.paymentLocked ? 'Su enlace está bloqueado por pago vencido. Clic para permitirle el acceso.' : 'Tiene permiso aunque el pago venció. Clic para bloquear.'">
+                          <app-icon name="lock" [size]="14" />{{ client.paymentLocked ? 'Bloqueado' : 'Permitido' }}
+                        </button>
+                      } @else {
+                        <span class="text-muted">Activo</span>
                       }
                     </td>
                   </tr>
@@ -97,11 +116,19 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
     .client { display: flex; align-items: center; gap: var(--space-3); }
     .client span:last-child { display: grid; line-height: 1.35; }
     .client small { color: var(--color-text-muted); }
+    .week { display: grid; line-height: 1.3; white-space: nowrap; }
+    .week small { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .week small.late { font-weight: 700; color: var(--color-warning); }
+    .access { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2rem; padding: 0.2rem 0.7rem; border: 1px solid var(--color-success); border-radius: var(--radius-pill); background: var(--color-success-soft); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; color: var(--color-success); transition: transform 140ms var(--ease-out); }
+    .access:active { transform: scale(0.96); }
+    .access.is-locked { border-color: var(--color-danger); background: var(--color-danger-soft); color: var(--color-danger); }
   `,
 })
 export class ClientsList {
   private readonly api = inject(PanelApi);
   protected readonly search = signal('');
+  /** Cambia para volver a pedir la lista. */
+  private readonly version = signal(0);
   protected readonly status = signal<ClientStatus | 'all'>('active');
   protected readonly statuses: { key: ClientStatus | 'all'; label: string }[] = [
     { key: 'active', label: 'Activos' },
@@ -114,8 +141,13 @@ export class ClientsList {
   protected readonly statusLabel = (status: ClientStatus) => STATUS_LABELS[status];
 
   protected readonly clients = toSignal(
-    combineLatest([toObservable(this.search).pipe(debounceTime(250)), toObservable(this.status)]).pipe(
+    combineLatest([toObservable(this.search).pipe(debounceTime(250)), toObservable(this.status), toObservable(this.version)]).pipe(
       switchMap(([search, status]) => this.api.clients({ search: search.trim(), status })),
     ),
   );
+
+  /** Con el pago vencido, un clic permite el acceso (por un acuerdo) o lo vuelve a bloquear. */
+  protected toggleAccess(client: ClientListItem): void {
+    this.api.setOverdueAccess(client.id, client.paymentLocked).subscribe(() => this.version.update((n) => n + 1));
+  }
 }

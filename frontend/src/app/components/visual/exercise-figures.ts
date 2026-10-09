@@ -446,12 +446,12 @@ const LIBRARY: [string, [string, FigureDef][]][] = [
   [
     'Deltoides posterior',
     [
-      ['Apertura posterior en máquina (pec deck inverso)', front(fsit({ arm: { to: [30.5, 33], b: -1 } }), { arm: { to: [11, 31], b: -1 } }, [{ k: 'roller', at: 'handL', r: 1.7 }, { k: 'roller', at: 'handR', r: 1.7 }], [...fseat, { k: 'pad', p: [[32, 33], [32, 43]] }])],
+      ['Apertura posterior en máquina (pec deck inverso)', front(fsit({ reach: 0.3, arm: [84, 84] }), { reach: 1, arm: [92, 92] }, [{ k: 'db', at: 'handL', ang: 0, len: 6 }, { k: 'db', at: 'handR', ang: 0, len: 6 }], [...fseat, { k: 'pad', p: [[32, 33], [32, 43]] }, stack(29, 6)])],
       ['Apertura para posterior con polea unilateral agarre neutro', front(fstand({ arm: { to: [36, 30], b: -1 }, armR: [6, 4] }), { arm: { to: [10.5, 24], b: -1 } }, [{ k: 'cable', from: [56, 27], at: 'handL', end: 'none' }], [FLOOR, post(56.5, 6)])],
       ['Pájaros con mancuernas', front(fstand({ len: 6, headDy: 4, arm: [6, 4] }), { arm: [82, 86] }, dbs)],
       ['Face pull en polea con cuerda', cablePull(stand({ hip: [26, G - 22], torso: 184, leg: foot(29), leg2: foot(22) }), [41, 21], [29.5, 18.5], [56, 12], 'rope', [post(58, 6), { k: 'line', p: [[56, 9], [58, 9]] }])],
       ['Apertura posterior con mancuernas en banco inclinado', front(fstand({ len: 10, headDy: 1.5, arm: [6, 4], leg: [10, 0] }), { arm: [82, 86] }, dbs, [FLOOR, { k: 'pad', p: [[32, 30.5], [32, 44]] }, { k: 'line', p: [[32, 44], [32, FLOOR_Y]] }])],
-      ['Remo alto en polea para posterior', cablePull(stand({ hip: [26, G - 22], torso: 180, leg: foot(30), leg2: foot(21) }), [42, 26], [30, 26.5], [54, 27], 'bar', [stack(55, 20)])],
+      ['Remo alto en polea para posterior', front(fstand({ arm: { to: [30.5, 21.5], b: -1 } }), { arm: { to: [10.5, 22.5], b: -1 } }, [{ k: 'cable', from: [58, 9], at: 'handL', end: 'none' }, { k: 'cable', from: [6, 9], at: 'handR', end: 'none' }], [FLOOR, post(5, 5), post(59, 5)])],
     ],
   ],
   [

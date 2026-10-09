@@ -33,6 +33,11 @@ export class PanelApi {
     return this.http.post<Payment>(`${this.api}/clients/${clientId}/payments`, body);
   }
 
+  /** Permite o bloquea el acceso de un cliente con el pago vencido. */
+  setOverdueAccess(clientId: string, allow: boolean) {
+    return this.http.put<void>(`${this.api}/clients/${clientId}/payments/access`, { allow });
+  }
+
   /** Los catálogos cambian poco: se piden una vez y se reutilizan hasta que se edite alguno. */
   catalog(): Observable<Catalog> {
     this.catalog$ ??= this.http.get<Catalog>(`${this.api}/catalog`).pipe(shareReplay({ bufferSize: 1, refCount: false }));

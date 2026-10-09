@@ -87,6 +87,7 @@ export const weightBody = z.object({ weightKg: number(25, 350), waistCm: number(
 export const paymentParams = z.object({ paymentId: z.uuid() });
 
 export const dueDateBody = z.object({ dueDate: optionalDate });
+export const overdueAccessBody = z.object({ allow: z.boolean() });
 
 export const paymentBody = z.object({
   paidOn: isoDate,

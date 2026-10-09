@@ -1,12 +1,13 @@
 import { Op } from 'sequelize';
 import { env } from '../config/env.js';
-import { Checkin, Client, NutritionPlan, TrainingPlan, WeightLog } from '../models/index.js';
+import { Checkin, Client, NutritionPlan, TrainingPlan, TrainingWeek, WeightLog } from '../models/index.js';
+import { sequelize } from '../config/database.js';
 import { generateAccessCode } from '../utils/access-code.js';
 import { todayInAppTz } from '../utils/dates-mx.js';
 import { ageOn } from '../services/calculations/training.js';
 import { loadCatalog } from '../services/catalog.service.js';
 import { buildNutritionView, findActiveNutritionPlan } from '../services/nutrition.service.js';
-import { clientPaymentStatus, deletePayment, listPayments, registerPayment, setDueDate } from '../services/payments.service.js';
+import { clientPaymentStatus, deletePayment, listPayments, registerPayment, setDueDate, setOverdueAccess } from '../services/payments.service.js';
 import { buildTrackingView } from '../services/tracking.service.js';
 import { buildTrainingView, findActivePlan } from '../services/training.service.js';
 
@@ -58,6 +59,15 @@ export async function list(req, res) {
     ],
   });
 
+  // Semana en la que va cada cliente (la última de su plan) y último cuestionario contestado.
+  const ids = clients.map((client) => client.id);
+  const [weeks, checkins] = await Promise.all([
+    TrainingWeek.findAll({ attributes: ['planId', [sequelize.fn('MAX', sequelize.col('number')), 'last']], where: { planId: clients.flatMap((c) => c.trainingPlans.map((p) => p.id)) }, group: ['planId'], raw: true }),
+    Checkin.findAll({ attributes: ['clientId', [sequelize.fn('MAX', sequelize.col('week_number')), 'last']], where: { clientId: ids }, group: ['clientId'], raw: true }),
+  ]);
+  const weekOf = new Map(weeks.map((row) => [row.planId, Number(row.last)]));
+  const checkinOf = new Map(checkins.map((row) => [row.clientId, Number(row.last)]));
+
   res.json(
     clients.map((client) => ({
       id: client.id,
@@ -73,6 +83,10 @@ export async function list(req, res) {
       planType: client.profile?.logistics?.planType ?? null,
       paymentDate: client.profile?.logistics?.paymentDate ?? null,
       paymentState: clientPaymentStatus(client, today).state,
+      paymentLocked: clientPaymentStatus(client, today).locked,
+      overdueAccess: client.overdueAccess,
+      currentWeek: weekOf.get(client.trainingPlans[0]?.id) ?? null,
+      lastCheckinWeek: checkinOf.get(client.id) ?? null,
       createdAt: client.createdAt,
     })),
   );
@@ -86,6 +100,11 @@ export async function create(req, res) {
 /** Todo lo del cliente en una sola respuesta: lo usan el expediente del coach y el portal. */
 export async function overview(req, res) {
   const { client, isCoach } = req;
+  // Pago vencido: el enlace abre, pero solo muestra el aviso (sin plan ni seguimiento).
+  const status = clientPaymentStatus(client, todayInAppTz());
+  if (!isCoach && status.locked) {
+    return res.json({ locked: true, client: { fullName: client.fullName }, training: null, nutrition: null, tracking: null, payment: status, today: todayInAppTz() });
+  }
   const [catalog, trainingPlan, nutritionPlan] = await Promise.all([loadCatalog(), findActivePlan(client.id), findActiveNutritionPlan(client.id)]);
 
   const nutrition = nutritionPlan || isCoach ? buildNutritionView(nutritionPlan, client, catalog, todayInAppTz()) : null;
@@ -125,6 +144,12 @@ export async function addPayment(req, res) {
   res.status(201).json(await registerPayment(req.client, req.valid.body));
 }
 
+/** Permite o bloquea el acceso del cliente mientras su pago está vencido. */
+export async function setPaymentAccess(req, res) {
+  await setOverdueAccess(req.client, req.valid.body.allow);
+  res.status(204).end();
+}
+
 /** Cambia a mano la fecha del próximo pago (por ejemplo, si se acordó una prórroga). */
 export async function setPaymentDueDate(req, res) {
   await setDueDate(req.client, req.valid.body.dueDate);
@@ -151,7 +176,7 @@ export async function dashboard(_req, res) {
     NutritionPlan.count({ where: { isActive: true } }),
     Checkin.findAll({ order: [['updatedAt', 'DESC']], limit: 8 }),
     WeightLog.findAll({ order: [['updatedAt', 'DESC']], limit: 40 }),
-    Client.findAll({ where: { status: 'active' }, attributes: ['id', 'fullName', 'profile', 'createdAt'], order: [['createdAt', 'DESC']] }),
+    Client.findAll({ where: { status: 'active' }, attributes: ['id', 'fullName', 'profile', 'overdueAccess', 'createdAt'], order: [['createdAt', 'DESC']] }),
   ]);
   const names = new Map(clients.map((c) => [c.id, c.fullName]));
 

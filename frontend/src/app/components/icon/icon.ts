@@ -34,6 +34,8 @@ const MOTION: Partial<Record<IconName, Motion>> = {
   trophy: 'pop',
   drop: 'pop',
   dollar: 'pop',
+  apple: 'pop',
+  lock: 'shake',
   message: 'pop',
   camera: 'pop',
   like: 'pop',

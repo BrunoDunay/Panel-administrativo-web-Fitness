@@ -249,7 +249,25 @@ describe.skipIf(!enabled)('API', () => {
     const dashboard = (await auth(request(app).get('/api/dashboard'))).body;
     expect(dashboard.payments[0]).toMatchObject({ clientId: client.id, overdue: true, days: -3, date: due });
 
-    // El cliente no puede registrar pagos.
+    // Con el pago vencido el enlace abre, pero solo muestra el aviso y no deja registrar nada.
+    expect(overdue.locked).toBe(true);
+    expect(overdue.training).toBeNull();
+    expect(overdue.client).toEqual({ fullName: 'Cliente ejemplo' });
+    expect((await request(app).put(`${portal}/weights/${today}`).send({ weightKg: 80 })).status).toBe(402);
+    const listed = (await auth(request(app).get('/api/clients'))).body.find((c) => c.id === client.id);
+    expect(listed).toMatchObject({ paymentLocked: true, overdueAccess: false, currentWeek: 2, lastCheckinWeek: 1 });
+
+    // El coach le permite el acceso por un acuerdo: vuelve a ver su plan, con el aviso de vencido.
+    expect((await auth(request(app).put(`${base}/payments/access`)).send({ allow: true })).status).toBe(204);
+    const allowed = (await request(app).get(portal)).body;
+    expect(allowed.locked).toBeUndefined();
+    expect(allowed.training).not.toBeNull();
+    expect(allowed.payment).toMatchObject({ state: 'overdue', overdueAccess: true, locked: false });
+    expect((await request(app).put(`${portal}/weights/${today}`).send({ weightKg: 80 })).status).toBe(204);
+    await request(app).put(`${portal}/weights/${today}`).send({ weightKg: null });
+
+    // El cliente no puede registrar pagos ni darse acceso.
+    expect((await request(app).put(`${portal}/payments/access`).send({ allow: true })).status).toBe(403);
     expect((await request(app).post(`${portal}/payments`).send({ paidOn: today })).status).toBe(403);
 
     // Paga hoy (3 días tarde): el siguiente vencimiento sale del anterior, no del día del pago.
@@ -260,7 +278,8 @@ describe.skipIf(!enabled)('API', () => {
     expect(next > today).toBe(true);
 
     const after = (await auth(request(app).get(base))).body;
-    expect(after.payment).toMatchObject({ state: 'ok', dueDate: next });
+    // Al pagar se acaba el permiso especial: si vuelve a vencer, se bloquea otra vez.
+    expect(after.payment).toMatchObject({ state: 'ok', dueDate: next, overdueAccess: false, locked: false });
     expect(after.client.profile.logistics.paymentDate).toBe(next);
     expect(after.payments).toHaveLength(1);
     expect((await auth(request(app).get('/api/dashboard'))).body.payments).toHaveLength(0);

@@ -45,7 +45,7 @@ export class Home {
   );
   protected readonly site = computed<SiteSettings>(() => ({ ...FALLBACK, ...this.loaded() }));
   protected readonly year = new Date().getFullYear();
-  protected readonly serviceIcons = ['dumbbell', 'food', 'chart', 'heart', 'clipboard', 'drop'] as const;
+  protected readonly serviceIcons = ['dumbbell', 'apple', 'chart', 'heart', 'clipboard', 'drop'] as const;
   protected readonly tones = ['emerald', 'amber', 'steel', 'coral'] as const;
 
   protected readonly whatsapp = computed(() => whatsappLink(this.site().contact.whatsapp, this.site().contact.whatsappMessage));

@@ -208,6 +208,37 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Teléfono: las pestañas con icono muestran solo el icono y se reparten el ancho (sin desplazarse). */
+@media (max-width: 720px) {
+  /* Las demás pestañas bajan de renglón en vez de desplazarse de lado. */
+  .tabs {
+    flex-wrap: wrap;
+    border-radius: var(--radius-lg);
+    overflow-x: visible;
+  }
+
+  .tabs--icons {
+    display: flex;
+    width: 100%;
+  }
+
+  .tabs--icons .tab {
+    position: relative;
+    flex: 1;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding-inline: 0.25rem;
+  }
+
+  .tabs--icons .tab__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
 .tabs--solid .tab.is-active,
 .tabs--solid .tab[aria-selected='true'] {
   background: var(--color-primary);
@@ -282,6 +313,90 @@
 @media (hover: hover) and (pointer: fine) {
   .table--hover tbody tr:hover td {
     background: var(--color-background);
+  }
+}
+
+/* Teléfono: ninguna tabla se desplaza de lado. Cada fila se vuelve una tarjeta y cada dato lleva su etiqueta. */
+@media (max-width: 720px) {
+  .table,
+  .table tbody,
+  .table tfoot,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .table tr {
+    padding: var(--space-2) 0;
+    border-bottom: var(--hairline);
+  }
+
+  .table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table td,
+  .table--compact td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 0.25rem 0;
+    border: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    flex: none;
+    max-width: 45%;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-align: left;
+    color: var(--color-text-muted);
+  }
+
+  /* La primera celda es el título de la tarjeta; las vacías no ocupan lugar. */
+  .table td:first-child {
+    justify-content: flex-start;
+    font-size: var(--text-base);
+    text-align: left;
+  }
+
+  .table td:first-child::before,
+  .table td[data-label='']::before {
+    content: none;
+  }
+
+  .table td:empty {
+    display: none;
+  }
+
+  .table td > .cell-input,
+  .table td > label,
+  .table td > div,
+  .table td > select {
+    flex: 1;
+    min-width: 0;
+    max-width: 62%;
+  }
+
+  .table td:first-child > .cell-input {
+    max-width: none;
+  }
+
+  .table tfoot td {
+    border-top: 0;
   }
 }
 

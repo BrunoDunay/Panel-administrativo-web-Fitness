@@ -18,7 +18,7 @@
         <div class="meter"><span [style.width.%]="d.counts.active ? (d.counts.withTraining / d.counts.active) * 100 : 0"></span></div>
       </a>
       <a class="card card--tint tone--steel stat tile" routerLink="/panel/clients">
-        <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="22" /></span>
+        <span class="tile-icon tile-icon--solid"><app-icon name="apple" [size]="22" /></span>
         <span class="stat__label">Con plan de nutrición</span>
         <span class="stat__value">{{ d.counts.withNutrition }}<small> de {{ d.counts.active }}</small></span>
         <div class="meter"><span [style.width.%]="d.counts.active ? (d.counts.withNutrition / d.counts.active) * 100 : 0"></span></div>
@@ -82,6 +82,9 @@
                     <span class="feed__text"><b>{{ payment.clientName }}</b>{{ payment.planType || 'Plan' }} · {{ date(payment.date, true) }}</span>
                     <span class="badge" [class.badge--danger]="payment.overdue" [class.badge--steel]="!payment.overdue">{{ due(payment.days) }}</span>
                   </a>
+                  @if (payment.overdue) {
+                    <button appBtn type="button" [variant]="payment.locked ? 'outline' : 'ghost'" size="sm" (click)="toggleAccess(payment)" [title]="payment.locked ? 'Su enlace está bloqueado por pago vencido' : 'Tiene permiso aunque el pago venció'"><app-icon name="lock" [size]="14" />{{ payment.locked ? 'Permitir acceso' : 'Bloquear' }}</button>
+                  }
                   <button appBtn type="button" variant="soft" size="sm" (click)="paying.set(payment)"><app-icon name="dollar" [size]="14" />Registrar pago</button>
                 </li>
               }

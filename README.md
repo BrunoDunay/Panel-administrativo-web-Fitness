@@ -79,7 +79,7 @@ El frontend no repite ninguna fórmula: mientras el coach edita el plan de nutri
 
 ## Pagos
 
-La fecha del **próximo pago** de cada cliente está en su expediente. Cuando el coach registra un pago (pestaña **Pagos** del cliente o desde el resumen), el vencimiento se recorre solo según el tipo de plan (mensual, trimestral, semestral o anual) y el pago queda en el historial con su puntualidad: a tiempo, días antes o días tarde. El siguiente vencimiento se calcula a partir del vencimiento anterior, no del día en que se pagó; el coach puede cambiarlo a mano. El cliente ve un aviso en su portal desde 7 días antes y mientras el pago esté vencido. Las reglas están en `backend/src/services/calculations/payments.js`.
+La fecha del **próximo pago** de cada cliente está en su expediente. Cuando el coach registra un pago (pestaña **Pagos** del cliente o desde el resumen), el vencimiento se recorre solo según el tipo de plan (mensual, trimestral, semestral o anual) y el pago queda en el historial con su puntualidad: a tiempo, días antes o días tarde. El siguiente vencimiento se calcula a partir del vencimiento anterior, no del día en que se pagó; el coach puede cambiarlo a mano. El cliente ve un aviso en su portal desde 7 días antes. Con el pago vencido su enlace sigue abriendo, pero solo muestra el aviso de pago (no puede ver ni registrar nada); el coach puede permitirle el acceso con un clic desde la lista de clientes, el resumen o la pestaña Pagos, y ese permiso se apaga solo al registrar el pago. Las reglas están en `backend/src/services/calculations/payments.js`.
 
 ## Dibujos de los ejercicios
 

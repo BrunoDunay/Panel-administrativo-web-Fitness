@@ -24,7 +24,7 @@ export const PANEL_NAV: PanelNavGroup[] = [
     title: 'Catálogos',
     items: [
       { label: 'Ejercicios', path: '/panel/exercises', icon: 'dumbbell' },
-      { label: 'Alimentos', path: '/panel/foods', icon: 'food' },
+      { label: 'Alimentos', path: '/panel/foods', icon: 'apple' },
       { label: 'Suplementos', path: '/panel/supplements', icon: 'pill' },
       { label: 'Protocolos', path: '/panel/protocols', icon: 'clipboard' },
     ],

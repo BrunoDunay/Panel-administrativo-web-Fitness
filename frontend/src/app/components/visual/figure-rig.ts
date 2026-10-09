@@ -51,6 +51,8 @@ export interface FrontPose {
   headDy?: number;
   /** Largo del muslo (más corto = sentado, visto de frente). */
   thigh?: number;
+  /** Escala del brazo: menos de 1 = apunta hacia quien mira y se ve corto, sin doblar el codo. */
+  reach?: number;
   arm: Limb;
   armR?: Limb;
   leg: Limb;
@@ -202,7 +204,8 @@ export function frontSkeleton(pose: FrontPose): Skeleton {
   const footL = add(legs.l.end, [-3.2, 0.6]);
   const footR = add(legs.r.end, [3.2, 0.6]);
 
-  const arms = side(shL, pose.arm, pose.armR, LEN.upper, LEN.fore);
+  const reach = pose.reach ?? 1;
+  const arms = side(shL, pose.arm, pose.armR, LEN.upper * reach, LEN.fore * reach);
   pts['elbowL'] = arms.l.joint;
   pts['handL'] = arms.l.end;
   pts['elbowR'] = arms.r.joint;

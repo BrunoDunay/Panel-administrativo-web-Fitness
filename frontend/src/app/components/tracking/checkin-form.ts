@@ -17,7 +17,7 @@ interface Draft {
   avgWeightKg: number | null;
 }
 
-const RATING_ICONS: Record<string, IconName> = { energy: 'flame', sleep: 'moon', soreness: 'dumbbell', stress: 'gauge', mood: 'heart', nutrition: 'food', injury: 'shield' };
+const RATING_ICONS: Record<string, IconName> = { energy: 'flame', sleep: 'moon', soreness: 'dumbbell', stress: 'gauge', mood: 'heart', nutrition: 'apple', injury: 'shield' };
 /** Del 5 (mejor) al 1 (peor): el color acompaña a la respuesta. */
 const SCORE_TONES: Record<number, Tone> = { 5: 'emerald', 4: 'teal', 3: 'slate', 2: 'amber', 1: 'coral' };
 

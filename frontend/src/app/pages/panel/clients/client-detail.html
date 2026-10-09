@@ -5,13 +5,18 @@
 } @else if (store.client(); as client) {
   <app-page-header [title]="client.fullName" [subtitle]="(client.age !== null ? client.age + ' años · ' : '') + (store.training()?.objective?.primary || 'Objetivo por definir')" backLink="/panel/clients" backLabel="Clientes">
     @if (store.saving()) { <span class="badge">Guardando…</span> }
+    @if (progress(); as p) {
+      <span class="badge badge--success">Va en la semana {{ p.week }}</span>
+      <span class="badge" [class.badge--warning]="p.behind" [class.badge--steel]="!p.behind">{{ p.checkin ? 'Último cuestionario: semana ' + p.checkin : 'Sin cuestionarios' }}</span>
+    }
+    @if (store.payment()?.locked) { <span class="badge badge--danger">Acceso bloqueado por pago</span> }
     @if (client.status !== 'active') { <span class="badge badge--warning">{{ client.status === 'paused' ? 'En pausa' : 'Archivado' }}</span> }
   </app-page-header>
 
-  <nav class="tabs main-tabs" role="tablist" aria-label="Secciones del expediente">
+  <nav class="tabs tabs--icons main-tabs" role="tablist" aria-label="Secciones del expediente">
     @for (item of tabs; track item.key) {
-      <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" (click)="tab.set(item.key)">
-        <app-icon [name]="item.icon" [size]="16" />{{ item.label }}
+      <button type="button" class="tab" role="tab" [attr.aria-selected]="tab() === item.key" [attr.aria-label]="item.label" (click)="tab.set(item.key)">
+        <app-icon [name]="item.icon" [size]="16" /><span class="tab__label">{{ item.label }}</span>
         @if (item.key === 'payments' && paymentBadge(); as badge) { <span class="tab__dot" [class.tab__dot--danger]="badge === 'overdue'" aria-hidden="true"></span> }
       </button>
     }
@@ -55,7 +60,7 @@
             }
           </button>
           <button type="button" class="card card--tint tone--steel stat tile" (click)="tab.set('nutrition')">
-            <span class="tile-icon tile-icon--solid"><app-icon name="food" [size]="20" /></span>
+            <span class="tile-icon tile-icon--solid"><app-icon name="apple" [size]="20" /></span>
             <span class="stat__label">Nutrición</span>
             @if (store.nutrition()?.id && store.nutrition()?.computed; as computed) {
               <span class="stat__value">{{ num(computed.targetKcal, 0) }}<small> kcal</small></span>

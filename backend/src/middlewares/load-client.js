@@ -1,5 +1,7 @@
 import { Client } from '../models/index.js';
+import { clientPaymentStatus } from '../services/payments.service.js';
 import { AppError, notFound } from '../utils/app-error.js';
+import { todayInAppTz } from '../utils/dates-mx.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -22,6 +24,14 @@ export async function loadClientByCode(req, _res, next) {
   }
   req.client = client;
   req.isCoach = false;
+  next();
+}
+
+/** Portal con el pago vencido: el plan no se puede consultar ni modificar hasta regularizarlo. */
+export function portalUnlocked(req, _res, next) {
+  if (!req.isCoach && clientPaymentStatus(req.client, todayInAppTz()).locked) {
+    return next(new AppError(402, 'Tu acceso está en pausa por un pago pendiente. Ponte en contacto con tu coach.', 'PAYMENT_REQUIRED'));
+  }
   next();
 }
 

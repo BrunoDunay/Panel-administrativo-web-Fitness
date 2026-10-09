@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import * as clients from '../controllers/clients.controller.js';
 import * as plans from '../controllers/plans.controller.js';
-import { coachOnly } from '../middlewares/load-client.js';
+import { coachOnly, portalUnlocked } from '../middlewares/load-client.js';
 import { validate } from '../middlewares/validate.js';
-import { checkinBody, checkinParams, clientBody, dateParams, dueDateBody, measurementBody, paymentBody, paymentParams, weightBody } from '../validators/client.schemas.js';
-import { nutritionPlanBody } from '../validators/nutrition.schemas.js';
+import { checkinBody, checkinParams, clientBody, dateParams, dueDateBody, measurementBody, overdueAccessBody, paymentBody, paymentParams, weightBody } from '../validators/client.schemas.js';
+import { nutritionOptionsBody, nutritionPlanBody } from '../validators/nutrition.schemas.js';
 import { exerciseLogBody, trainingPlanBody, weekLogBody, weekPrescriptionBody } from '../validators/training.schemas.js';
 
 /**
@@ -16,11 +16,14 @@ export function clientDataRoutes() {
   return (
     Router({ mergeParams: true })
       .get('/', clients.overview)
+      // Con el pago vencido el cliente solo puede ver el aviso: nada más responde.
+      .use(portalUnlocked)
       .put('/', coachOnly, validate({ body: clientBody }), clients.update)
       .delete('/', coachOnly, clients.remove)
       .post('/access-code', coachOnly, clients.regenerateAccessCode)
 
       // Pagos
+      .put('/payments/access', coachOnly, validate({ body: overdueAccessBody }), clients.setPaymentAccess)
       .put('/payments/due-date', coachOnly, validate({ body: dueDateBody }), clients.setPaymentDueDate)
       .post('/payments', coachOnly, validate({ body: paymentBody }), clients.addPayment)
       .delete('/payments/:paymentId', coachOnly, validate({ params: paymentParams }), clients.removePayment)
@@ -36,6 +39,7 @@ export function clientDataRoutes() {
       // Nutrición
       .put('/nutrition', coachOnly, validate({ body: nutritionPlanBody }), plans.saveNutrition)
       .post('/nutrition/preview', coachOnly, validate({ body: nutritionPlanBody }), plans.previewNutrition)
+      .post('/nutrition/options', coachOnly, validate({ body: nutritionOptionsBody }), plans.nutritionOptions)
 
       // Seguimiento
       .put('/checkins/:weekNumber', validate({ params: checkinParams, body: checkinBody }), plans.saveCheckin)

@@ -19,7 +19,7 @@ type Tab = 'summary' | 'training' | 'nutrition' | 'tracking';
 const TABS: { key: Tab; label: string; icon: IconName }[] = [
   { key: 'summary', label: 'Resumen', icon: 'home' },
   { key: 'training', label: 'Entrenamiento', icon: 'dumbbell' },
-  { key: 'nutrition', label: 'Nutrición', icon: 'food' },
+  { key: 'nutrition', label: 'Nutrición', icon: 'apple' },
   { key: 'tracking', label: 'Seguimiento', icon: 'chart' },
 ];
 
@@ -42,6 +42,7 @@ export class Portal {
   protected readonly tab = signal<Tab>('summary');
   protected readonly num = formatNumber;
   protected readonly signed = formatSigned;
+  protected readonly date = formatDate;
 
   private readonly selectedWeek = signal<string | null>(null);
   /** Semana mostrada: la elegida o, por defecto, la más reciente. */
