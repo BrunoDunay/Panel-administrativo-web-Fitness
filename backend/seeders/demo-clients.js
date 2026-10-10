@@ -4,6 +4,7 @@
 //   npm run seed:demo            crea los que falten
 //   npm run seed:demo -- --reset borra los de ejemplo y los vuelve a crear
 //   npm run seed:demo -- --only=Diego   crea solo el cliente cuyo nombre contiene ese texto
+//   npm run seed:demo -- --nutrition=Diego   vuelve a poner el plan de alimentación a uno que ya existe
 import { Op } from 'sequelize';
 import { sequelize } from '../src/config/database.js';
 import { Client, Food, Payment, Supplement, WeekExercise } from '../src/models/index.js';
@@ -274,8 +275,45 @@ const RATING_KEYS = ['energy', 'sleep', 'soreness', 'stress', 'mood', 'nutrition
 /** Variación fija (no al azar) para que los datos se vean naturales y siempre salgan igual. */
 const wobble = (i) => [0, 0.3, -0.1, 0.2, 0.4, 0.1, 0.3][i % 7];
 
+const emailOf = (spec) => `${spec.client.fullName.split(' ')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}${DOMAIN}`;
+
+/** Plan de alimentación completo: dietocálculo, menú por comida, intra-entreno, hidratación y suplementos. */
+async function seedNutrition(client, spec, foods, supplements, catalog) {
+  const food = (name) => {
+    const found = foods.get(name);
+    if (!found) throw new Error(`Alimento no encontrado en el catálogo: ${name}`);
+    return found;
+  };
+  const { inputs, intra, supplements: assigned } = spec.nutrition;
+  const menu = MENUS[inputs.dietType === 'vegan' ? 'vegan' : 'standard'];
+  const base = {
+    formula: 'mifflin', weightKg: inputs.weightKg, activity: inputs.activity, dietType: inputs.dietType, goal: inputs.goal,
+    adjustmentKcal: inputs.adjustmentKcal, proteinPerKg: inputs.proteinPerKg, fatPct: inputs.fatPct,
+    mealCount: menu.length, mealsMeta: menu.map(({ name, time }) => ({ name, time })), portions: {},
+  };
+  // Las porciones del menú base se ajustan a las calorías objetivo del cliente (de media en media porción).
+  const target = buildNutritionView({ inputs: base, meals: [] }, client, catalog, today).computed.targetKcal;
+  const menuKcal = menu.reduce((sum, meal) => sum + meal.items.reduce((kcal, [group, portions]) => kcal + GROUP_KCAL[group] * portions, 0), 0);
+  const scale = (portions) => Math.max(0.5, Math.round((portions * target * 2) / menuKcal) / 2);
+  const mealsDraft = menu.map((meal) => ({
+    items: meal.items.map(([group, portions, name]) => ({ group, portions: scale(portions), foodId: food(name).id })),
+    extras: (meal.extras ?? []).map(([name, portions, note]) => ({ foodId: food(name).id, portions, note })),
+    notes: meal.notes ?? null,
+  }));
+  for (const meal of mealsDraft) for (const item of meal.items) base.portions[item.group] = (base.portions[item.group] ?? 0) + item.portions;
+  await saveNutritionPlan(client.id, {
+    startDate: spec.client.profile?.logistics?.startDate ?? today,
+    allowClientSwaps: true,
+    inputs: base,
+    meals: mealsDraft,
+    intra: intra ? { foodId: food(intra.food).id, carbsG: intra.carbsG } : { foodId: null, carbsG: null },
+    hydration: { sessionMin: spec.client.profile?.logistics?.sessionMinutes ?? 75, sweatRateLPerH: 0.8, test: {} },
+    supplements: assigned.map(([name, assignedDose]) => ({ supplementId: supplements.get(name).id, assignedDose, timing: null })),
+  });
+}
+
 async function createDemo(spec, foods, supplements, catalog) {
-  const email = `${spec.client.fullName.split(' ')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}${DOMAIN}`;
+  const email = emailOf(spec);
   if (await Client.findOne({ where: { email } })) return false;
 
   // Cada cliente lleva su tarifa acordada; lo que falta por cobrar empieza siendo esa tarifa.
@@ -283,11 +321,6 @@ async function createDemo(spec, foods, supplements, catalog) {
   const fee = spec.fee ?? FEES[logistics?.planType] ?? null;
   const profile = logistics ? { ...spec.client.profile, logistics: { ...logistics, fee, ...(spec.deposit ? { pendingAmount: fee - spec.deposit } : {}) } } : (spec.client.profile ?? {});
   const client = await Client.create({ status: 'active', ...spec.client, profile, email, accessCode: generateAccessCode() });
-  const food = (name) => {
-    const found = foods.get(name);
-    if (!found) throw new Error(`Alimento no encontrado en el catálogo: ${name}`);
-    return found;
-  };
 
   // El pago con el que arrancó: deja el siguiente vencimiento en la fecha de pago del expediente.
   const { startDate, paymentDate } = spec.client.profile?.logistics ?? {};
@@ -334,34 +367,7 @@ async function createDemo(spec, foods, supplements, catalog) {
     }
   }
 
-  if (spec.nutrition) {
-    const { inputs, intra, supplements: assigned } = spec.nutrition;
-    const menu = MENUS[inputs.dietType === 'vegan' ? 'vegan' : 'standard'];
-    const base = {
-      formula: 'mifflin', weightKg: inputs.weightKg, activity: inputs.activity, dietType: inputs.dietType, goal: inputs.goal,
-      adjustmentKcal: inputs.adjustmentKcal, proteinPerKg: inputs.proteinPerKg, fatPct: inputs.fatPct,
-      mealCount: menu.length, mealsMeta: menu.map(({ name, time }) => ({ name, time })), portions: {},
-    };
-    // Las porciones del menú base se ajustan a las calorías objetivo del cliente (de media en media porción).
-    const target = buildNutritionView({ inputs: base, meals: [] }, client, catalog, today).computed.targetKcal;
-    const menuKcal = menu.reduce((sum, meal) => sum + meal.items.reduce((kcal, [group, portions]) => kcal + GROUP_KCAL[group] * portions, 0), 0);
-    const scale = (portions) => Math.max(0.5, Math.round((portions * target * 2) / menuKcal) / 2);
-    const mealsDraft = menu.map((meal) => ({
-      items: meal.items.map(([group, portions, name]) => ({ group, portions: scale(portions), foodId: food(name).id })),
-      extras: (meal.extras ?? []).map(([name, portions, note]) => ({ foodId: food(name).id, portions, note })),
-      notes: meal.notes ?? null,
-    }));
-    for (const meal of mealsDraft) for (const item of meal.items) base.portions[item.group] = (base.portions[item.group] ?? 0) + item.portions;
-    await saveNutritionPlan(client.id, {
-      startDate: spec.client.profile?.logistics?.startDate ?? today,
-      allowClientSwaps: true,
-      inputs: base,
-      meals: mealsDraft,
-      intra: intra ? { foodId: food(intra.food).id, carbsG: intra.carbsG } : { foodId: null, carbsG: null },
-      hydration: { sessionMin: spec.client.profile?.logistics?.sessionMinutes ?? 75, sweatRateLPerH: 0.8, test: {} },
-      supplements: assigned.map(([name, assignedDose]) => ({ supplementId: supplements.get(name).id, assignedDose, timing: null })),
-    });
-  }
+  if (spec.nutrition) await seedNutrition(client, spec, foods, supplements, catalog);
 
   if (spec.weight) {
     const { start, perWeek, days, skipEvery } = spec.weight;
@@ -401,6 +407,16 @@ async function main() {
 
   const catalog = await loadCatalog();
   let created = 0;
+  const nutrition = process.argv.find((arg) => arg.startsWith('--nutrition='))?.slice(12).toLowerCase();
+  if (nutrition) {
+    for (const spec of DEMO.filter((demo) => demo.nutrition && demo.client.fullName.toLowerCase().includes(nutrition))) {
+      const client = await Client.findOne({ where: { email: emailOf(spec) } });
+      if (!client) continue;
+      await seedNutrition(client, spec, foods, supplements, catalog);
+      console.log(`  Plan de alimentación restaurado: ${spec.client.fullName}`);
+    }
+    return;
+  }
   const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).toLowerCase();
   for (const spec of DEMO) {
     if (only && !spec.client.fullName.toLowerCase().includes(only)) continue;
