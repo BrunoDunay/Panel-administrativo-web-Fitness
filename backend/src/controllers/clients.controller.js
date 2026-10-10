@@ -7,7 +7,7 @@ import { todayInAppTz } from '../utils/dates-mx.js';
 import { ageOn } from '../services/calculations/training.js';
 import { loadCatalog } from '../services/catalog.service.js';
 import { buildNutritionView, findActiveNutritionPlan } from '../services/nutrition.service.js';
-import { clientPaymentStatus, deletePayment, listPayments, registerPayment, setDueDate, setOverdueAccess } from '../services/payments.service.js';
+import { changeDueDate, clientPaymentStatus, deletePayment, listPayments, registerPayment, setOverdueAccess } from '../services/payments.service.js';
 import { buildTrackingView } from '../services/tracking.service.js';
 import { buildTrainingView, findActivePlan } from '../services/training.service.js';
 
@@ -93,7 +93,12 @@ export async function list(req, res) {
 }
 
 export async function create(req, res) {
-  const client = await Client.create({ ...req.valid.body, accessCode: generateAccessCode() });
+  const { firstPayment, ...data } = req.valid.body;
+  const client = await Client.create({ ...data, accessCode: generateAccessCode() });
+  // Pago hecho al darse de alta: completo o abono; la fecha capturada es la del siguiente pago (o la del resto).
+  if (firstPayment && firstPayment.amount !== null) {
+    await registerPayment(client, { paidOn: todayInAppTz(), amount: firstPayment.amount, method: firstPayment.method, notes: 'Pago al darse de alta', nextDueDate: data.profile?.logistics?.paymentDate ?? null }, { first: true });
+  }
   res.status(201).json(serializeClient(client, { forCoach: true }));
 }
 
@@ -157,7 +162,7 @@ export async function setPaymentAccess(req, res) {
 /** Cambia a mano la fecha del próximo pago (por ejemplo, si se acordó una prórroga). */
 export async function setPaymentDueDate(req, res) {
   // El saldo solo cambia si el coach lo mandó; si no, se queda como está.
-  await setDueDate(req.client, req.valid.body.dueDate, undefined, req.body?.pendingAmount === undefined ? undefined : req.valid.body.pendingAmount);
+  await changeDueDate(req.client, req.valid.body.dueDate, req.body?.pendingAmount === undefined ? undefined : req.valid.body.pendingAmount);
   res.status(204).end();
 }
 

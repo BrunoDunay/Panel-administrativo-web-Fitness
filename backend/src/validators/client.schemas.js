@@ -61,6 +61,11 @@ export const clientBody = z.object({
   coachNotes: text(10000),
 });
 
+/** Alta de cliente: además del expediente, puede traer el pago que hizo ese mismo día. */
+export const clientCreateBody = clientBody.extend({
+  firstPayment: z.object({ amount: number(0, 1000000), method: text(40) }).nullish(),
+});
+
 export const clientListQuery = z.object({
   search: z.string().trim().max(80).optional(),
   status: z.enum(['active', 'paused', 'archived', 'all']).default('active'),

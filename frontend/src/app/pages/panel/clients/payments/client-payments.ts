@@ -23,7 +23,7 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
         <div class="status__text">
           <p class="status__eyebrow">Próximo pago · plan {{ status.planType || 'sin definir' }}</p>
           <p class="status__date">@if (status.pendingAmount !== null) { {{ money(status.pendingAmount) }} <small>el</small> } {{ status.dueDate ? date(status.dueDate) : 'sin fecha de pago' }}</p>
-          @if (status.fee !== null) { <p class="status__fee">Tarifa acordada: <b>{{ money(status.fee) }}</b> · {{ (status.planType || 'por periodo').toLowerCase() }}@if (status.pendingAmount !== null && status.pendingAmount < status.fee) { · ya abonó {{ money(status.fee - status.pendingAmount) }} } </p> } @else { <p class="status__fee">Sin tarifa acordada: captúrala en Expediente para llevar el saldo.</p> }
+          @if (status.fee !== null) { <p class="status__fee">Tarifa acordada: <b>{{ money(status.fee) }}</b> · {{ (status.planType || 'por periodo').toLowerCase() }}@if (status.pendingAmount !== null && status.pendingAmount < status.fee) { · ya abonó {{ money(status.fee - status.pendingAmount) }} } </p> } @else { <p class="status__fee">Sin tarifa acordada: captúrala en Expediente (apartado Pago) para llevar el saldo.</p> }
           <p class="status__label">
             @switch (status.state) {
               @case ('none') { Registra el primer pago o define la fecha para empezar a llevar el control. }
@@ -54,7 +54,7 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
         <section class="card card--badge tone--steel icon-hover">
           <span class="card__badge"><app-icon name="calendar" [size]="26" /></span>
           <h3 class="form-section__title title">Cambiar la fecha o el monto del próximo pago</h3>
-          <p class="card__hint hint">Úsalo para una prórroga o para corregir la fecha. No registra ningún pago.</p>
+          <p class="card__hint hint">Úsalo para una prórroga o para corregir la fecha. No registra ningún pago.@if (status.dueDate && dueDraft() && dueDraft() !== status.dueDate && status.planType !== 'Personalizado') { <b> Al mover la fecha, el plan pasa a Personalizado.</b> }</p>
           <div class="due">
             <label class="field">
               <span class="field__label">Próximo pago</span>

@@ -336,6 +336,44 @@ describe.skipIf(!enabled)('API', () => {
     await auth(request(app).delete(base));
   });
 
+  it('alta con pago: abono o pago completo, y mover la fecha vuelve el plan personalizado', async () => {
+    const probe = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente sin pago', profile: { logistics: { planType: 'Trimestral', fee: 6000 } } });
+    const { today } = (await auth(request(app).get(`/api/clients/${probe.body.id}`))).body;
+    const shift = (days) => new Date(Date.parse(`${today}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10);
+    // Sin pago al alta y sin fecha: no hay nada registrado.
+    expect((await auth(request(app).get(`/api/clients/${probe.body.id}`))).body.payments).toHaveLength(0);
+    await auth(request(app).delete(`/api/clients/${probe.body.id}`));
+
+    // Acordaron 6,000 trimestral, da 2,000 hoy y el resto en 20 días.
+    const created = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente con abono', profile: { logistics: { planType: 'Trimestral', fee: 6000, paymentDate: shift(20) } }, firstPayment: { amount: 2000, method: 'Efectivo' } });
+    const base = `/api/clients/${created.body.id}`;
+    let view = (await auth(request(app).get(base))).body;
+    expect(view.payment).toMatchObject({ planType: 'Trimestral', fee: 6000, pendingAmount: 4000, dueDate: shift(20) });
+    expect(view.payments).toHaveLength(1);
+    expect(view.payments[0]).toMatchObject({ amount: 2000, partial: true, dueDate: null, paidOn: today });
+
+    // Liquida el resto sin tocar la fecha sugerida: sigue trimestral.
+    const rest = await auth(request(app).post(`${base}/payments`)).send({ paidOn: today, amount: 4000 });
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ planType: 'Trimestral', pendingAmount: 6000, dueDate: rest.body.nextDueDate });
+
+    // Guardar la misma fecha no cambia el plan; moverla (antes o después) lo vuelve personalizado.
+    await auth(request(app).put(`${base}/payments/due-date`)).send({ dueDate: rest.body.nextDueDate });
+    expect((await auth(request(app).get(base))).body.payment.planType).toBe('Trimestral');
+    await auth(request(app).put(`${base}/payments/due-date`)).send({ dueDate: shift(60) });
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ planType: 'Personalizado', dueDate: shift(60) });
+    await auth(request(app).delete(base));
+
+    // Paga todo al alta: el siguiente pago es la fecha capturada. Elegir después otra fecha al registrar un pago también lo personaliza.
+    const full = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente al corriente', profile: { logistics: { planType: 'Semestral', fee: 9000, paymentDate: shift(180) } }, firstPayment: { amount: 9000 } });
+    const fullBase = `/api/clients/${full.body.id}`;
+    view = (await auth(request(app).get(fullBase))).body;
+    expect(view.payment).toMatchObject({ planType: 'Semestral', pendingAmount: 9000, dueDate: shift(180) });
+    expect(view.payments[0]).toMatchObject({ partial: false, nextDueDate: shift(180) });
+    await auth(request(app).post(`${fullBase}/payments`)).send({ paidOn: today, amount: 9000, nextDueDate: shift(300) });
+    expect((await auth(request(app).get(fullBase))).body.payment).toMatchObject({ planType: 'Personalizado', dueDate: shift(300) });
+    await auth(request(app).delete(fullBase));
+  });
+
   it('un cliente nuevo puede pautar su primera semana aunque el split esté vacío', async () => {
     const created = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente nuevo' });
     const base = `/api/clients/${created.body.id}`;

@@ -77,24 +77,63 @@
       </div>
     </section>
 
-    <section class="card card--badge tone--teal form-section icon-hover">
-      <span class="card__badge"><app-icon name="calendar" [size]="26" /></span>
-    <h3 class="form-section__title">Plan y logística</h3>
+    <section class="card card--badge tone--emerald form-section icon-hover">
+      <span class="card__badge"><app-icon name="dollar" [size]="26" /></span>
+      <h3 class="form-section__title">Pago</h3>
       <div class="form-grid">
         <label class="field">
-          <span class="field__label">Cada cuánto paga</span>
+          <span class="field__label">Plan</span>
           <select class="field__control" name="planType" [(ngModel)]="v.profile.logistics.planType">
             <option [ngValue]="undefined">—</option>
             @for (option of lists.planTypes; track option) { <option [value]="option">{{ option }}</option> }
           </select>
+          <span class="field__hint">Solo sirve para ubicar quién paga cada cuánto. Si después mueves su fecha de pago, pasa solo a Personalizado.</span>
         </label>
         <label class="field">
-          <span class="field__label">Tarifa acordada ($ por periodo)</span>
-          <input class="field__control" type="number" inputmode="decimal" min="0" step="50" name="fee" [(ngModel)]="v.profile.logistics.fee" placeholder="Ej. 1500" />
-          <span class="field__hint">Lo que acordaron cobrar cada periodo. Los pagos y abonos se registran en la pestaña Pagos.</span>
+          <span class="field__label">Cuánto le vas a cobrar ($)</span>
+          <input class="field__control" type="number" inputmode="decimal" min="0" step="50" name="fee" [(ngModel)]="v.profile.logistics.fee" placeholder="Ej. 6000" />
+          <span class="field__hint">La tarifa que acordaron por periodo.</span>
         </label>
+        @if (isNew()) {
+          <label class="check span-all">
+            <input type="checkbox" [checked]="payToday()" (change)="payToday.set($any($event.target).checked)" />
+            Registrar un pago hoy (todo o un abono)
+          </label>
+          @if (payToday()) {
+            <label class="field">
+              <span class="field__label">Monto que paga hoy ($)</span>
+              <input class="field__control" type="number" inputmode="decimal" min="0" step="50" aria-label="Monto que paga hoy" [value]="paidNow() ?? ''" (change)="payAmount.set(num($any($event.target).value))" [attr.aria-invalid]="touched() && paidNow() === null" />
+              @if (touched() && paidNow() === null) { <span class="field__error">Escribe cuánto pagó hoy o desmarca la casilla.</span> }
+            </label>
+            <label class="field">
+              <span class="field__label">Forma de pago</span>
+              <select class="field__control" aria-label="Forma de pago" (change)="payMethod.set($any($event.target).value || null)">
+                <option value="" [selected]="!payMethod()">—</option>
+                @for (option of lists.paymentMethods; track option) { <option [value]="option" [selected]="payMethod() === option">{{ option }}</option> }
+              </select>
+            </label>
+          }
+          <label class="field">
+            <span class="field__label">{{ !payToday() ? 'Fecha en que va a pagar' : partial() ? 'Fecha para pagar el resto' : 'Próximo pago' }}</span>
+            <input class="field__control" type="date" name="paymentDate" [(ngModel)]="v.profile.logistics.paymentDate" />
+            @if (suggestedDate(); as suggested) {
+              @if (!v.profile.logistics.paymentDate) { <span class="field__hint">Si la dejas vacía: {{ date(suggested) }}.</span> }
+            }
+          </label>
+          @if (paySummary(); as summary) {
+            <p class="notice span-all" [class.notice--success]="!partial()" [class.notice--warning]="partial()"><app-icon [name]="partial() ? 'clock' : 'check'" [size]="18" /><span>{{ summary }}</span></p>
+          }
+        } @else {
+          <p class="field__hint span-all">La fecha del próximo pago, los abonos y el historial se manejan en la pestaña <b>Pagos</b>.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card card--badge tone--teal form-section icon-hover">
+      <span class="card__badge"><app-icon name="calendar" [size]="26" /></span>
+      <h3 class="form-section__title">Logística</h3>
+      <div class="form-grid">
         <label class="field"><span class="field__label">Fecha de inicio</span><input class="field__control" type="date" name="startDate" [(ngModel)]="v.profile.logistics.startDate" /></label>
-        <label class="field"><span class="field__label">Próximo pago</span><input class="field__control" type="date" name="paymentDate" [(ngModel)]="v.profile.logistics.paymentDate" /></label>
         <label class="field">
           <span class="field__label">Días disponibles / semana</span>
           <select class="field__control" name="daysPerWeek" [(ngModel)]="v.profile.logistics.daysPerWeek">

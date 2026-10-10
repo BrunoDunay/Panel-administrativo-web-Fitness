@@ -1,7 +1,7 @@
 import { sequelize } from '../config/database.js';
 import { Payment } from '../models/index.js';
 import { notFound } from '../utils/app-error.js';
-import { applyPayment, nextDueDate, paymentDelay, paymentStatus, periodMonths } from './calculations/payments.js';
+import { applyPayment, CUSTOM_PLAN, nextDueDate, paymentDelay, paymentStatus, periodMonths } from './calculations/payments.js';
 
 const dueDateOf = (client) => client.profile?.logistics?.paymentDate ?? null;
 const planTypeOf = (client) => client.profile?.logistics?.planType ?? null;
@@ -51,9 +51,13 @@ export async function listPayments(clientId) {
   return payments.map(serializePayment);
 }
 
-/** La fecha del próximo pago vive en la historia clínica del cliente. */
-export function setDueDate(client, date, transaction, pendingAmount) {
+/**
+ * La fecha del próximo pago vive en la historia clínica del cliente. `custom`: la fecha se salió
+ * del calendario de su plan, así que el plan pasa a ser personalizado.
+ */
+export function setDueDate(client, date, transaction, pendingAmount, custom = false) {
   const logistics = { ...client.profile?.logistics, paymentDate: date };
+  if (custom) logistics.planType = CUSTOM_PLAN;
   // `undefined` deja el saldo como está; un número o null lo cambia.
   if (pendingAmount !== undefined) logistics.pendingAmount = pendingAmount;
   const profile = { ...client.profile, logistics };
@@ -61,19 +65,30 @@ export function setDueDate(client, date, transaction, pendingAmount) {
   return client.update({ profile, overdueAccess: false }, { transaction });
 }
 
+/** El coach mueve a mano la fecha (o el monto) del próximo pago. Mover una fecha que ya existía vuelve el plan personalizado. */
+export function changeDueDate(client, date, pendingAmount) {
+  const current = dueDateOf(client);
+  return setDueDate(client, date, undefined, pendingAmount, Boolean(current && date && date !== current));
+}
+
 /**
  * Registra un pago. Si cubre todo lo pendiente, el vencimiento se recorre un periodo (o a la fecha
  * que indique el coach) y lo pendiente pasa a ser la tarifa del siguiente. Si es un abono, queda el
  * saldo y la fecha es la acordada para pagar el resto (por defecto, la misma que ya tenía).
+ * Si el coach elige un siguiente pago distinto al que tocaba por su plan, el plan pasa a personalizado.
+ * `first`: pago con el que se da de alta al cliente; no cubre ningún vencimiento previo y la fecha
+ * elegida es la acordada desde el inicio.
  */
-export async function registerPayment(client, { paidOn, amount, method, notes, nextDueDate: chosen }) {
-  const dueDate = dueDateOf(client);
+export async function registerPayment(client, { paidOn, amount, method, notes, nextDueDate: chosen }, { first = false } = {}) {
+  const dueDate = first ? null : dueDateOf(client);
   const { partial, pendingBefore, pendingAfter } = applyPayment({ pending: pendingOf(client), fee: feeOf(client), amount });
-  const next = chosen ?? (partial ? (dueDate ?? paidOn) : nextDueDate({ dueDate, paidOn, planType: planTypeOf(client) }));
+  const byPlan = nextDueDate({ dueDate, paidOn, planType: planTypeOf(client) });
+  const next = chosen ?? (partial ? (dueDate ?? paidOn) : byPlan);
+  const custom = !first && !partial && next !== byPlan;
 
   return sequelize.transaction(async (transaction) => {
     const payment = await Payment.create({ clientId: client.id, paidOn, amount, method, notes, dueDate, nextDueDate: next, pendingBefore, pendingAfter }, { transaction });
-    await setDueDate(client, next, transaction, pendingAfter);
+    await setDueDate(client, next, transaction, pendingAfter, custom);
     return serializePayment(payment);
   });
 }

@@ -3,6 +3,9 @@
 /** Meses que cubre cada tipo de plan. */
 export const PLAN_MONTHS = { Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
 
+/** Plan con fechas acordadas a mano: no sigue el calendario de ningún periodo fijo. */
+export const CUSTOM_PLAN = 'Personalizado';
+
 /** Días antes del vencimiento en que el pago ya se considera "próximo". */
 export const PAYMENT_NOTICE_DAYS = 7;
 

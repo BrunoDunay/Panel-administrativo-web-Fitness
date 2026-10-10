@@ -41,6 +41,8 @@ const DAY_MS = 864e5;
               <button type="button" class="reset" (click)="customNext.set(null)">Usar el sugerido: {{ date(suggested(), true) }}</button>
             } @else if (partial()) {
               Cambia la fecha si acordaron otra
+            } @else if (planType() === 'Personalizado') {
+              Plan personalizado: pon la fecha que acordaron
             } @else {
               Sugerido por el plan {{ planLabel() }}
             }
@@ -61,6 +63,10 @@ const DAY_MS = 864e5;
             <span>Cubre los <b>{{ money(pending()) }}</b> pendientes. El siguiente pago{{ fee() ? ' (' + money(fee()) + ')' : '' }} será el {{ date(nextDue()) }}.</span>
           }
         </p>
+      }
+
+      @if (becomesCustom()) {
+        <p class="notice"><app-icon name="calendar" [size]="18" /><span>Elegiste una fecha distinta a la de su plan {{ planLabel() }}: el plan pasará a <b>Personalizado</b>.</span></p>
       }
 
       @if (timing(); as t) {
@@ -119,6 +125,8 @@ export class PaymentForm {
     return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
   });
   protected readonly nextDue = computed(() => this.customNext() ?? (this.partial() ? this.restDate() : this.suggested()));
+  /** Salirse de la fecha que tocaba por el plan lo convierte en personalizado (un abono no cuenta). */
+  protected readonly becomesCustom = computed(() => !this.partial() && this.planType() !== 'Personalizado' && this.nextDue() !== this.suggested());
   protected readonly planLabel = computed(() => (this.planType() ? this.planType()!.toLowerCase() : 'mensual'));
 
   /** Puntualidad respecto al vencimiento que cubre. */

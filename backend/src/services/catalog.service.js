@@ -33,7 +33,7 @@ export const LISTS = {
     { symbol: '🆕', label: 'Nuevo', hint: 'Ejercicio nuevo o modificado. Empieza conservador y prioriza técnica.' },
     { symbol: '⬆️', label: 'Subir carga', hint: 'Aumenta la carga para respetar las repeticiones pautadas y el RIR indicado.' },
   ],
-  planTypes: ['Mensual', 'Trimestral', 'Semestral', 'Anual'],
+  planTypes: ['Mensual', 'Trimestral', 'Semestral', 'Anual', 'Personalizado'],
   trainingPlaces: ['Gym comercial', 'Gym privado', 'Casa', 'Mixto'],
   levels: ['Principiante', 'Intermedio', 'Avanzado'],
   workActivity: ['Sedentaria', 'Ligera', 'Activa', 'Muy activa'],

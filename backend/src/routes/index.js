@@ -5,7 +5,7 @@ import * as clients from '../controllers/clients.controller.js';
 import { loadClientByCode, loadClientForCoach } from '../middlewares/load-client.js';
 import { requireAuth } from '../middlewares/require-auth.js';
 import { validate } from '../middlewares/validate.js';
-import { clientBody, clientListQuery } from '../validators/client.schemas.js';
+import { clientCreateBody, clientListQuery } from '../validators/client.schemas.js';
 import { catalogItemParams } from '../validators/common.schemas.js';
 import { authRoutes } from './auth.routes.js';
 import { clientDataRoutes } from './client-data.routes.js';
@@ -30,7 +30,7 @@ const catalogRoutes = Router()
 const clientsRoutes = Router()
   .use(requireAuth)
   .get('/', validate({ query: clientListQuery }), clients.list)
-  .post('/', validate({ body: clientBody }), clients.create)
+  .post('/', validate({ body: clientCreateBody }), clients.create)
   .use('/:clientId', loadClientForCoach, clientDataRoutes());
 
 export const apiRoutes = Router()
