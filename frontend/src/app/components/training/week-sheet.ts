@@ -178,7 +178,7 @@ import { ExerciseFigure } from '../visual/exercise-figure';
     .day__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
     .day__eyebrow { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--color-primary); }
     .day__head h3 { font-size: var(--text-xl); text-transform: uppercase; }
-    .day__meta { display: flex; align-items: flex-end; gap: var(--space-5); }
+    .day__meta { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3) var(--space-5); }
     .day__date { width: 10rem; }
     .day__sets { font-size: var(--text-xl); }
     .exercise { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); background: var(--color-background); }

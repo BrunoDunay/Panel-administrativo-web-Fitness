@@ -212,9 +212,17 @@
 @media (max-width: 720px) {
   /* Las demás pestañas bajan de renglón en vez de desplazarse de lado. */
   .tabs {
+    display: flex;
     flex-wrap: wrap;
+    width: 100%;
     border-radius: var(--radius-lg);
     overflow-x: visible;
+  }
+
+  /* Cada pestaña se estira: los renglones quedan llenos, sin huecos a la derecha. */
+  .tab {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 
   .tabs--icons {

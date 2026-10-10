@@ -176,7 +176,10 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
       .table tr:not(.is-open) td:not(:first-child) { display: none; }
       .toggle { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border: 0; border-radius: 50%; background: var(--color-surface-alt); color: var(--color-text-muted); transition: rotate var(--duration) var(--ease-out); }
       .toggle[aria-expanded='true'] { background: var(--color-primary-soft); color: var(--color-primary); rotate: 180deg; }
-      .table td.row-actions { justify-content: flex-start; margin-top: 0; }
+      .table td.row-actions { flex-wrap: wrap; justify-content: flex-start; margin-top: 0; }
+      /* El botón de desplegar va pegado al borde derecho de la tarjeta. */
+      .who { width: 100%; max-width: none; justify-self: stretch; }
+      .toggle { margin-left: auto; margin-right: calc(var(--space-3) * -1); }
     }
     .access.is-locked { border-color: var(--color-danger); background: var(--color-danger-soft); color: var(--color-danger); }
   `,

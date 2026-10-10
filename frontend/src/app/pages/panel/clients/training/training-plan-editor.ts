@@ -60,7 +60,7 @@ function emptyDraft(): Draft {
     .computed--tone { background: var(--tone-soft); color: var(--tone-ink); }
 
     /* Split: un mosaico por día, con el color de la sesión. */
-    .split { display: grid; grid-template-columns: repeat(7, minmax(7rem, 1fr)); gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: var(--space-2); }
     .split__day { display: grid; gap: var(--space-2); padding: var(--space-3); border-top: 4px solid var(--tone); border-radius: var(--radius-md); background: var(--tone-soft); transition: background-color var(--duration); }
     .split__day.is-rest { border-top-color: var(--color-border-strong); background: var(--color-background); }
     .split__name { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--tone-ink); }

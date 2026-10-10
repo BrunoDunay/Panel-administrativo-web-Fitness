@@ -146,7 +146,7 @@ const UNNAMED = 'Entrenamiento';
     :host { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 
     /* La semana de un vistazo. */
-    .strip { display: grid; grid-template-columns: repeat(7, minmax(6.2rem, 1fr)); gap: var(--space-2); overflow-x: auto; padding-bottom: 2px; }
+    .strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr)); gap: var(--space-2); }
     .strip__day { display: grid; gap: 1px; padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-md); background: var(--tone-soft); text-align: left; line-height: 1.25; color: var(--tone-ink); transition: transform 140ms var(--ease-out); }
     .strip__day:active { transform: scale(0.97); }
     .strip__day b { overflow: hidden; font-size: var(--text-sm); text-overflow: ellipsis; white-space: nowrap; color: var(--color-text); }

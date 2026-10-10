@@ -169,6 +169,8 @@ const SCORE_TONES: Record<number, Tone> = { 5: 'emerald', 4: 'teal', 3: 'slate',
       .week:not([aria-selected='true']):hover { background: var(--tone-steel-soft); color: var(--tone-steel-ink); }
     }
     @media (max-width: 720px) {
+      /* Teléfono: las semanas bajan de renglón, sin desplazarse de lado. */
+      .weeks { flex-wrap: wrap; justify-content: center; overflow-x: visible; }
       .session { grid-template-columns: auto minmax(0, 1fr); }
       .session .mini { grid-column: span 2; }
     }

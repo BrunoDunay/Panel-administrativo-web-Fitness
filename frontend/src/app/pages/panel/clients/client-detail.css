@@ -219,6 +219,30 @@
   .steps {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Teléfono: las semanas bajan de renglón y el selector de modo ocupa todo el ancho, en un solo renglón. */
+  .weekbar__weeks {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .weekbar__tools {
+    width: 100%;
+  }
+
+  .weekbar__tools .tabs {
+    flex-wrap: nowrap;
+  }
+
+  .weekbar__tools .tab {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: var(--space-1);
+    padding-inline: var(--space-2);
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    white-space: normal;
+  }
 }
 
 .link__eyebrow {
