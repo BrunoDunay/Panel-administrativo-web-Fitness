@@ -1,15 +1,20 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input, signal } from '@angular/core';
 import { resolveFigure } from './figure-resolve';
-import { FigureDef, figureBounds, figureFrame, figureStatics } from './figure-rig';
+import { FigureDef, FigureStage, figureBounds, figureFrame, figureStatics } from './figure-rig';
 
 /** Duración de una repetición (ida y vuelta). */
 const REP_MS = 1500;
+/** Lo que tarda en aparecer el dibujo siguiente de una serie. */
+const SWAP_MS = 260;
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 /**
  * Dibujo animado de un ejercicio: una figura que hace la repetición con su equipo (barra, Smith,
  * mancuernas, polea o máquina). Se mueve al entrar en pantalla, al pasar el cursor o al tocar el
  * elemento `.icon-hover` que lo contiene; con `autoplay` se repite sin parar (vista previa).
+ *
+ * También puede recibir una serie de dibujos (caminadora → bicicleta → elíptica): cada uno hace sus
+ * repeticiones y cede el lugar al siguiente; al terminar regresa al primero.
  */
 @Component({
   selector: 'app-exercise-figure',
@@ -57,8 +62,8 @@ export class ExerciseFigure {
   readonly muscle = input('');
   /** Dibujo elegido a mano por el coach (clave del catálogo de dibujos). */
   readonly figure = input<string | null | undefined>(null);
-  /** Dibujo dado directamente (cardio y calentamiento): no se busca por nombre. */
-  readonly def = input<FigureDef | null | undefined>(null);
+  /** Dibujo dado directamente (cardio y calentamiento), o una serie de ellos: no se busca por nombre. */
+  readonly def = input<FigureDef | FigureStage[] | null | undefined>(null);
   readonly size = input(46);
   /** Repite la animación sin parar en vez de esperar al cursor. */
   readonly autoplay = input(false);
@@ -66,15 +71,23 @@ export class ExerciseFigure {
   readonly intro = input(true);
 
   private readonly host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
-  private readonly entry = computed(() => {
-    const def = this.def();
-    return def ? { name: this.exercise(), def } : resolveFigure(this.exercise(), this.muscle(), this.figure());
+  private readonly changes = inject(ChangeDetectorRef);
+  /** Dibujos a mostrar, cada uno con sus repeticiones; casi siempre es uno solo. */
+  private readonly stages = computed<{ name: string; stages: FigureStage[] }>(() => {
+    const given = this.def();
+    if (Array.isArray(given) && given.length) return { name: this.exercise(), stages: given };
+    const { name, def } = given && !Array.isArray(given) ? { name: this.exercise(), def: given } : resolveFigure(this.exercise(), this.muscle(), this.figure());
+    // Caminar o pedalear se entiende con varios ciclos seguidos; una repetición de fuerza, con dos.
+    return { name, stages: [{ def, reps: def.cycle ? 3 : 2 }] };
   });
-  protected readonly label = computed(() => this.entry().name);
-  protected readonly fixed = computed(() => figureStatics(this.entry().def));
-  protected readonly box = computed(() => figureBounds(this.entry().def));
+  /** Cuál de los dibujos de la serie se ve ahora. */
+  private readonly stage = signal(0);
+  private readonly current = computed(() => (this.stages().stages[this.stage()] ?? this.stages().stages[0]!).def);
+  protected readonly label = computed(() => this.stages().name);
+  protected readonly fixed = computed(() => figureStatics(this.current()));
+  protected readonly box = computed(() => figureBounds(this.current()));
   /** Postura inicial: lo que se ve cuando no hay animación. */
-  protected readonly rest = computed(() => figureFrame(this.entry().def, 0));
+  protected readonly rest = computed(() => figureFrame(this.current(), 0));
 
   private frameId = 0;
   private parts: Record<string, Element> | null = null;
@@ -83,8 +96,7 @@ export class ExerciseFigure {
     afterNextRender(() => {
       // El disparador es el contenedor marcado con .icon-hover (la fila o tarjeta), o el propio dibujo.
       const trigger = this.host.closest('.icon-hover') ?? this.host;
-      // Caminar o pedalear se entiende con varios ciclos seguidos; una repetición de fuerza, con dos.
-      const play = () => !this.autoplay() && this.play(this.entry().def.cycle ? 3 : 2);
+      const play = () => !this.autoplay() && this.play('full');
       trigger.addEventListener('pointerenter', play);
       trigger.addEventListener('focusin', play);
 
@@ -93,7 +105,7 @@ export class ExerciseFigure {
         (entries) => {
           if (!entries.some((entry) => entry.isIntersecting)) return;
           observer.disconnect();
-          if (this.intro() && !this.autoplay()) setTimeout(() => this.play(this.entry().def.cycle ? 2 : 1), 120 + Math.random() * 500);
+          if (this.intro() && !this.autoplay()) setTimeout(() => this.play('intro'), 120 + Math.random() * 500);
         },
         { threshold: 0.6 },
       );
@@ -110,25 +122,51 @@ export class ExerciseFigure {
 
     // La vista previa arranca sola y vuelve a empezar si cambia el dibujo.
     effect(() => {
-      this.entry();
-      if (this.autoplay() && typeof requestAnimationFrame === 'function') queueMicrotask(() => this.play(Infinity));
+      this.stages();
+      this.stage.set(0);
+      if (this.autoplay() && typeof requestAnimationFrame === 'function') queueMicrotask(() => this.play('loop'));
     });
   }
 
   private cleanup: () => void = () => {};
 
-  /** Corre `reps` repeticiones; cada cuadro recalcula la postura para que manos y pies no se despeguen. */
-  private play(reps: number): void {
+  /**
+   * Corre la animación; cada cuadro recalcula la postura para que manos y pies no se despeguen.
+   * - `full`: todos los dibujos de la serie, cada uno con sus repeticiones, y regresa al primero.
+   * - `intro`: solo el primero y una repetición menos, para no llenar la pantalla de movimiento al cargar.
+   * - `loop`: la serie completa, sin parar.
+   */
+  private play(mode: 'full' | 'intro' | 'loop'): void {
     cancelAnimationFrame(this.frameId);
+    const stages = this.stages().stages;
+    const reps = mode === 'intro' ? [stages[0]!.def.cycle ? 2 : 1] : stages.map((stage) => stage.reps);
+    const total = reps.reduce((sum, count) => sum + count, 0);
     const start = performance.now();
     const tick = (now: number) => {
-      const def = this.entry().def;
-      const cycle = (now - start) / REP_MS;
-      if (cycle >= reps) return this.paint(def, 0);
+      // Si el dibujo cambió a media animación, esta se detiene en la postura inicial del nuevo.
+      if (this.stages().stages !== stages) return this.paint(this.current(), 0);
+      let cycle = (now - start) / REP_MS;
+      if (cycle >= total && mode !== 'loop') {
+        this.show(0);
+        return this.paint(this.current(), 0);
+      }
+      cycle %= total;
+      let index = 0;
+      while (cycle >= reps[index]!) cycle -= reps[index++]!;
+      this.show(index);
+      const def = this.current();
       this.paint(def, this.progress(def, cycle % 1));
       this.frameId = requestAnimationFrame(tick);
     };
     this.frameId = requestAnimationFrame(tick);
+  }
+
+  /** Cambia al dibujo `index` de la serie: el encuadre y lo fijo se actualizan al momento y el nuevo entra con un fundido. */
+  private show(index: number): void {
+    if (this.stage() === index) return;
+    this.stage.set(index);
+    this.changes.detectChanges();
+    this.host.querySelector('svg')?.animate?.([{ opacity: 0, transform: 'scale(0.86)' }, { opacity: 1, transform: 'none' }], { duration: SWAP_MS, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
   }
 
   /** Avance dentro de una repetición: sube, sostiene (si el ejercicio lleva pausa) y regresa. */

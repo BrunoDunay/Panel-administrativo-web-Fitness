@@ -99,12 +99,7 @@
   min-width: 14rem;
 }
 
-/* Miniatura con dibujo animado: más grande, para que el movimiento se lea. */
-.thumb--figure {
-  width: 3.75rem;
-  height: 3.75rem;
-}
-
+/* Dibujo animado dentro de la miniatura: misma caja que un ícono, con los colores de su tipo. */
 .figure {
   --figure-accent: var(--tone);
   --figure-surface: var(--tone-soft);

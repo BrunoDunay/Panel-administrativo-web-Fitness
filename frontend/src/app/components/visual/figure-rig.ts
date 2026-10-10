@@ -42,6 +42,8 @@ export interface SidePose {
   wrist?: number;
   /** Escala del brazo: menos de 1 = el codo abre hacia quien mira y el brazo se ve más corto. */
   reach?: number;
+  /** Puntos de la máquina que se mueven con la postura (biela, brazo de la elíptica): el equipo los usa por nombre. */
+  marks?: Record<string, P>;
 }
 
 export interface FrontPose {
@@ -77,7 +79,7 @@ export function mix<T>(a: T, b: T, t: number): T {
 }
 
 /** Dos segmentos que salen de `root` y llegan a `target`; devuelve la articulación y la punta. */
-function reach(root: P, target: P, l1: number, l2: number, bend: number): { joint: P; end: P } {
+export function reach(root: P, target: P, l1: number, l2: number, bend: number): { joint: P; end: P } {
   let dx = target[0] - root[0];
   let dy = target[1] - root[1];
   let d = Math.hypot(dx, dy) || 0.001;
@@ -135,6 +137,7 @@ export function sideSkeleton(pose: SidePose): Skeleton {
     front: add(shoulder, back, -2.6),
     lap: add(pose.hip, back, -3.4),
     chest: add(pose.hip, tdir, LEN.torso * 0.62),
+    ...pose.marks,
   };
 
   const leg = solve(pose.hip, pose.leg, LEN.thigh, LEN.shin, pts, dir);
@@ -237,8 +240,11 @@ export function frontSkeleton(pose: FrontPose): Skeleton {
  * - db: mancuerna (`perp`: perpendicular al antebrazo) · ez: barra Z · cable/lever/band: línea desde un punto fijo
  * - roller: rodillo o almohadilla de máquina · plat: plataforma · ball: pelota
  * - bar/rails: barra vista de frente y rieles del Smith · weight: disco colgado (lastre)
- * - wheel: rueda fija en `c` cuyos rayos giran con el ciclo · tube: tubos fijos (cuadro de la bici)
+ * - wheel: rueda fija en `c` cuyos rayos giran con el ciclo · tube: tubos fijos (armazón de una máquina)
+ * - rod: barra entre dos puntos, fijos o del esqueleto (pedal y brazo de la elíptica)
+ * - rope: cuerda de saltar vista de frente, de mano a mano; da `turns` vueltas por ciclo
  */
+export type Weight = 'thin' | 'mid' | 'thick';
 export type Gear =
   | { k: 'plate'; at: string; d?: P; r?: number }
   | { k: 'smith'; at: string; d?: P; r?: number }
@@ -254,7 +260,9 @@ export type Gear =
   | { k: 'rails'; ext?: number }
   | { k: 'weight'; at: string; d?: P }
   | { k: 'wheel'; c: P; r?: number }
-  | { k: 'tube'; p: P[][] };
+  | { k: 'tube'; p: P[][]; w?: Weight }
+  | { k: 'rod'; from: P | string; at: string; w?: Weight }
+  | { k: 'rope'; top: number; bottom: number; turns?: number };
 
 /** Elemento fijo del dibujo: piso, banco, poste o pila de pesas. */
 export type Prop =
@@ -379,8 +387,21 @@ export function gearPaths(gear: Gear[], pts: Points, startPts: Points, turn = 0)
         break;
       }
       case 'tube':
-        for (const points of item.p) out.mid += line(...points);
+        for (const points of item.p) out[item.w ?? 'mid'] += line(...points);
         break;
+      case 'rod':
+        out[item.w ?? 'mid'] += line(typeof item.from === 'string' ? at(pts, item.from) : item.from, at(pts, item.at));
+        break;
+      case 'rope': {
+        const l = pts['handL'] ?? [0, 0];
+        const r = pts['handR'] ?? [0, 0];
+        // La cuerda gira alrededor de las manos; de frente se ve como un arco que sube y baja.
+        const swing = Math.cos(turn * (item.turns ?? 1) * 360 * RAD);
+        const ry = Math.abs(swing) * (swing > 0 ? l[1] - item.top : item.bottom - l[1]);
+        out.thin += ry < 0.4 ? line(l, r) : `M${n(l[0])} ${n(l[1])}A${n((r[0] - l[0]) / 2)} ${n(ry)} 0 0 ${swing > 0 ? 1 : 0} ${n(r[0])} ${n(r[1])}`;
+        out.solid += circle(l, 1.2) + circle(r, 1.2);
+        break;
+      }
       case 'rails':
         break; // fijos: van en gearStatics
     }
@@ -424,6 +445,12 @@ export interface FigureDef {
   props: Prop[];
   /** Fracción de la repetición que se sostiene la postura final (ejercicios con pausa). */
   hold?: number;
+}
+
+/** Un dibujo dentro de una serie (caminadora → bicicleta → elíptica): se repite `reps` veces y cede el lugar al siguiente. */
+export interface FigureStage {
+  def: FigureDef;
+  reps: number;
 }
 
 export interface Frame {
@@ -471,10 +498,12 @@ export function figureBounds(def: FigureDef): string {
     for (const point of Object.values(skeleton.pts)) take(point, 2);
     take(skeleton.head, LEN.headR + 1);
     // Discos, mancuernas y plataformas sobresalen de la mano o del pie que los sostiene.
-    for (const item of def.gear) if ('at' in item) take(at(skeleton.pts, item.at, 'd' in item ? item.d : undefined), 5.5);
+    for (const item of def.gear) if ('at' in item && item.k !== 'rod') take(at(skeleton.pts, item.at, 'd' in item ? item.d : undefined), 5.5);
   }
   for (const item of def.gear) {
     if (item.k === 'cable' || item.k === 'lever') take(item.from, 2.5);
+    if (item.k === 'rod' && typeof item.from !== 'string') take(item.from, 2.5);
+    if (item.k === 'rope') ys.push(item.top - 1.5, item.bottom + 1);
     if (item.k === 'wheel') take(item.c, (item.r ?? 7) + 1.5);
     if (item.k === 'tube') item.p.flat().forEach((point) => take(point, 2));
     if (item.k === 'band' && typeof item.from !== 'string') take(item.from, 2);

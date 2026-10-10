@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Btn } from '../../../components/buttons/btn';
 import { Icon, IconName } from '../../../components/icon/icon';
 import { ExerciseFigure } from '../../../components/visual/exercise-figure';
-import { FigureDef } from '../../../components/visual/figure-rig';
+import { FigureDef, FigureStage } from '../../../components/visual/figure-rig';
 import { PanelApi } from '../../../core/services/api/panel-api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CatalogResource } from '../../../core/types/catalog.model';
@@ -42,8 +42,8 @@ export interface CrudColumn {
 export interface RowVisual {
   emoji?: string;
   icon?: IconName;
-  /** Dibujo animado (caminata, bicicleta, sentadilla…): tiene prioridad sobre el ícono. */
-  figure?: FigureDef;
+  /** Dibujo animado (caminadora, bicicleta, remo…) o una serie de ellos que se relevan: tiene prioridad sobre el ícono. */
+  figure?: FigureDef | FigureStage[];
   tone: Tone;
 }
 

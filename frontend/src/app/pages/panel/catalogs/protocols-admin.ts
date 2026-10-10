@@ -2,8 +2,7 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PageHeader } from '../shared/page-header';
 import { IconName } from '../../../components/icon/icon';
-import { BIKE_FIGURE, SQUAT_FIGURE, WALK_FIGURE } from '../../../components/visual/cardio-figures';
-import { FigureDef } from '../../../components/visual/figure-rig';
+import { BIKE_FIGURE, ELLIPTICAL_FIGURE, LISS_FIGURES, LOWER_WARMUP_FIGURES, ROPE_FIGURE, ROWER_FIGURE, SQUAT_FIGURE, TREADMILL_FIGURES } from '../../../components/visual/cardio-figures';
 import { Tone } from '../../../core/utils/visuals';
 import { CatalogCrud, CrudColumn, CrudField, IconPicker, Row, RowVisual } from './catalog-crud';
 
@@ -34,21 +33,34 @@ const PROTOCOL_ICONS: { name: IconName; label: string }[] = [
   { name: 'drop', label: 'Sudor' },
   { name: 'sparkles', label: 'Suave' },
   { name: 'shield', label: 'Cuidado' },
+  { name: 'pencil', label: 'Personalizado' },
 ];
 const ICON_NAMES = new Set(PROTOCOL_ICONS.map((icon) => icon.name));
 const chosenIcon = (row: Row): IconName | null => (ICON_NAMES.has(row['icon'] as IconName) ? (row['icon'] as IconName) : null);
+/** Ícono del protocolo: el que eligió el coach; si no, un lápiz para "Personalizado" o el de su tipo. */
+const protocolIcon = (row: Row, fallback: IconName): IconName => chosenIcon(row) ?? (/personalizad/i.test(String(row['name'] ?? '')) ? 'pencil' : fallback);
+
+type Figure = NonNullable<RowVisual['figure']>;
 
 /** Íconos que, al elegirlos, muestran un dibujo animado en vez del ícono. */
-const ICON_FIGURES: Partial<Record<IconName, FigureDef>> = { walk: WALK_FIGURE, bike: BIKE_FIGURE, squat: SQUAT_FIGURE };
-/** Protocolos que traen su dibujo por nombre: caminar (LISS, caminata), bicicleta y sentadilla. */
-const NAME_FIGURES: [RegExp, FigureDef][] = [
-  [/bici|cicl|spinning/i, BIKE_FIGURE],
-  [/caminata|caminar|liss|marcha/i, WALK_FIGURE],
+const ICON_FIGURES: Partial<Record<IconName, Figure>> = { walk: TREADMILL_FIGURES, bike: BIKE_FIGURE, squat: SQUAT_FIGURE };
+/**
+ * Protocolos que traen su dibujo por nombre. Van primero los que usan varias máquinas (el dibujo
+ * las recorre) y después cada máquina: bicicleta fija, caminadora, elíptica, remo, cuerda y sentadilla.
+ */
+const NAME_FIGURES: [RegExp, Figure][] = [
+  [/liss/i, LISS_FIGURES],
+  [/compuesto/i, LOWER_WARMUP_FIGURES],
+  [/bici|cicl|spinning|aislamiento/i, BIKE_FIGURE],
+  [/caminadora|caminata|caminar|marcha/i, TREADMILL_FIGURES],
+  [/el[ií]ptic/i, ELLIPTICAL_FIGURE],
+  [/remo|erg[oó]metro|tracci[oó]n|empuje/i, ROWER_FIGURE],
+  [/cuerda|express|expr[eé]s/i, ROPE_FIGURE],
   [/sentadilla/i, SQUAT_FIGURE],
 ];
 
 /** Dibujo del protocolo: el del ícono que eligió el coach o, si no eligió uno de esos, el que corresponde a su nombre. */
-function protocolFigure(row: Row): FigureDef | undefined {
+function protocolFigure(row: Row): Figure | undefined {
   const chosen = chosenIcon(row);
   const name = String(row['name'] ?? '');
   return (chosen && ICON_FIGURES[chosen]) || NAME_FIGURES.find(([pattern]) => pattern.test(name))?.[1];
@@ -108,7 +120,7 @@ export class ProtocolsAdmin extends CatalogPage {
   /** Ícono elegido por el coach; si no eligió, el del tipo de cardio. */
   protected readonly cardioVisual = (row: Row): RowVisual => {
     const base = CARDIO[String(row['type'])] ?? { icon: 'sliders' as IconName, tone: 'slate' as Tone };
-    return { icon: chosenIcon(row) ?? base.icon, tone: base.tone, figure: protocolFigure(row) };
+    return { icon: protocolIcon(row, base.icon), tone: base.tone, figure: protocolFigure(row) };
   };
 
   /** El calentamiento no tiene "tipo": el color sale del nombre y el ícono lo elige el coach. */
@@ -121,7 +133,7 @@ export class ProtocolsAdmin extends CatalogPage {
         : /molestia|lesi|fr[ií]o/i.test(name)
           ? { icon: 'shield', tone: 'coral' }
           : { icon: 'flame', tone: 'emerald' };
-    return { icon: chosenIcon(row) ?? base.icon, tone: base.tone, figure: protocolFigure(row) };
+    return { icon: protocolIcon(row, base.icon ?? 'flame'), tone: base.tone, figure: protocolFigure(row) };
   };
 
   protected readonly cardioColumns: CrudColumn[] = [

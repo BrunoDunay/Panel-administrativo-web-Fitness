@@ -72,17 +72,19 @@ La animación se dispara sola, sin marcar nada en la plantilla:
 | `ride` | Las ruedas giran, el ciclista pedalea y la bici avanza | Bicicleta |
 | `reach` | El cuerpo se alarga y regresa | Estiramiento |
 | `tick` / `sweep` | Giran las manecillas / barre la aguja | Reloj, velocímetro |
+| `write` | El lápiz regresa al inicio del renglón y lo escribe; el trazo sale de la punta | Lápiz (protocolo "Personalizado") |
 
 Las de cardio y calentamiento (de `flicker` en adelante) mueven **partes** del icono con
 `> :nth-child(n)`, así que dependen del orden de los trazos: `stride` espera cabeza, pierna de atrás,
-torso con pierna de adelante y brazos; `ride`, las dos ruedas primero. Si el icono es decorativo,
+torso con pierna de adelante y brazos; `ride`, las dos ruedas primero; `write`, el renglón escrito
+al final. Si el icono es decorativo,
 al aparecer se dibuja y luego hace su movimiento una vez (lista `LIVELY` en `icon.ts`).
 
 Reglas que ya respeta el componente y hay que conservar:
 
 - No se apaga con "reducir movimiento": es un movimiento pequeño que el usuario provoca, y en Windows esa opción suele estar activa sin que la persona lo sepa.
 - El disparador se resuelve en el navegador (`afterNextRender`), así que el HTML del servidor no cambia.
-- Dura menos de 650 ms y usa curvas de salida fuertes; no se repite en bucle (zancadas y latidos son dos ciclos dentro de esa misma duración).
+- Dura menos de 650 ms y usa curvas de salida fuertes; no se repite en bucle (zancadas y latidos son dos ciclos dentro de esa misma duración). La excepción es `write` (860 ms): escribir un renglón más rápido no se lee.
 - La animación debe **decir algo del icono** (una flecha avanza, un bote se sacude). Si no hay un
   movimiento que venga al caso, se queda en `draw`.
 
@@ -95,8 +97,22 @@ Los dibujos animados de los ejercicios no son iconos: viven en
 `frontend/src/app/components/visual/` (`figure-rig.ts`, `exercise-figures.ts`). Para agregar o
 corregir uno se edita su par de posturas en `exercise-figures.ts`.
 
-Los de cardio y calentamiento (caminata, bicicleta, sentadilla) están en `cardio-figures.ts`. Caminar
-y pedalear no son una repetición sino un ciclo: se definen con `cycle` (posturas que siguen a la
-primera y regresan a ella sin desandar) y pueden llevar ruedas (`wheel`) y cuadro (`tube`). En
-Protocolos, un protocolo muestra su dibujo si el coach eligió el ícono Caminata, Bicicleta o
-Sentadilla, o si su nombre lo dice (LISS, caminata, bici, sentadilla): ver `protocols-admin.ts`.
+Los de cardio y calentamiento están en `cardio-figures.ts` y ocurren en máquinas de gimnasio:
+caminadora inclinada al 12 %, bicicleta fija, elíptica y remo ergómetro; además, cuerda y sentadilla
+sin peso. Las fotos de referencia están en `Identidad visual/ejercicios/`.
+
+- Caminar, pedalear y saltar no son una repetición sino un ciclo: se definen con `cycle` (posturas
+  que siguen a la primera y regresan a ella sin desandar).
+- La máquina se arma con `wheel` (volante que gira), `tube` (armazón fijo; `w: 'thick'` para banda,
+  asiento, patas y tablero), `rod` (barra entre dos puntos que se mueven) y `rope` (cuerda de saltar).
+  Las piezas que se mueven solas (biela y brazo de la elíptica) van en `marks` de cada postura.
+- Un protocolo puede mostrar una serie (`FigureStage[]`): cada dibujo hace sus repeticiones y cede
+  el lugar al siguiente, y al final regresa al primero. Al entrar en pantalla solo se presenta el
+  primero; la serie completa corre al pasar el cursor y, sin parar, en la vista previa del formulario.
+  Hoy hay dos: `LISS_FIGURES` (caminadora × 4 → bicicleta × 3 → elíptica × 3) y
+  `LOWER_WARMUP_FIGURES` (sentadilla × 3 → caminadora × 3 → bicicleta × 3).
+
+En Protocolos, el dibujo sale del ícono que eligió el coach (Caminata, Bicicleta o Sentadilla) o, si
+no eligió uno de esos, del nombre del protocolo (LISS, caminata, bici, elíptica, remo, cuerda,
+compuesto, aislamiento, empuje, tracción, express…): ver `NAME_FIGURES` en `protocols-admin.ts`.
+"Personalizado" lleva el ícono de lápiz. Las miniaturas con dibujo miden lo mismo que las de ícono.

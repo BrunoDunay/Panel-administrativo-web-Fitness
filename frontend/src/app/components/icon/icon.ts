@@ -7,7 +7,7 @@ const ICONS = { ...ITSHOVER_ICONS, ...CUSTOM_ICONS };
 export type IconName = keyof typeof ICONS;
 
 /** Cómo se mueve el icono cuando el cursor pasa sobre el botón, enlace o tarjeta que lo contiene. */
-type Motion = 'draw' | 'spin' | 'right' | 'left' | 'down' | 'up' | 'pop' | 'shake' | 'lift' | 'tilt' | 'flicker' | 'beat' | 'pulse' | 'stride' | 'steps' | 'ride' | 'reach' | 'tick' | 'sweep';
+type Motion = 'draw' | 'spin' | 'right' | 'left' | 'down' | 'up' | 'pop' | 'shake' | 'lift' | 'tilt' | 'flicker' | 'beat' | 'pulse' | 'stride' | 'steps' | 'ride' | 'reach' | 'tick' | 'sweep' | 'write';
 
 const MOTION: Partial<Record<IconName, Motion>> = {
   settings: 'spin',
@@ -36,6 +36,7 @@ const MOTION: Partial<Record<IconName, Motion>> = {
   stretch: 'reach',
   clock: 'tick',
   gauge: 'sweep',
+  pencil: 'write',
   sparkles: 'pop',
   check: 'pop',
   plus: 'pop',
@@ -66,7 +67,7 @@ const BADGES = '.tile-icon, .card__badge';
 /** Lo que dura la animación más larga (dibujado de un icono con varios trazos). */
 const PLAY_MS = 900;
 /** Iconos "con vida" (cardio y calentamiento): al aparecer, después de dibujarse hacen su movimiento una vez. */
-const LIVELY = new Set<Motion>(['flicker', 'beat', 'pulse', 'stride', 'steps', 'ride', 'reach', 'tick', 'sweep']);
+const LIVELY = new Set<Motion>(['flicker', 'beat', 'pulse', 'stride', 'steps', 'ride', 'reach', 'tick', 'sweep', 'write']);
 const INTRO_MS = 1100;
 
 /** Un solo observador para todos los iconos decorativos: se animan una vez al entrar en pantalla. */
@@ -179,6 +180,9 @@ function watch(host: Element, play: () => void): () => void {
     /* Reloj: las manecillas dan una vuelta. Velocímetro: la aguja barre y se asienta. */
     svg.is-playing[data-motion='tick'] > :nth-child(2) { transform-origin: 12px 12px; animation: icon-turn 640ms cubic-bezier(0.77, 0, 0.175, 1); }
     svg.is-playing[data-motion='sweep'] > :nth-child(2) { transform-origin: 12px 14px; animation: icon-sweep 640ms cubic-bezier(0.23, 1, 0.32, 1); }
+    /* Lápiz: regresa al inicio del renglón y lo escribe; el trazo sale de la punta. */
+    svg.is-playing[data-motion='write'] > :not(:last-child) { animation: icon-write-pen 860ms linear; }
+    svg.is-playing[data-motion='write'] > :last-child { stroke-dasharray: 1 1.5; animation: icon-write-line 860ms linear; }
 
     @keyframes icon-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
     @keyframes icon-spin { to { transform: rotate(180deg); } }
@@ -199,6 +203,8 @@ function watch(host: Element, play: () => void): () => void {
     @keyframes icon-reach { 40% { transform: skewX(-10deg) scaleY(0.93); } 72% { transform: skewX(3deg) scaleY(1.03); } }
     @keyframes icon-turn { to { transform: rotate(360deg); } }
     @keyframes icon-sweep { 30% { transform: rotate(-85deg); } 65% { transform: rotate(24deg); } }
+    @keyframes icon-write-pen { 16% { transform: translate(-6.5px, 1.5px); } 36% { transform: translate(-5.1px, -0.6px); } 50% { transform: translate(-3.9px, 1.5px); } 64% { transform: translate(-2.5px, 2.8px); } 84%, 100% { transform: none; } }
+    @keyframes icon-write-line { 0% { stroke-dashoffset: 0; opacity: 1; } 12% { stroke-dashoffset: 0; opacity: 0; } 12.1%, 16% { stroke-dashoffset: 1; opacity: 1; } 84%, 100% { stroke-dashoffset: 0; } }
   `,
 })
 export class Icon {

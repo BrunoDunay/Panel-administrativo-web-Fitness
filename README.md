@@ -99,6 +99,7 @@ Cada ejercicio del catálogo tiene un dibujo animado propio que muestra el movim
 - `frontend/src/app/components/visual/figure-rig.ts`: el esqueleto y el equipo.
 - `frontend/src/app/components/visual/exercise-figures.ts`: las posturas de cada ejercicio.
 - `frontend/src/app/components/visual/figure-resolve.ts`: qué dibujo le toca a cada ejercicio. Uno nuevo toma el del ejercicio de nombre más parecido; el coach puede elegir otro al editarlo.
+- `frontend/src/app/components/visual/cardio-figures.ts`: los dibujos de los protocolos de cardio y calentamiento, en máquinas de gimnasio (caminadora inclinada al 12 %, bicicleta fija, elíptica, remo ergómetro), cuerda y sentadilla sin peso. Un protocolo que admite varias máquinas (LISS) las muestra en serie: cada dibujo hace sus repeticiones y cede el lugar al siguiente.
 
 ## Contenido provisional
 
