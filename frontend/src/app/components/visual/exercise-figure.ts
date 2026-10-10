@@ -57,6 +57,8 @@ export class ExerciseFigure {
   readonly muscle = input('');
   /** Dibujo elegido a mano por el coach (clave del catálogo de dibujos). */
   readonly figure = input<string | null | undefined>(null);
+  /** Dibujo dado directamente (cardio y calentamiento): no se busca por nombre. */
+  readonly def = input<FigureDef | null | undefined>(null);
   readonly size = input(46);
   /** Repite la animación sin parar en vez de esperar al cursor. */
   readonly autoplay = input(false);
@@ -64,7 +66,10 @@ export class ExerciseFigure {
   readonly intro = input(true);
 
   private readonly host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
-  private readonly entry = computed(() => resolveFigure(this.exercise(), this.muscle(), this.figure()));
+  private readonly entry = computed(() => {
+    const def = this.def();
+    return def ? { name: this.exercise(), def } : resolveFigure(this.exercise(), this.muscle(), this.figure());
+  });
   protected readonly label = computed(() => this.entry().name);
   protected readonly fixed = computed(() => figureStatics(this.entry().def));
   protected readonly box = computed(() => figureBounds(this.entry().def));
@@ -78,7 +83,8 @@ export class ExerciseFigure {
     afterNextRender(() => {
       // El disparador es el contenedor marcado con .icon-hover (la fila o tarjeta), o el propio dibujo.
       const trigger = this.host.closest('.icon-hover') ?? this.host;
-      const play = () => !this.autoplay() && this.play(2);
+      // Caminar o pedalear se entiende con varios ciclos seguidos; una repetición de fuerza, con dos.
+      const play = () => !this.autoplay() && this.play(this.entry().def.cycle ? 3 : 2);
       trigger.addEventListener('pointerenter', play);
       trigger.addEventListener('focusin', play);
 
@@ -87,7 +93,7 @@ export class ExerciseFigure {
         (entries) => {
           if (!entries.some((entry) => entry.isIntersecting)) return;
           observer.disconnect();
-          if (this.intro() && !this.autoplay()) setTimeout(() => this.play(1), 120 + Math.random() * 500);
+          if (this.intro() && !this.autoplay()) setTimeout(() => this.play(this.entry().def.cycle ? 2 : 1), 120 + Math.random() * 500);
         },
         { threshold: 0.6 },
       );
@@ -127,6 +133,8 @@ export class ExerciseFigure {
 
   /** Avance dentro de una repetición: sube, sostiene (si el ejercicio lleva pausa) y regresa. */
   private progress(def: FigureDef, phase: number): number {
+    // Un ciclo avanza parejo y no regresa: el paso o la pedaleada siguen de largo.
+    if (def.cycle) return phase;
     const hold = def.hold ?? 0;
     const half = (1 - hold) / 2;
     if (phase < half) return easeInOut(phase / half);

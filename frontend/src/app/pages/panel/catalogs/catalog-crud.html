@@ -26,7 +26,7 @@
     <!-- Vista previa: así se verá el registro, con el ícono elegido. -->
     <aside [class]="'card card--vivid card--badge preview icon-hover tone--' + (preview?.tone ?? 'emerald')">
       <span class="card__badge">
-        @if (preview?.icon; as icon) { <app-icon [name]="icon" [size]="28" /> } @else { {{ preview?.emoji ?? '✨' }} }
+        @if (preview?.figure; as figure) { <app-exercise-figure class="figure" [def]="figure" [exercise]="display(row['name'])" [size]="46" [autoplay]="true" /> } @else if (preview?.icon; as icon) { <app-icon [name]="icon" [size]="28" /> } @else { {{ preview?.emoji ?? '✨' }} }
       </span>
       <p class="preview__eyebrow">{{ row.id ? 'Editando' : addLabel() }}</p>
       <h3 class="preview__name">{{ row['name'] || 'Sin nombre todavía' }}</h3>
@@ -113,7 +113,7 @@
                 @if (first && visual(); as getVisual) {
                   @let v = getVisual(row);
                   <span class="lead">
-                    <span [class]="'thumb tone--' + v.tone">@if (v.icon) { <app-icon [name]="v.icon" [size]="22" /> } @else { {{ v.emoji }} }</span>
+                    <span [class]="'thumb tone--' + v.tone" [class.thumb--figure]="v.figure">@if (v.figure) { <app-exercise-figure class="figure" [def]="v.figure" [exercise]="display(row[column.key])" [size]="52" /> } @else if (v.icon) { <app-icon [name]="v.icon" [size]="22" /> } @else { {{ v.emoji }} }</span>
                     <span class="lead__text">{{ display(row[column.key]) }}@if (column.sub) { <small>{{ column.sub(row) }}</small> }</span>
                   </span>
                 } @else if (column.macros) {

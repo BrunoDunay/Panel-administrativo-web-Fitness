@@ -28,6 +28,7 @@ export const CUSTOM_ICONS = {
   // Caminata y bicicleta: trazos de Tabler Icons (licencia MIT), mismo orden de partes que `run`.
   walk: stroke('M13 4m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M7 21l3-4', 'M16 21l-2-4l-3-3l1-6', 'M6 12l2-3l4-1l3 3l3 1'),
   bike: stroke('M5 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0', 'M19 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0', 'M12 19v-4l-3-3l5-4l2 3l3 0', 'M17 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0'),
+  squat: stroke('M15 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M9 7.5h8', 'M13 8.5l-4.5 6.5l6 1.5l-3 4.5h4', 'M13 8.5l3 3'),
   stretch: stroke('M16 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M5 20l5-.5l1-2', 'M18 20v-5h-5.5l2.5-6.5l-5.5 1l1.5 2'),
   swap: stroke('M7 10h14l-4-4', 'M17 14H3l4 4'),
   apple: stroke('M12 8c-2.6-1.8-7-.6-7 4.4C5 17 8 21 10 21c.9 0 1.4-.5 2-.5s1.1.5 2 .5c2 0 5-4 5-8.6C19 7.4 14.6 6.2 12 8', 'M12 8c0-2.2 1-3.6 3-4.5'),

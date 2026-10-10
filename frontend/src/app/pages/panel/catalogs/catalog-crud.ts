@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { FormsModule } from '@angular/forms';
 import { Btn } from '../../../components/buttons/btn';
 import { Icon, IconName } from '../../../components/icon/icon';
+import { ExerciseFigure } from '../../../components/visual/exercise-figure';
+import { FigureDef } from '../../../components/visual/figure-rig';
 import { PanelApi } from '../../../core/services/api/panel-api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { CatalogResource } from '../../../core/types/catalog.model';
@@ -36,10 +38,12 @@ export interface CrudColumn {
   sub?: (row: Row) => string;
 }
 
-/** Miniatura de la fila: un emoji o un ícono sobre el color de su tipo. */
+/** Miniatura de la fila: un emoji, un ícono o un dibujo animado sobre el color de su tipo. */
 export interface RowVisual {
   emoji?: string;
   icon?: IconName;
+  /** Dibujo animado (caminata, bicicleta, sentadilla…): tiene prioridad sobre el ícono. */
+  figure?: FigureDef;
   tone: Tone;
 }
 
@@ -52,7 +56,7 @@ export type IconPicker = { kind: 'emoji'; groups: EmojiGroup[] } | { kind: 'icon
  */
 @Component({
   selector: 'app-catalog-crud',
-  imports: [FormsModule, Btn, Icon],
+  imports: [FormsModule, Btn, Icon, ExerciseFigure],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './catalog-crud.html',
   styleUrl: './catalog-crud.css',

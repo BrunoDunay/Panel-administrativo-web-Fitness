@@ -94,3 +94,9 @@ ponle la clase `icon-hover`.
 Los dibujos animados de los ejercicios no son iconos: viven en
 `frontend/src/app/components/visual/` (`figure-rig.ts`, `exercise-figures.ts`). Para agregar o
 corregir uno se edita su par de posturas en `exercise-figures.ts`.
+
+Los de cardio y calentamiento (caminata, bicicleta, sentadilla) están en `cardio-figures.ts`. Caminar
+y pedalear no son una repetición sino un ciclo: se definen con `cycle` (posturas que siguen a la
+primera y regresan a ella sin desandar) y pueden llevar ruedas (`wheel`) y cuadro (`tube`). En
+Protocolos, un protocolo muestra su dibujo si el coach eligió el ícono Caminata, Bicicleta o
+Sentadilla, o si su nombre lo dice (LISS, caminata, bici, sentadilla): ver `protocols-admin.ts`.

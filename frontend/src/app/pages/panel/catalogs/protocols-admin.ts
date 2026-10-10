@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PageHeader } from '../shared/page-header';
 import { IconName } from '../../../components/icon/icon';
+import { BIKE_FIGURE, SQUAT_FIGURE, WALK_FIGURE } from '../../../components/visual/cardio-figures';
+import { FigureDef } from '../../../components/visual/figure-rig';
 import { Tone } from '../../../core/utils/visuals';
 import { CatalogCrud, CrudColumn, CrudField, IconPicker, Row, RowVisual } from './catalog-crud';
 
@@ -23,6 +25,7 @@ const PROTOCOL_ICONS: { name: IconName; label: string }[] = [
   { name: 'flame', label: 'Intensidad' },
   { name: 'gauge', label: 'Ritmo' },
   { name: 'clock', label: 'Tiempo' },
+  { name: 'squat', label: 'Sentadilla' },
   { name: 'stretch', label: 'Movilidad' },
   { name: 'movement', label: 'Cuerpo completo' },
   { name: 'dumbbell', label: 'Fuerza' },
@@ -34,6 +37,22 @@ const PROTOCOL_ICONS: { name: IconName; label: string }[] = [
 ];
 const ICON_NAMES = new Set(PROTOCOL_ICONS.map((icon) => icon.name));
 const chosenIcon = (row: Row): IconName | null => (ICON_NAMES.has(row['icon'] as IconName) ? (row['icon'] as IconName) : null);
+
+/** Íconos que, al elegirlos, muestran un dibujo animado en vez del ícono. */
+const ICON_FIGURES: Partial<Record<IconName, FigureDef>> = { walk: WALK_FIGURE, bike: BIKE_FIGURE, squat: SQUAT_FIGURE };
+/** Protocolos que traen su dibujo por nombre: caminar (LISS, caminata), bicicleta y sentadilla. */
+const NAME_FIGURES: [RegExp, FigureDef][] = [
+  [/bici|cicl|spinning/i, BIKE_FIGURE],
+  [/caminata|caminar|liss|marcha/i, WALK_FIGURE],
+  [/sentadilla/i, SQUAT_FIGURE],
+];
+
+/** Dibujo del protocolo: el del ícono que eligió el coach o, si no eligió uno de esos, el que corresponde a su nombre. */
+function protocolFigure(row: Row): FigureDef | undefined {
+  const chosen = chosenIcon(row);
+  const name = String(row['name'] ?? '');
+  return (chosen && ICON_FIGURES[chosen]) || NAME_FIGURES.find(([pattern]) => pattern.test(name))?.[1];
+}
 import { CatalogPage } from './catalog-page';
 
 @Component({
@@ -89,7 +108,7 @@ export class ProtocolsAdmin extends CatalogPage {
   /** Ícono elegido por el coach; si no eligió, el del tipo de cardio. */
   protected readonly cardioVisual = (row: Row): RowVisual => {
     const base = CARDIO[String(row['type'])] ?? { icon: 'sliders' as IconName, tone: 'slate' as Tone };
-    return { icon: chosenIcon(row) ?? base.icon, tone: base.tone };
+    return { icon: chosenIcon(row) ?? base.icon, tone: base.tone, figure: protocolFigure(row) };
   };
 
   /** El calentamiento no tiene "tipo": el color sale del nombre y el ícono lo elige el coach. */
@@ -102,7 +121,7 @@ export class ProtocolsAdmin extends CatalogPage {
         : /molestia|lesi|fr[ií]o/i.test(name)
           ? { icon: 'shield', tone: 'coral' }
           : { icon: 'flame', tone: 'emerald' };
-    return { icon: chosenIcon(row) ?? base.icon, tone: base.tone };
+    return { icon: chosenIcon(row) ?? base.icon, tone: base.tone, figure: protocolFigure(row) };
   };
 
   protected readonly cardioColumns: CrudColumn[] = [

@@ -237,6 +237,7 @@ export function frontSkeleton(pose: FrontPose): Skeleton {
  * - db: mancuerna (`perp`: perpendicular al antebrazo) · ez: barra Z · cable/lever/band: línea desde un punto fijo
  * - roller: rodillo o almohadilla de máquina · plat: plataforma · ball: pelota
  * - bar/rails: barra vista de frente y rieles del Smith · weight: disco colgado (lastre)
+ * - wheel: rueda fija en `c` cuyos rayos giran con el ciclo · tube: tubos fijos (cuadro de la bici)
  */
 export type Gear =
   | { k: 'plate'; at: string; d?: P; r?: number }
@@ -251,7 +252,9 @@ export type Gear =
   | { k: 'ball'; at: string; d?: P; r: number }
   | { k: 'bar'; ext?: number; plates?: boolean }
   | { k: 'rails'; ext?: number }
-  | { k: 'weight'; at: string; d?: P };
+  | { k: 'weight'; at: string; d?: P }
+  | { k: 'wheel'; c: P; r?: number }
+  | { k: 'tube'; p: P[][] };
 
 /** Elemento fijo del dibujo: piso, banco, poste o pila de pesas. */
 export type Prop =
@@ -277,7 +280,8 @@ export interface GearPaths {
   dash: string;
 }
 
-export function gearPaths(gear: Gear[], pts: Points, startPts: Points): GearPaths {
+/** `turn`: avance del ciclo (0 a 1); con él giran las ruedas. */
+export function gearPaths(gear: Gear[], pts: Points, startPts: Points, turn = 0): GearPaths {
   const out: GearPaths = { thin: '', mid: '', thick: '', ring: '', solid: '', dash: '' };
   for (const item of gear) {
     switch (item.k) {
@@ -362,6 +366,21 @@ export function gearPaths(gear: Gear[], pts: Points, startPts: Points): GearPath
         out.ring += circle(c, 2.8);
         break;
       }
+      case 'wheel': {
+        const r = item.r ?? 7;
+        out.mid += circle(item.c, r);
+        out.solid += circle(item.c, 1.1);
+        // Tres rayos de lado a lado: una vuelta completa por ciclo.
+        for (let spoke = 0; spoke < 3; spoke++) {
+          const angle = (turn * 360 + spoke * 60) * RAD;
+          const reach: P = [Math.cos(angle) * (r - 1.2), Math.sin(angle) * (r - 1.2)];
+          out.thin += line(add(item.c, reach, -1), add(item.c, reach));
+        }
+        break;
+      }
+      case 'tube':
+        for (const points of item.p) out.mid += line(...points);
+        break;
       case 'rails':
         break; // fijos: van en gearStatics
     }
@@ -396,6 +415,11 @@ export interface FigureDef {
   a: Pose;
   b: Pose;
   m?: Pose;
+  /**
+   * Movimiento cíclico (caminar, pedalear): posturas que siguen a `a`; después de la última se
+   * regresa a `a` sin desandar el camino. Con `cycle`, t = 0…1 recorre el ciclo completo.
+   */
+  cycle?: Pose[];
   gear: Gear[];
   props: Prop[];
   /** Fracción de la repetición que se sostiene la postura final (ejercicios con pausa). */
@@ -411,11 +435,21 @@ export interface Frame {
 
 const skeletonOf = (def: FigureDef, pose: Pose) => (def.view === 'front' ? frontSkeleton(pose as FrontPose) : sideSkeleton(pose as SidePose));
 
+/** Postura en un instante. En un ciclo, t recorre todas las posturas y vuelve a la primera. */
+function poseAt(def: FigureDef, t: number): Pose {
+  if (def.cycle) {
+    const poses = [def.a, ...def.cycle];
+    const at = (((t % 1) + 1) % 1) * poses.length;
+    const index = Math.floor(at);
+    return mix(poses[index]!, poses[(index + 1) % poses.length]!, at - index);
+  }
+  return !def.m ? mix(def.a, def.b, t) : t < 0.5 ? mix(def.a, def.m, t * 2) : mix(def.m, def.b, t * 2 - 1);
+}
+
 /** El dibujo en un instante: t = 0 es la postura inicial y t = 1 la final. */
 export function figureFrame(def: FigureDef, t: number): Frame {
-  const pose = !def.m ? mix(def.a, def.b, t) : t < 0.5 ? mix(def.a, def.m, t * 2) : mix(def.m, def.b, t * 2 - 1);
-  const skeleton = skeletonOf(def, pose);
-  return { body: skeleton.body, far: skeleton.far, head: skeleton.head, gear: gearPaths(def.gear, skeleton.pts, skeletonOf(def, def.a).pts) };
+  const skeleton = skeletonOf(def, poseAt(def, t));
+  return { body: skeleton.body, far: skeleton.far, head: skeleton.head, gear: gearPaths(def.gear, skeleton.pts, skeletonOf(def, def.a).pts, def.cycle ? t : 0) };
 }
 
 /**
@@ -430,9 +464,10 @@ export function figureBounds(def: FigureDef): string {
     ys.push(p[1] - margin, p[1] + margin);
   };
 
-  for (const t of [0, 0.5, 1]) {
-    const pose = !def.m ? mix(def.a, def.b, t) : t < 0.5 ? mix(def.a, def.m, t * 2) : mix(def.m, def.b, t * 2 - 1);
-    const skeleton = skeletonOf(def, pose);
+  // En un ciclo se mide cada postura; en una repetición, el inicio, la mitad y el final.
+  const samples = def.cycle ? [def.a, ...def.cycle].map((_, i, poses) => i / poses.length) : [0, 0.5, 1];
+  for (const t of samples) {
+    const skeleton = skeletonOf(def, poseAt(def, t));
     for (const point of Object.values(skeleton.pts)) take(point, 2);
     take(skeleton.head, LEN.headR + 1);
     // Discos, mancuernas y plataformas sobresalen de la mano o del pie que los sostiene.
@@ -440,6 +475,8 @@ export function figureBounds(def: FigureDef): string {
   }
   for (const item of def.gear) {
     if (item.k === 'cable' || item.k === 'lever') take(item.from, 2.5);
+    if (item.k === 'wheel') take(item.c, (item.r ?? 7) + 1.5);
+    if (item.k === 'tube') item.p.flat().forEach((point) => take(point, 2));
     if (item.k === 'band' && typeof item.from !== 'string') take(item.from, 2);
     if (item.k === 'smith' || item.k === 'rails') ys.push(2, FLOOR);
     if (item.k === 'bar') xs.push(Math.min(...xs) - (item.ext ?? 7), Math.max(...xs) + (item.ext ?? 7));

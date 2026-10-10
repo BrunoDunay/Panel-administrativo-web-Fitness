@@ -99,6 +99,17 @@
   min-width: 14rem;
 }
 
+/* Miniatura con dibujo animado: más grande, para que el movimiento se lea. */
+.thumb--figure {
+  width: 3.75rem;
+  height: 3.75rem;
+}
+
+.figure {
+  --figure-accent: var(--tone);
+  --figure-surface: var(--tone-soft);
+}
+
 .lead__text {
   display: grid;
   line-height: 1.3;
