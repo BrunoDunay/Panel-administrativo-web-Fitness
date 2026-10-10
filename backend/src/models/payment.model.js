@@ -15,6 +15,9 @@ export const Payment = sequelize.define(
     dueDate: DataTypes.DATEONLY,
     nextDueDate: DataTypes.DATEONLY,
     notes: DataTypes.TEXT,
+    // Saldo por cobrar antes y después de este pago (null si el cliente no tiene tarifa acordada).
+    pendingBefore: decimal('pendingBefore', 10, 2),
+    pendingAfter: decimal('pendingAfter', 10, 2),
   },
   { tableName: 'payments' },
 );

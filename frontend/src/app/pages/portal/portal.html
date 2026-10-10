@@ -87,6 +87,16 @@
                 <span class="stat__note"><b>P</b> {{ num(day.proteinG, 0) }} g · <b>C</b> {{ num(day.carbsG, 0) }} g · <b>G</b> {{ num(day.fatG, 0) }} g</span>
               </button>
             }
+            @if (store.payment(); as payment) {
+              @if (payment.dueDate) {
+                <div [class]="'card card--tint stat tile tone--' + (payment.state === 'overdue' ? 'coral' : 'slate')">
+                  <span class="tile-icon tile-icon--solid"><app-icon name="dollar" [size]="22" /></span>
+                  <span class="stat__label">Tu próximo pago</span>
+                  <span class="stat__value">{{ payment.pendingAmount !== null ? money(payment.pendingAmount) : date(payment.dueDate, true) }}</span>
+                  <span class="stat__note">@if (payment.pendingAmount !== null) { <b>{{ date(payment.dueDate) }}</b> · } {{ due(payment.days) }}</span>
+                </div>
+              }
+            }
             <button type="button" class="card card--tint tone--steel stat tile" (click)="tab.set('tracking')">
               <span class="tile-icon tile-icon--solid"><app-icon name="scale" [size]="22" /></span>
               <span class="stat__label">Peso · promedio de la semana</span>

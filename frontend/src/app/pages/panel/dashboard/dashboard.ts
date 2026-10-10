@@ -9,7 +9,7 @@ import { PanelApi } from '../../../core/services/api/panel-api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Dashboard as DashboardData, DashboardPayment, PaymentDraft } from '../../../core/types/client.model';
-import { dueLabel, formatDate, initials } from '../../../core/utils/format';
+import { dueLabel, formatDate, formatMoney, initials } from '../../../core/utils/format';
 import { PageHeader } from '../shared/page-header';
 
 @Component({
@@ -28,6 +28,7 @@ export class Dashboard {
   protected readonly site = toSignal(this.api.settings());
   protected readonly date = formatDate;
   protected readonly due = dueLabel;
+  protected readonly money = formatMoney;
   protected readonly initials = initials;
 
   /** Cliente al que se le está registrando un pago desde el resumen. */

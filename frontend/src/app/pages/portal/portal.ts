@@ -12,7 +12,7 @@ import { SYMBOLS } from '../../core/config/tracking-lists';
 import { AuthService } from '../../core/services/auth.service';
 import { ClientStore } from '../../core/services/client-store';
 import { SeoService } from '../../core/services/seo.service';
-import { dueLabel, formatDate, formatNumber, formatSigned } from '../../core/utils/format';
+import { dueLabel, formatDate, formatMoney, formatNumber, formatSigned } from '../../core/utils/format';
 import { PanelUiStyles } from '../panel/shared/panel-ui-styles';
 
 type Tab = 'summary' | 'training' | 'nutrition' | 'tracking';
@@ -45,6 +45,8 @@ export class Portal {
   protected readonly tab = signal<Tab>('summary');
   protected readonly num = formatNumber;
   protected readonly signed = formatSigned;
+  protected readonly money = formatMoney;
+  protected readonly due = dueLabel;
   protected readonly date = formatDate;
 
   private readonly selectedWeek = signal<string | null>(null);
@@ -86,9 +88,10 @@ export class Portal {
     const payment = this.store.payment();
     if (!payment?.dueDate || (payment.state !== 'soon' && payment.state !== 'overdue')) return null;
     const date = formatDate(payment.dueDate);
+    const amount = payment.pendingAmount ? ` de ${formatMoney(payment.pendingAmount)}` : '';
     return payment.state === 'overdue'
-      ? { overdue: true, title: `Tu pago venció el ${date}`, text: `${dueLabel(payment.days)}. Ponte al corriente con tu coach para seguir con tu plan.` }
-      : { overdue: false, title: `Tu próximo pago es el ${date}`, text: `${dueLabel(payment.days)}. Si ya lo hiciste, avísale a tu coach para que lo registre.` };
+      ? { overdue: true, title: `Tu pago${amount} venció el ${date}`, text: `${dueLabel(payment.days)}. Ponte al corriente con tu coach para seguir con tu plan.` }
+      : { overdue: false, title: `Tu próximo pago${amount} es el ${date}`, text: `${dueLabel(payment.days)}. Si ya lo hiciste, avísale a tu coach para que lo registre.` };
   });
 
   protected readonly checkinPending = computed(() => {

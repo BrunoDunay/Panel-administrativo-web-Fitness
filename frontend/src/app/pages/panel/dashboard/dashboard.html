@@ -79,7 +79,7 @@
                 <li class="pay">
                   <a [routerLink]="['/panel/clients', payment.clientId]">
                     <span class="avatar">{{ initials(payment.clientName) }}</span>
-                    <span class="feed__text"><b>{{ payment.clientName }}</b>{{ payment.planType || 'Plan' }} · {{ date(payment.date, true) }}</span>
+                    <span class="feed__text"><b>{{ payment.clientName }}</b>@if (payment.pendingAmount !== null) { {{ money(payment.pendingAmount) }} · } {{ date(payment.date, true) }} · {{ payment.planType || 'plan' }}</span>
                     <span class="badge" [class.badge--danger]="payment.overdue" [class.badge--steel]="!payment.overdue">{{ due(payment.days) }}</span>
                   </a>
                   @if (payment.overdue) {
@@ -144,7 +144,7 @@
           <p class="card__hint">{{ payment.clientName }} · plan {{ payment.planType || 'sin definir' }}</p>
         </div>
       </header>
-      <app-payment-form [today]="d.today" [dueDate]="payment.date" [periodMonths]="payment.periodMonths" [planType]="payment.planType" [saving]="savingPayment()" (save)="pay(payment, $event)" (cancel)="paying.set(null)" />
+      <app-payment-form [today]="d.today" [dueDate]="payment.date" [periodMonths]="payment.periodMonths" [planType]="payment.planType" [pending]="payment.pendingAmount" [saving]="savingPayment()" (save)="pay(payment, $event)" (cancel)="paying.set(null)" />
     </div>
   }
 } @else {

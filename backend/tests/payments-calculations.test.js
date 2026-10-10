@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, nextDueDate, paymentDelay, paymentStatus } from '../src/services/calculations/payments.js';
+import { addMonths, applyPayment, nextDueDate, paymentDelay, paymentStatus } from '../src/services/calculations/payments.js';
 
 describe('siguiente vencimiento', () => {
   it('suma el periodo del plan al vencimiento que se paga', () => {
@@ -24,6 +24,22 @@ describe('siguiente vencimiento', () => {
     expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
     expect(addMonths('2026-08-31', 6)).toBe('2027-02-28');
     expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
+  });
+});
+
+describe('tarifa acordada y abonos', () => {
+  it('acordaron 6,000: abona 2,000 y quedan 4,000', () => {
+    expect(applyPayment({ pending: 6000, fee: 6000, amount: 2000 })).toEqual({ partial: true, pendingBefore: 6000, pendingAfter: 4000 });
+  });
+
+  it('al cubrir lo que faltaba, lo pendiente es la tarifa del periodo siguiente', () => {
+    expect(applyPayment({ pending: 4000, fee: 6000, amount: 4000 })).toEqual({ partial: false, pendingBefore: 4000, pendingAfter: 6000 });
+    expect(applyPayment({ pending: 6000, fee: 6000, amount: 6500 })).toMatchObject({ partial: false, pendingAfter: 6000 });
+  });
+
+  it('sin monto o sin tarifa el pago cuenta como completo', () => {
+    expect(applyPayment({ pending: 6000, fee: 6000, amount: null })).toEqual({ partial: false, pendingBefore: 6000, pendingAfter: 6000 });
+    expect(applyPayment({ pending: null, fee: null, amount: 1500 })).toEqual({ partial: false, pendingBefore: null, pendingAfter: null });
   });
 });
 

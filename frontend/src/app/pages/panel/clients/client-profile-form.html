@@ -82,11 +82,16 @@
     <h3 class="form-section__title">Plan y logística</h3>
       <div class="form-grid">
         <label class="field">
-          <span class="field__label">Tipo de plan</span>
+          <span class="field__label">Cada cuánto paga</span>
           <select class="field__control" name="planType" [(ngModel)]="v.profile.logistics.planType">
             <option [ngValue]="undefined">—</option>
             @for (option of lists.planTypes; track option) { <option [value]="option">{{ option }}</option> }
           </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Tarifa acordada ($ por periodo)</span>
+          <input class="field__control" type="number" inputmode="decimal" min="0" step="50" name="fee" [(ngModel)]="v.profile.logistics.fee" placeholder="Ej. 1500" />
+          <span class="field__hint">Lo que acordaron cobrar cada periodo. Los pagos y abonos se registran en la pestaña Pagos.</span>
         </label>
         <label class="field"><span class="field__label">Fecha de inicio</span><input class="field__control" type="date" name="startDate" [(ngModel)]="v.profile.logistics.startDate" /></label>
         <label class="field"><span class="field__label">Próximo pago</span><input class="field__control" type="date" name="paymentDate" [(ngModel)]="v.profile.logistics.paymentDate" /></label>

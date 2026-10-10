@@ -299,6 +299,43 @@ describe.skipIf(!enabled)('API', () => {
     expect(restored.payments).toHaveLength(1);
   });
 
+  it('tarifa acordada: abono parcial, saldo y liquidación', async () => {
+    const created = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente con tarifa', profile: { logistics: { planType: 'Mensual', fee: 6000 } } });
+    const base = `/api/clients/${created.body.id}`;
+    const portal = `/api/portal/${created.body.portalUrl.split('/').pop()}`;
+    const { today } = (await auth(request(app).get(base))).body;
+    const shift = (days) => new Date(Date.parse(`${today}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10);
+
+    // Acordaron 6,000: lo pendiente arranca siendo la tarifa completa.
+    await auth(request(app).put(`${base}/payments/due-date`)).send({ dueDate: shift(20) });
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ fee: 6000, pendingAmount: 6000, dueDate: shift(20) });
+
+    // Da 2,000 hoy: es un abono, quedan 4,000 para la misma fecha.
+    const first = await auth(request(app).post(`${base}/payments`)).send({ paidOn: today, amount: 2000 });
+    expect(first.body).toMatchObject({ partial: true, pendingAfter: 4000, nextDueDate: shift(20) });
+    // El cliente ve cuánto y cuándo le toca pagar.
+    expect((await request(app).get(portal)).body.payment).toMatchObject({ pendingAmount: 4000, dueDate: shift(20), fee: 6000 });
+    expect((await auth(request(app).get('/api/clients'))).body.find((c) => c.id === created.body.id).paymentDate).toBe(shift(20));
+
+    // Paga los 4,000 restantes: queda cubierto y el siguiente periodo vuelve a ser de 6,000.
+    const second = await auth(request(app).post(`${base}/payments`)).send({ paidOn: today, amount: 4000 });
+    expect(second.body).toMatchObject({ partial: false, pendingAfter: 6000 });
+    expect(second.body.nextDueDate > shift(40)).toBe(true);
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ pendingAmount: 6000, dueDate: second.body.nextDueDate });
+
+    // Borrar el último pago regresa el saldo y la fecha a como estaban.
+    await auth(request(app).delete(`${base}/payments/${second.body.id}`));
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ pendingAmount: 4000, dueDate: shift(20) });
+
+    // El coach puede corregir a mano el monto por cobrar, y subir la tarifa no toca un saldo con abonos.
+    await auth(request(app).put(`${base}/payments/due-date`)).send({ dueDate: shift(25), pendingAmount: 3500 });
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ pendingAmount: 3500, dueDate: shift(25) });
+    const current = (await auth(request(app).get(base))).body.client;
+    await auth(request(app).put(base)).send({ fullName: current.fullName, profile: { logistics: { ...current.profile.logistics, fee: 7000 } } });
+    expect((await auth(request(app).get(base))).body.payment).toMatchObject({ fee: 7000, pendingAmount: 3500 });
+    await auth(request(app).delete(base));
+  });
+
   it('un cliente nuevo puede pautar su primera semana aunque el split esté vacío', async () => {
     const created = await auth(request(app).post('/api/clients')).send({ fullName: 'Cliente nuevo' });
     const base = `/api/clients/${created.body.id}`;

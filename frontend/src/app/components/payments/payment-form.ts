@@ -3,7 +3,7 @@ import { Btn } from '../buttons/btn';
 import { Icon } from '../icon/icon';
 import { PAYMENT_METHODS } from '../../core/config/tracking-lists';
 import { PaymentDraft } from '../../core/types/client.model';
-import { addMonths, delayLabel, formatDate, toNumber } from '../../core/utils/format';
+import { addMonths, delayLabel, formatDate, formatMoney, toNumber } from '../../core/utils/format';
 
 const DAY_MS = 864e5;
 
@@ -23,7 +23,7 @@ const DAY_MS = 864e5;
           <input class="field__control" type="date" [max]="today()" [value]="paidOn()" (change)="paidOn.set($any($event.target).value)" required />
         </label>
         <label class="field">
-          <span class="field__label">Monto (opcional)</span>
+          <span class="field__label">{{ pending() === null ? 'Monto (opcional)' : 'Monto que pagó' }}</span>
           <input class="field__control" type="number" inputmode="decimal" min="0" step="50" placeholder="$" [value]="amount() ?? ''" (change)="amount.set(num($any($event.target).value))" />
         </label>
         <label class="field">
@@ -34,11 +34,13 @@ const DAY_MS = 864e5;
           </select>
         </label>
         <label class="field">
-          <span class="field__label">Próximo pago</span>
+          <span class="field__label">{{ partial() ? 'Fecha para pagar el resto' : 'Próximo pago' }}</span>
           <input class="field__control" type="date" [value]="nextDue()" (change)="customNext.set($any($event.target).value || null)" />
           <span class="field__hint">
             @if (customNext() && customNext() !== suggested()) {
               <button type="button" class="reset" (click)="customNext.set(null)">Usar el sugerido: {{ date(suggested(), true) }}</button>
+            } @else if (partial()) {
+              Cambia la fecha si acordaron otra
             } @else {
               Sugerido por el plan {{ planLabel() }}
             }
@@ -49,6 +51,17 @@ const DAY_MS = 864e5;
           <input class="field__control" maxlength="500" placeholder="Folio, promoción, acuerdo…" [value]="notes() ?? ''" (change)="notes.set($any($event.target).value.trim() || null)" />
         </label>
       </div>
+
+      @if (pending() !== null) {
+        <p class="notice" [class.notice--success]="!partial()" [class.notice--warning]="partial()">
+          <app-icon [name]="partial() ? 'clock' : 'check'" [size]="18" />
+          @if (partial()) {
+            <span>Es un <b>abono</b>: debía {{ money(pending()) }} y quedan <b>{{ money(rest()) }}</b> por pagar el {{ date(nextDue()) }}.</span>
+          } @else {
+            <span>Cubre los <b>{{ money(pending()) }}</b> pendientes. El siguiente pago{{ fee() ? ' (' + money(fee()) + ')' : '' }} será el {{ date(nextDue()) }}.</span>
+          }
+        </p>
+      }
 
       @if (timing(); as t) {
         <p class="notice" [class.notice--success]="t.days <= 0" [class.notice--warning]="t.days > 0">
@@ -74,6 +87,9 @@ export class PaymentForm {
   readonly dueDate = input<string | null>(null);
   readonly periodMonths = input(1);
   readonly planType = input<string | null>(null);
+  /** Lo que falta por cobrar y la tarifa acordada (null = el cliente no tiene tarifa). */
+  readonly pending = input<number | null>(null);
+  readonly fee = input<number | null>(null);
   readonly saving = input(false);
   readonly save = output<PaymentDraft>();
   readonly cancel = output<void>();
@@ -81,6 +97,7 @@ export class PaymentForm {
   protected readonly methods = PAYMENT_METHODS;
   protected readonly date = formatDate;
   protected readonly num = toNumber;
+  protected readonly money = formatMoney;
 
   protected readonly paidOn = signal('');
   protected readonly amount = signal<number | null>(null);
@@ -90,7 +107,18 @@ export class PaymentForm {
   protected readonly customNext = signal<string | null>(null);
 
   protected readonly suggested = computed(() => addMonths(this.dueDate() ?? (this.paidOn() || this.today()), this.periodMonths()));
-  protected readonly nextDue = computed(() => this.customNext() ?? this.suggested());
+  /** Abono: paga menos de lo pendiente, así que queda saldo. */
+  protected readonly partial = computed(() => this.pending() !== null && this.amount() !== null && this.amount()! < this.pending()!);
+  protected readonly rest = computed(() => (this.pending() ?? 0) - (this.amount() ?? 0));
+  /** El resto se paga en la fecha que ya tenía si aún no llega; si ya pasó, a fin de mes. */
+  private readonly restDate = computed(() => {
+    const paid = this.paidOn() || this.today();
+    const due = this.dueDate();
+    if (due && due > paid) return due;
+    const [year = 0, month = 1] = paid.split('-').map(Number);
+    return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  });
+  protected readonly nextDue = computed(() => this.customNext() ?? (this.partial() ? this.restDate() : this.suggested()));
   protected readonly planLabel = computed(() => (this.planType() ? this.planType()!.toLowerCase() : 'mensual'));
 
   /** Puntualidad respecto al vencimiento que cubre. */
@@ -103,6 +131,8 @@ export class PaymentForm {
 
   constructor() {
     effect(() => this.paidOn.set(this.today()));
+    // Por defecto se propone pagar todo lo pendiente.
+    effect(() => this.amount.set(this.pending()));
   }
 
   protected submit(): void {

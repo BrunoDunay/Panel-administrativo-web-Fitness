@@ -123,7 +123,7 @@ const DEMO = [
       cardio: cardioWeek({ 1: { protocol: 'Solo pasos' }, 3: { protocol: "LISS 45'", moment: 'Día de descanso' }, 6: { protocol: "Caminata inclinada 20'", moment: 'Día de descanso' } }),
       warmup: warmupWeek({ 1: W.legsHeavy, 2: W.push, 4: W.legsLight, 5: W.pull }),
     },
-    routine: 'upperLower', weeks: 3, doneDaysLastWeek: 2, progression: 0.04,
+    routine: 'upperLower', weeks: 3, doneDaysLastWeek: 2, progression: 0.04, fee: 6000, deposit: 2000,
     nutrition: {
       inputs: { weightKg: 64, activity: 'moderate', dietType: 'omnivore', goal: 'Superávit', adjustmentKcal: 150, proteinPerKg: 2, fatPct: 0.28, cycling: true, extraTrainingKcal: 300, trainingDays: [true, true, false, true, true, false, false], mealCount: 4, preWorkoutMeal: 3, postWorkoutMeal: 4, mealsMeta: meals([['Desayuno', '08:00'], ['Comida', '14:00'], ['Pre-entreno', '17:30'], ['Cena', '21:00']]) },
       meals: [
@@ -278,7 +278,11 @@ async function createDemo(spec, foods, supplements, catalog) {
   const email = `${spec.client.fullName.split(' ')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}${DOMAIN}`;
   if (await Client.findOne({ where: { email } })) return false;
 
-  const client = await Client.create({ status: 'active', profile: {}, ...spec.client, email, accessCode: generateAccessCode() });
+  // Cada cliente lleva su tarifa acordada; lo que falta por cobrar empieza siendo esa tarifa.
+  const logistics = spec.client.profile?.logistics;
+  const fee = spec.fee ?? FEES[logistics?.planType] ?? null;
+  const profile = logistics ? { ...spec.client.profile, logistics: { ...logistics, fee, ...(spec.deposit ? { pendingAmount: fee - spec.deposit } : {}) } } : (spec.client.profile ?? {});
+  const client = await Client.create({ status: 'active', ...spec.client, profile, email, accessCode: generateAccessCode() });
   const food = (name) => {
     const found = foods.get(name);
     if (!found) throw new Error(`Alimento no encontrado en el catálogo: ${name}`);
@@ -286,9 +290,13 @@ async function createDemo(spec, foods, supplements, catalog) {
   };
 
   // El pago con el que arrancó: deja el siguiente vencimiento en la fecha de pago del expediente.
-  const { planType, startDate, paymentDate } = spec.client.profile?.logistics ?? {};
+  const { startDate, paymentDate } = spec.client.profile?.logistics ?? {};
   if (startDate && paymentDate && startDate < today) {
-    await Payment.create({ clientId: client.id, paidOn: startDate, amount: FEES[planType] ?? null, method: 'Transferencia', dueDate: null, nextDueDate: paymentDate, notes: 'Pago inicial' });
+    await Payment.create({ clientId: client.id, paidOn: startDate, amount: fee, method: 'Transferencia', dueDate: null, nextDueDate: paymentDate, notes: 'Pago inicial', pendingBefore: fee, pendingAfter: fee });
+    // Abono a cuenta del periodo que viene: el resto se paga en la fecha acordada.
+    if (spec.deposit) {
+      await Payment.create({ clientId: client.id, paidOn: daysAgo(1), amount: spec.deposit, method: 'Efectivo', dueDate: paymentDate, nextDueDate: paymentDate, notes: 'Abono', pendingBefore: fee, pendingAfter: fee - spec.deposit });
+    }
   }
 
   if (spec.training) {

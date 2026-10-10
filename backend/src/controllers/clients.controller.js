@@ -129,6 +129,12 @@ export async function overview(req, res) {
 }
 
 export async function update(req, res) {
+  // Si cambia la tarifa y todavía no hay abonos del periodo, lo pendiente pasa a ser la tarifa nueva.
+  const before = req.client.profile?.logistics ?? {};
+  const logistics = req.valid.body.profile?.logistics;
+  if (logistics && (logistics.fee ?? null) !== (before.fee ?? null) && (before.pendingAmount == null || before.pendingAmount === before.fee)) {
+    logistics.pendingAmount = logistics.fee ?? null;
+  }
   await req.client.update(req.valid.body);
   res.json(serializeClient(req.client, { forCoach: true }));
 }
@@ -150,7 +156,8 @@ export async function setPaymentAccess(req, res) {
 
 /** Cambia a mano la fecha del próximo pago (por ejemplo, si se acordó una prórroga). */
 export async function setPaymentDueDate(req, res) {
-  await setDueDate(req.client, req.valid.body.dueDate);
+  // El saldo solo cambia si el coach lo mandó; si no, se queda como está.
+  await setDueDate(req.client, req.valid.body.dueDate, undefined, req.body?.pendingAmount === undefined ? undefined : req.valid.body.pendingAmount);
   res.status(204).end();
 }
 

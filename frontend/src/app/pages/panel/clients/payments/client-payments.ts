@@ -5,7 +5,7 @@ import { Icon } from '../../../../components/icon/icon';
 import { PaymentForm } from '../../../../components/payments/payment-form';
 import { ClientStore } from '../../../../core/services/client-store';
 import { Payment, PaymentDraft, PaymentState } from '../../../../core/types/client.model';
-import { delayLabel, dueLabel, formatDate, formatMoney } from '../../../../core/utils/format';
+import { delayLabel, dueLabel, formatDate, formatMoney, toNumber } from '../../../../core/utils/format';
 import { Tone } from '../../../../core/utils/visuals';
 import { ConfirmService } from '../../shared/confirm.service';
 
@@ -22,7 +22,8 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
         <span class="tile-icon"><app-icon [name]="status.state === 'overdue' ? 'alert' : 'calendar'" [size]="24" /></span>
         <div class="status__text">
           <p class="status__eyebrow">Próximo pago · plan {{ status.planType || 'sin definir' }}</p>
-          <p class="status__date">{{ status.dueDate ? date(status.dueDate) : 'Sin fecha de pago' }}</p>
+          <p class="status__date">@if (status.pendingAmount !== null) { {{ money(status.pendingAmount) }} <small>el</small> } {{ status.dueDate ? date(status.dueDate) : 'sin fecha de pago' }}</p>
+          @if (status.fee !== null) { <p class="status__fee">Tarifa acordada: <b>{{ money(status.fee) }}</b> · {{ (status.planType || 'por periodo').toLowerCase() }}@if (status.pendingAmount !== null && status.pendingAmount < status.fee) { · ya abonó {{ money(status.fee - status.pendingAmount) }} } </p> } @else { <p class="status__fee">Sin tarifa acordada: captúrala en Expediente para llevar el saldo.</p> }
           <p class="status__label">
             @switch (status.state) {
               @case ('none') { Registra el primer pago o define la fecha para empezar a llevar el control. }
@@ -34,7 +35,7 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
         </div>
         <div class="status__actions">
           <button appBtn type="button" variant="light" (click)="mode.set('pay')"><app-icon name="dollar" [size]="16" />Registrar pago</button>
-          <button appBtn type="button" variant="light" (click)="startDue(status.dueDate)"><app-icon name="edit" [size]="16" />Cambiar fecha</button>
+          <button appBtn type="button" variant="light" (click)="startDue(status.dueDate, status.pendingAmount)"><app-icon name="edit" [size]="16" />Cambiar fecha o monto</button>
           @if (status.state === 'overdue') {
             <button appBtn type="button" variant="light" (click)="store.setOverdueAccess(!status.overdueAccess).subscribe()"><app-icon name="lock" [size]="16" />{{ status.overdueAccess ? 'Volver a bloquear acceso' : 'Permitir acceso' }}</button>
           }
@@ -45,21 +46,25 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
         <section class="card card--badge tone--emerald icon-hover">
           <span class="card__badge"><app-icon name="dollar" [size]="26" /></span>
           <h3 class="form-section__title title">Registrar pago</h3>
-          <app-payment-form [today]="store.today()" [dueDate]="status.dueDate" [periodMonths]="status.periodMonths" [planType]="status.planType" [saving]="saving()" (save)="pay($event)" (cancel)="mode.set(null)" />
+          <app-payment-form [today]="store.today()" [dueDate]="status.dueDate" [periodMonths]="status.periodMonths" [planType]="status.planType" [pending]="status.pendingAmount" [fee]="status.fee" [saving]="saving()" (save)="pay($event)" (cancel)="mode.set(null)" />
         </section>
       }
 
       @if (mode() === 'due') {
         <section class="card card--badge tone--steel icon-hover">
           <span class="card__badge"><app-icon name="calendar" [size]="26" /></span>
-          <h3 class="form-section__title title">Cambiar la fecha del próximo pago</h3>
+          <h3 class="form-section__title title">Cambiar la fecha o el monto del próximo pago</h3>
           <p class="card__hint hint">Úsalo para una prórroga o para corregir la fecha. No registra ningún pago.</p>
           <div class="due">
             <label class="field">
               <span class="field__label">Próximo pago</span>
               <input class="field__control" type="date" [value]="dueDraft() ?? ''" (change)="dueDraft.set($any($event.target).value || null)" />
             </label>
-            <button appBtn type="button" [loading]="saving()" [disabled]="saving()" (click)="saveDue()">Guardar fecha</button>
+            <label class="field">
+              <span class="field__label">Monto por cobrar ($)</span>
+              <input class="field__control" type="number" inputmode="decimal" min="0" step="50" [value]="pendingDraft() ?? ''" (change)="pendingDraft.set(num($any($event.target).value))" />
+            </label>
+            <button appBtn type="button" [loading]="saving()" [disabled]="saving()" (click)="saveDue()">Guardar</button>
             <button appBtn type="button" variant="ghost" (click)="mode.set(null)">Cancelar</button>
           </div>
         </section>
@@ -82,7 +87,7 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
         <div class="table-wrap">
           <table class="table table--hover">
             <thead>
-              <tr><th>Pagó el</th><th class="num">Monto</th><th>Forma</th><th>Vencía el</th><th>Puntualidad</th><th>Siguiente pago</th><th>Notas</th><th></th></tr>
+              <tr><th>Pagó el</th><th class="num">Monto</th><th>Forma</th><th>Vencía el</th><th>Puntualidad</th><th>Quedó debiendo</th><th>Siguiente pago</th><th>Notas</th><th></th></tr>
             </thead>
             <tbody>
               @for (payment of store.payments(); track payment.id) {
@@ -98,6 +103,7 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
                       <span class="badge" [class.badge--success]="payment.delayDays <= 0" [class.badge--danger]="payment.delayDays > 0">{{ delay(payment.delayDays) }}</span>
                     }
                   </td>
+                  <td>@if (payment.partial) { <span class="badge badge--warning">Abono · resta {{ money(payment.pendingAfter) }}</span> } @else if (payment.pendingAfter !== null) { <span class="badge badge--success">Cubierto</span> } @else { — }</td>
                   <td>{{ date(payment.nextDueDate, true) }}</td>
                   <td class="notes">{{ payment.notes || '—' }}</td>
                   <td><button type="button" class="icon-btn" (click)="remove(payment)" aria-label="Eliminar este pago"><app-icon name="trash" [size]="16" /></button></td>
@@ -118,6 +124,8 @@ const STATE_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel', o
     .status__text { flex: 1; min-width: min(100%, 16rem); }
     .status__eyebrow { font-size: var(--text-xs); font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase; opacity: 0.8; }
     .status__date { font-size: var(--text-3xl); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+    .status__date small { font-size: 0.5em; font-weight: 600; opacity: 0.8; }
+    .status__fee { font-size: var(--text-sm); opacity: 0.9; }
     .status__label { font-size: var(--text-sm); opacity: 0.9; }
     .status__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
     .title { margin-bottom: var(--space-4); }
@@ -142,10 +150,13 @@ export class ClientPayments {
   protected readonly mode = signal<'pay' | 'due' | null>(null);
   protected readonly saving = signal(false);
   protected readonly dueDraft = signal<string | null>(null);
+  protected readonly pendingDraft = signal<number | null>(null);
+  protected readonly num = toNumber;
   protected readonly total = computed(() => this.store.payments().reduce((sum, payment) => sum + (payment.amount ?? 0), 0));
 
-  protected startDue(current: string | null): void {
+  protected startDue(current: string | null, pending: number | null): void {
     this.dueDraft.set(current);
+    this.pendingDraft.set(pending);
     this.mode.set('due');
   }
 
@@ -154,7 +165,7 @@ export class ClientPayments {
   }
 
   protected saveDue(): void {
-    this.run(this.store.setPaymentDueDate(this.dueDraft()));
+    this.run(this.store.setPaymentDueDate(this.dueDraft(), this.pendingDraft()));
   }
 
   private run(request: Observable<unknown>): void {

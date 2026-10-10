@@ -8,6 +8,9 @@ const profile = z
     logistics: z
       .object({
         planType: text(40),
+        // Tarifa acordada por periodo y lo que falta por cobrar del periodo en curso.
+        fee: number(0, 1000000),
+        pendingAmount: number(0, 1000000),
         startDate: optionalDate,
         paymentDate: optionalDate,
         daysPerWeek: number(1, 7),
@@ -86,7 +89,7 @@ export const weightBody = z.object({ weightKg: number(25, 350), waistCm: number(
 
 export const paymentParams = z.object({ paymentId: z.uuid() });
 
-export const dueDateBody = z.object({ dueDate: optionalDate });
+export const dueDateBody = z.object({ dueDate: optionalDate, pendingAmount: number(0, 1000000) });
 export const overdueAccessBody = z.object({ allow: z.boolean() });
 
 export const paymentBody = z.object({

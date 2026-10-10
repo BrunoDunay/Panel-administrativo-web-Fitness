@@ -34,6 +34,17 @@ export function paymentStatus(dueDate, today, noticeDays = PAYMENT_NOTICE_DAYS) 
   return { state: days < 0 ? 'overdue' : days <= noticeDays ? 'soon' : 'ok', dueDate, days };
 }
 
+/**
+ * Reparto de un pago contra lo que se debe. Con tarifa acordada, un pago menor a lo pendiente es un
+ * abono: queda saldo y no empieza un periodo nuevo. Al cubrirlo todo, lo pendiente pasa a ser la
+ * tarifa del periodo siguiente. Sin tarifa (o sin monto capturado) el pago se toma como completo.
+ */
+export function applyPayment({ pending, fee, amount }) {
+  if (typeof pending !== 'number' || typeof amount !== 'number') return { partial: false, pendingBefore: pending ?? null, pendingAfter: typeof fee === 'number' ? fee : null };
+  if (amount < pending) return { partial: true, pendingBefore: pending, pendingAfter: Math.round((pending - amount) * 100) / 100 };
+  return { partial: false, pendingBefore: pending, pendingAfter: typeof fee === 'number' ? fee : null };
+}
+
 /** Días de diferencia entre el pago y su vencimiento: positivo = pagó tarde, negativo = pagó antes. */
 export function paymentDelay(dueDate, paidOn) {
   return dueDate ? Math.round((toUtc(paidOn) - toUtc(dueDate)) / DAY_MS) : null;

@@ -97,8 +97,9 @@ export class ClientStore {
     return this.mutate(this.http.put(`${this.base}/payments/access`, { allow }), allow ? 'Acceso permitido aunque el pago esté vencido.' : 'Acceso bloqueado hasta que pague.');
   }
 
-  setPaymentDueDate(dueDate: string | null) {
-    return this.mutate(this.http.put(`${this.base}/payments/due-date`, { dueDate }), 'Fecha de pago actualizada.');
+  /** Cambia a mano la fecha del próximo pago y, si se indica, lo que falta por cobrar. */
+  setPaymentDueDate(dueDate: string | null, pendingAmount?: number | null) {
+    return this.mutate(this.http.put(`${this.base}/payments/due-date`, pendingAmount === undefined ? { dueDate } : { dueDate, pendingAmount }), 'Pago pendiente actualizado.');
   }
 
   // ---- Entrenamiento ----

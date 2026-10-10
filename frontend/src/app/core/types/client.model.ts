@@ -8,6 +8,9 @@ export interface ClientProfile {
   health?: { allergies?: string | null; medicalClearance?: string | null; chronicDiseases?: string | null; surgeries?: string | null; injuries?: string | null; medications?: string | null };
   logistics?: {
     planType?: string | null;
+    /** Tarifa acordada por periodo y lo que falta por cobrar del periodo en curso. */
+    fee?: number | null;
+    pendingAmount?: number | null;
     startDate?: string | null;
     paymentDate?: string | null;
     daysPerWeek?: number | null;
@@ -128,6 +131,10 @@ export interface PaymentStatus {
   planType: string | null;
   /** Meses que cubre el tipo de plan: sirve para proponer el siguiente vencimiento. */
   periodMonths: number;
+  /** Tarifa acordada por periodo (null = sin definir). */
+  fee: number | null;
+  /** Lo que falta por cobrar en la fecha de vencimiento. */
+  pendingAmount: number | null;
   /** El coach permite el acceso aunque el pago esté vencido. */
   overdueAccess: boolean;
   /** Con el pago vencido y sin ese permiso, el cliente no ve su plan. */
@@ -145,6 +152,10 @@ export interface Payment {
   nextDueDate: string | null;
   /** Días entre el vencimiento y el pago: positivo = pagó tarde, negativo = pagó antes. */
   delayDays: number | null;
+  /** Saldo por cobrar que quedó después de este pago. */
+  pendingAfter: number | null;
+  /** Abono: cubrió solo una parte de lo que se debía. */
+  partial: boolean;
 }
 
 export interface PaymentDraft {
@@ -177,6 +188,7 @@ export interface DashboardPayment {
   overdue: boolean;
   planType: string | null;
   periodMonths: number;
+  pendingAmount: number | null;
   overdueAccess: boolean;
   locked: boolean;
 }
