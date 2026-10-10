@@ -46,7 +46,7 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
           <div class="table-wrap">
             <table class="table table--hover">
               <thead>
-                <tr><th>Cliente</th><th>Objetivo</th><th>Semana</th><th>Entrenamiento</th><th>Nutrición</th><th>Plan</th><th>Próximo pago</th><th>Acceso</th><th>Acciones</th></tr>
+                <tr><th>Cliente</th><th>Objetivo</th><th>Semana</th><th>Entrenamiento</th><th>Nutrición</th><th>Pago</th><th>Acciones</th></tr>
               </thead>
               <tbody>
                 @for (client of list; track client.id) {
@@ -81,32 +81,33 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
                     <td>
                       @if (client.hasNutrition) { <span class="badge badge--steel">{{ client.goal || 'Activo' }}</span> } @else { <span class="badge badge--warning">Por armar</span> }
                     </td>
-                    <td>{{ client.planType || '—' }}</td>
+                    <!-- Pago en una sola columna: fecha, tipo de plan y, si venció, el acceso al enlace. -->
                     <td>
-                      @if (client.paymentDate) {
-                        <span class="badge" [class.badge--danger]="client.paymentState === 'overdue'" [class.badge--steel]="client.paymentState === 'soon'" [class.badge--success]="client.paymentState === 'ok'">{{ date(client.paymentDate, true) }}{{ client.paymentState === 'overdue' ? ' · vencido' : '' }}</span>
-                      } @else {
-                        —
-                      }
+                      <span class="pay">
+                        @if (client.paymentDate) {
+                          <span class="badge" [class.badge--danger]="client.paymentState === 'overdue'" [class.badge--steel]="client.paymentState === 'soon'" [class.badge--success]="client.paymentState === 'ok'">{{ date(client.paymentDate, true) }}{{ client.paymentState === 'overdue' ? ' · vencido' : '' }}</span>
+                        } @else if (!client.planType) {
+                          —
+                        }
+                        @if (client.planType) { <small>Plan {{ client.planType.toLowerCase() }}</small> }
+                        @if (client.paymentState === 'overdue') {
+                          <button type="button" class="access" [class.is-locked]="client.paymentLocked" (click)="toggleAccess(client)" [title]="client.paymentLocked ? 'Su enlace está bloqueado por pago vencido. Clic para permitirle el acceso.' : 'Tiene permiso aunque el pago venció. Clic para bloquear.'">
+                            <app-icon name="lock" [size]="14" />{{ client.paymentLocked ? 'Acceso bloqueado' : 'Acceso permitido' }}
+                          </button>
+                        }
+                      </span>
                     </td>
                     <td>
-                      @if (client.paymentState === 'overdue') {
-                        <button type="button" class="access" [class.is-locked]="client.paymentLocked" (click)="toggleAccess(client)" [title]="client.paymentLocked ? 'Su enlace está bloqueado por pago vencido. Clic para permitirle el acceso.' : 'Tiene permiso aunque el pago venció. Clic para bloquear.'">
-                          <app-icon name="lock" [size]="14" />{{ client.paymentLocked ? 'Bloqueado' : 'Permitido' }}
-                        </button>
-                      } @else {
-                        <span class="text-muted">Activo</span>
-                      }
-                    </td>
-                    <td class="row-actions">
-                      @if (client.status === 'active') {
-                        <button type="button" class="act act--pause" (click)="changeStatus(client, 'paused')"><app-icon name="clock" [size]="14" />Pausar</button>
-                      } @else {
-                        <button type="button" class="act act--resume" (click)="changeStatus(client, 'active')"><app-icon name="refresh" [size]="14" />Reactivar</button>
-                      }
-                      @if (client.status !== 'archived') {
-                        <button type="button" class="act act--archive" (click)="changeStatus(client, 'archived')"><app-icon name="bookmark" [size]="14" />Archivar</button>
-                      }
+                      <span class="acts">
+                        @if (client.status === 'active') {
+                          <button type="button" class="act act--pause" (click)="changeStatus(client, 'paused')"><app-icon name="clock" [size]="14" />Pausar</button>
+                        } @else {
+                          <button type="button" class="act act--resume" (click)="changeStatus(client, 'active')"><app-icon name="refresh" [size]="14" />Reactivar</button>
+                        }
+                        @if (client.status !== 'archived') {
+                          <button type="button" class="act act--archive" (click)="changeStatus(client, 'archived')"><app-icon name="bookmark" [size]="14" />Archivar</button>
+                        }
+                      </span>
                     </td>
                   </tr>
                 }
@@ -137,6 +138,10 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
     .client span:last-child { display: grid; line-height: 1.35; }
     .client small { color: var(--color-text-muted); }
     .week { display: grid; line-height: 1.3; white-space: nowrap; }
+    /* La tabla nunca se desplaza de lado: las etiquetas largas parten renglón antes de ensancharla. */
+    .table .badge { white-space: normal; }
+    .pay { display: grid; justify-items: start; gap: var(--space-1); line-height: 1.3; }
+    .pay small { font-size: var(--text-xs); color: var(--color-text-muted); }
     .week small { font-size: var(--text-xs); color: var(--color-text-muted); }
     .week small.late { font-weight: 700; color: var(--color-warning); }
     .access { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2rem; padding: 0.2rem 0.7rem; border: 1px solid var(--color-success); border-radius: var(--radius-pill); background: var(--color-success-soft); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; color: var(--color-success); transition: transform 140ms var(--ease-out); }
@@ -159,8 +164,8 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
     .toggle, .expand-all { display: none; }
 
     /* Pausar, archivar o reactivar sin abrir el expediente. */
-    .row-actions { white-space: nowrap; }
-    .act { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2rem; margin-right: var(--space-1); padding: 0.2rem 0.7rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; color: var(--color-text-muted); transition: transform 140ms var(--ease-out); }
+    .acts { display: inline-flex; flex-wrap: wrap; gap: var(--space-1); }
+    .act { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2rem; padding: 0.2rem 0.7rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; color: var(--color-text-muted); transition: transform 140ms var(--ease-out); }
     .act:active { transform: scale(0.96); }
     .act--pause { border-color: var(--tone-amber); background: var(--tone-amber-soft); color: var(--tone-amber-ink); }
     .act--resume { border-color: var(--color-success); background: var(--color-success-soft); color: var(--color-success); }
@@ -170,16 +175,31 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
       .filter { justify-content: space-between; }
       .filter app-icon { flex: none; }
       .filter b { margin-left: auto; }
-      .expand-all { display: inline-flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); padding: 0; border: 0; background: none; font-size: var(--text-sm); font-weight: 700; color: var(--color-primary); }
+    }
+
+    /* Pantallas medianas: el objetivo se consulta en el expediente y la tabla cabe sin desplazarse. */
+    @media (min-width: 1281px) and (max-width: 1440px) {
+      .table th:nth-child(2), .table td:nth-child(2) { display: none; }
+    }
+
+    /* Sin ancho para la tabla (tableta y teléfono): cada cliente es una tarjeta plegada con su nombre. */
+    @media (max-width: 1280px) {
+      .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+      .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      .table tr { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--space-3) var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: var(--hairline); }
+      .table tbody tr:last-child { border-bottom: 0; }
+      .table td { display: grid; align-content: start; justify-items: start; gap: 2px; min-width: 0; padding: 0; border: 0; text-align: left; }
+      .table td::before { content: attr(data-label); font-size: 0.68rem; font-weight: 700; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--color-text-muted); }
+      .table td:first-child, .table td:last-child { grid-column: 1 / -1; }
+      .table td:first-child { font-size: var(--text-base); }
+      .table td:first-child::before { content: none; }
       /* Plegado: solo el nombre. Al desplegar aparecen sus datos y sus acciones. */
-      .table tr { padding-block: var(--space-3); }
       .table tr:not(.is-open) td:not(:first-child) { display: none; }
-      .toggle { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border: 0; border-radius: 50%; background: var(--color-surface-alt); color: var(--color-text-muted); transition: rotate var(--duration) var(--ease-out); }
-      .toggle[aria-expanded='true'] { background: var(--color-primary-soft); color: var(--color-primary); rotate: 180deg; }
-      .table td.row-actions { flex-wrap: wrap; justify-content: flex-start; margin-top: 0; }
+      .expand-all { display: inline-flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); padding: 0; border: 0; background: none; font-size: var(--text-sm); font-weight: 700; color: var(--color-primary); }
       /* El botón de desplegar va pegado al borde derecho de la tarjeta. */
       .who { width: 100%; max-width: none; justify-self: stretch; }
-      .toggle { margin-left: auto; margin-right: calc(var(--space-3) * -1); }
+      .toggle { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; margin-left: auto; margin-right: calc(var(--space-3) * -1); border: 0; border-radius: 50%; background: var(--color-surface-alt); color: var(--color-text-muted); transition: rotate var(--duration) var(--ease-out); }
+      .toggle[aria-expanded='true'] { background: var(--color-primary-soft); color: var(--color-primary); rotate: 180deg; }
     }
     .access.is-locked { border-color: var(--color-danger); background: var(--color-danger-soft); color: var(--color-danger); }
   `,
