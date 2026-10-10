@@ -7,7 +7,7 @@ import { Icon } from '../../../../components/icon/icon';
 import { FoodPicker, PickerFood } from '../../../../components/nutrition/food-picker';
 import { ClientStore } from '../../../../core/services/client-store';
 import { Catalog } from '../../../../core/types/catalog.model';
-import { Adequacy, ComputedItem, MealDraft, MealExtraDraft, MealItemDraft, NutritionDraft, NutritionView, SmaeGroupKey } from '../../../../core/types/nutrition.model';
+import { Adequacy, ComputedItem, DietGroup, MealDraft, MealExtraDraft, MealItemDraft, NutritionDraft, NutritionView, SmaeGroupKey } from '../../../../core/types/nutrition.model';
 import { formatNumber, formatPercent, formatSigned } from '../../../../core/utils/format';
 
 const emptyMeal = (): MealDraft => ({ items: [], extras: [], notes: null });
@@ -183,6 +183,32 @@ export class NutritionEditor {
     if (item.state === 'ok') return 'Cuadra';
     if (item.state === 'none') return 'Sin objetivo';
     return `${item.state === 'low' ? 'Faltan' : 'Sobran'} ${formatNumber(Math.abs(item.diff), 0)} ${unit}`;
+  }
+
+  /** Grupos del dietocálculo juntos por familia (cereales, origen animal, leche…), en su orden. */
+  protected readonly families = computed(() => {
+    const families: { name: string; tone: string; groups: DietGroup[] }[] = [];
+    for (const group of this.groups()) {
+      const last = families.at(-1);
+      if (last?.name === group.family) last.groups.push(group);
+      else families.push({ name: group.family, tone: group.tone, groups: [group] });
+    }
+    return families;
+  });
+
+  /** "Cereales sin grasa" dentro de la familia Cereales se lee "Sin grasa". */
+  protected subLabel(label: string, family: string): string {
+    const rest = label.startsWith(family) ? label.slice(family.length).replace(/^[\s·]+/, '') : label;
+    return rest ? rest.charAt(0).toUpperCase() + rest.slice(1) : label;
+  }
+
+  /** Cómo va el reparto de un grupo: "Ya repartidas 7/7 porciones", "Quedan 2 · 5/7 porciones". */
+  protected status(key: SmaeGroupKey): string {
+    const daily = this.daily(key);
+    const left = this.left(key);
+    const count = `${formatNumber(daily - left)}/${formatNumber(daily)} porciones`;
+    if (left === 0) return `Ya repartidas ${count}`;
+    return left > 0 ? `Quedan ${formatNumber(left)} · ${count}` : `Sobran ${formatNumber(-left)} · ${count}`;
   }
 
   // ---- Menú: reparto de porciones por comida ----
