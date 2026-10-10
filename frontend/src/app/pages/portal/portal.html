@@ -52,6 +52,16 @@
       </section>
     }
 
+    @if (lockedWeek(); as locked) {
+      @if (tab() !== 'tracking') {
+        <section class="card card--tint card--edge pay-alert icon-hover tone--amber" role="status">
+          <span class="tile-icon tile-icon--solid"><app-icon name="lock" [size]="22" /></span>
+          <p><b>Tu semana {{ locked.number }} ya está lista</b>Para verla, contesta primero el cuestionario de la semana {{ locked.requiresCheckin }}.</p>
+          <button appBtn type="button" size="sm" (click)="tab.set('tracking')"><app-icon name="clipboard" [size]="14" />Contestar</button>
+        </section>
+      }
+    }
+
     @switch (tab()) {
       @case ('summary') {
         <div class="stack">
@@ -71,6 +81,14 @@
           }
 
           <div class="grid" style="--min: 230px">
+            @if (todayPlan(); as plan) {
+              <button type="button" [class]="'card card--tint stat tile tone--' + (plan.rest ? 'slate' : 'amber')" (click)="tab.set('training')">
+                <span class="tile-icon tile-icon--solid"><app-icon [name]="plan.rest ? 'moon' : 'calendar'" [size]="22" /></span>
+                <span class="stat__label">Hoy · {{ plan.name }}</span>
+                <span class="stat__value today-session">{{ plan.session }}</span>
+                <span class="stat__note">{{ plan.extras || (plan.rest ? 'Día de descanso' : 'Toca entrenar') }}</span>
+              </button>
+            }
             @if (weekProgress(); as progress) {
               <button type="button" class="card card--vivid tone--emerald stat tile" (click)="tab.set('training')">
                 <span class="tile-icon"><app-icon name="dumbbell" [size]="22" /></span>
@@ -112,7 +130,7 @@
           </div>
 
           @if (store.training(); as plan) {
-            <app-training-overview [plan]="plan" />
+            <app-training-overview [plan]="plan" [today]="todayDay()" />
           } @else {
             <section class="card empty"><h3>Tu plan de entrenamiento está en preparación</h3><p>Tu coach lo publicará aquí en cuanto esté listo.</p></section>
           }
@@ -142,7 +160,7 @@
                 </div>
               </details>
               @if (week(); as current) {
-                <app-week-sheet [week]="current" [cardio]="plan.cardio" />
+                <app-week-sheet [week]="current" [cardio]="plan.cardio" [warmup]="plan.warmup" [steps]="plan.steps" [current]="isCurrentWeek()" />
               }
               <app-training-reports [plan]="plan" />
             } @else {

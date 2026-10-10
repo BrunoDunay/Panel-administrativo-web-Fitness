@@ -6,6 +6,7 @@ import {
   cardioCompliance,
   estimatedOneRepMax,
   exerciseSummary,
+  lockedWeekNumber,
   measurementDelta,
   musclePriority,
   scheduleBlocks,
@@ -87,5 +88,18 @@ describe('cardio, mediciones y edad', () => {
   it('edad', () => {
     expect(ageOn('1996-10-09', '2026-10-08')).toBe(29);
     expect(ageOn('1996-10-08', '2026-10-08')).toBe(30);
+  });
+});
+
+describe('semana bloqueada hasta contestar el cuestionario anterior', () => {
+  it('la semana nueva se bloquea si falta el cuestionario de la anterior', () => {
+    expect(lockedWeekNumber([1, 2, 3], [1])).toBe(3);
+  });
+  it('con el cuestionario anterior contestado se ve todo', () => {
+    expect(lockedWeekNumber([1, 2, 3], [2])).toBeNull();
+  });
+  it('la semana 1 nunca se bloquea', () => {
+    expect(lockedWeekNumber([1], [])).toBeNull();
+    expect(lockedWeekNumber([], [])).toBeNull();
   });
 });

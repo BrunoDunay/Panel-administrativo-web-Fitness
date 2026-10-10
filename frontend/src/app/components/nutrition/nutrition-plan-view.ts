@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ToastService } from '../../core/services/toast.service';
 import { ComputedItem, EquivalentFood, NutritionComputed } from '../../core/types/nutrition.model';
 import { formatNumber, formatSigned, portionAmount } from '../../core/utils/format';
+import { downloadGroceryImage, downloadGroceryPdf } from '../../core/utils/grocery-export';
 import { foodEmoji, supplementEmoji } from '../../core/utils/visuals';
+import { Btn } from '../buttons/btn';
 import { Icon } from '../icon/icon';
 
 /** Renglón de una comida tal como se muestra: el alimento del plan o el que el cliente eligió en su lugar. */
@@ -21,7 +24,7 @@ const STORAGE_KEY = 'fbe.cambios';
  */
 @Component({
   selector: 'app-nutrition-plan-view',
-  imports: [Icon],
+  imports: [Btn, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'swapping.set(null)' },
   template: `
@@ -112,7 +115,10 @@ const STORAGE_KEY = 'fbe.cambios';
     <div class="grid grid--2">
       <section class="card">
         <header class="card__head">
-          <h3 class="card__title">Lista del súper</h3>
+          <div>
+            <h3 class="card__title">Lista del súper</h3>
+            <p class="for-weeks">Para {{ weeks() }} {{ weeks() === 1 ? 'semana' : 'semanas' }}</p>
+          </div>
           <label class="row weeks">
             <span class="card__hint">Semanas</span>
             <select class="cell-input" [value]="weeks()" (change)="weeks.set(+$any($event.target).value)">
@@ -132,6 +138,11 @@ const STORAGE_KEY = 'fbe.cambios';
                 }
               </tbody>
             </table>
+          </div>
+          <div class="row downloads">
+            <span class="card__hint">Descárgala para verla sin internet:</span>
+            <button appBtn type="button" variant="soft" size="sm" [disabled]="exporting()" (click)="download('pdf')"><app-icon name="download" [size]="14" />PDF</button>
+            <button appBtn type="button" variant="soft" size="sm" [disabled]="exporting()" (click)="download('image')"><app-icon name="download" [size]="14" />Imagen</button>
           </div>
           <p class="card__hint foot">Con los alimentos de tu plan original, en peso neto (sin cáscara ni hueso). Los adicionales no se incluyen.</p>
         } @else {
@@ -249,6 +260,8 @@ const STORAGE_KEY = 'fbe.cambios';
     .head { margin-bottom: var(--space-3); }
     .foot { margin-top: var(--space-3); }
     .weeks select { width: 4rem; }
+    .for-weeks { display: inline-block; margin-top: var(--space-1); padding: 0.15rem 0.7rem; border-radius: var(--radius-pill); background: var(--color-primary); font-size: var(--text-sm); font-weight: 700; color: var(--color-text-inverse); }
+    .downloads { margin-top: var(--space-4); gap: var(--space-2); }
     .grocery { display: inline-flex; align-items: center; gap: var(--space-3); }
     .link { font-weight: 600; color: var(--color-primary); text-decoration: underline; }
 
@@ -264,7 +277,9 @@ const STORAGE_KEY = 'fbe.cambios';
 })
 export class NutritionPlanView {
   readonly computed = input.required<NutritionComputed>();
+  private readonly toast = inject(ToastService);
   protected readonly weeks = signal(1);
+  protected readonly exporting = signal(false);
   protected readonly num = formatNumber;
   protected readonly signed = formatSigned;
   protected readonly emoji = foodEmoji;
@@ -317,6 +332,19 @@ export class NutritionPlanView {
       return { name: item.name, icon: item.icon, amount: grams >= 1000 ? `${formatNumber(grams / 1000, 2)} kg` : `${formatNumber(grams, 0)} g`, measure: this.weeks() === 1 ? item.measure : '' };
     }),
   );
+
+  /** Descarga la lista con las semanas elegidas, para verla sin internet. */
+  protected async download(format: 'pdf' | 'image'): Promise<void> {
+    const data = { weeks: this.weeks(), rows: this.grocery().map((item) => ({ emoji: foodEmoji(item.name, item.icon), name: item.name, amount: item.amount, measure: item.measure })) };
+    this.exporting.set(true);
+    try {
+      await (format === 'pdf' ? downloadGroceryPdf(data) : downloadGroceryImage(data));
+    } catch {
+      this.toast.error('No se pudo generar la descarga. Inténtalo de nuevo.');
+    } finally {
+      this.exporting.set(false);
+    }
+  }
 
   protected choose(item: ShownItem, foodId: number): void {
     const original = Number(item.key.split('|')[3]);

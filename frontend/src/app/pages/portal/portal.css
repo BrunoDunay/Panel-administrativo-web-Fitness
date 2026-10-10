@@ -117,6 +117,13 @@
   transform: scale(0.98);
 }
 
+/* La sesión de hoy puede ser un nombre largo: no usa el tamaño de las cifras. */
+.today-session {
+  font-size: var(--text-xl);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .tile:hover {
     box-shadow: var(--shadow-md);

@@ -173,8 +173,10 @@ function serializeExercise(row, details) {
 }
 
 /** Plan completo con todo lo que las hojas Semana, Volumen, Progreso y Cardio calculaban. */
-export function buildTrainingView(plan, catalog) {
+export function buildTrainingView(plan, catalog, { lockedWeek = null } = {}) {
   if (!plan) return null;
+  // Portal: la semana bloqueada (falta el cuestionario de la anterior) no viaja; solo se avisa que existe.
+  const planWeeks = (plan.weeks ?? []).filter((week) => week.number !== lockedWeek);
 
   const split = Array.from({ length: 7 }, (_, i) => plan.split?.[i] || REST);
   const trainingDays = split.filter((session) => session !== REST).length;
@@ -218,7 +220,7 @@ export function buildTrainingView(plan, catalog) {
     };
   });
 
-  const weeks = (plan.weeks ?? []).map((week) => {
+  const weeks = planWeeks.map((week) => {
     const exercises = week.exercises.map((row) => serializeExercise(row, exerciseDetails.get(row.exercise)));
     const doneMinutes = plannedMinutes.map((_, i) => week.cardioLog?.[i + 1] ?? null);
     return {
@@ -304,6 +306,7 @@ export function buildTrainingView(plan, catalog) {
     cardioSessions: cardio.filter((day) => day.durationMin > 0).length,
     warmup,
     weeks,
+    lockedWeek: lockedWeek ? { number: lockedWeek, requiresCheckin: lockedWeek - 1 } : null,
     volume,
     progress,
   };

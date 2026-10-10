@@ -51,11 +51,18 @@ a.tile:active {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) 0;
 }
 
 .pay a {
   flex: 1;
   min-width: min(100%, 16rem);
+  padding-block: var(--space-1);
+}
+
+/* Cuando los botones bajan de renglón, se alinean a la derecha y conservan su aire respecto a la línea. */
+.pay > button:first-of-type {
+  margin-left: auto;
 }
 
 .feed__text {

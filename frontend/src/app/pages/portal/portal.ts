@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Btn } from '../../components/buttons/btn';
 import { Icon, IconName } from '../../components/icon/icon';
 import { NutritionPlanView } from '../../components/nutrition/nutrition-plan-view';
 import { SkeletonDashboard } from '../../components/skeletons/skeleton-dashboard';
@@ -12,6 +13,7 @@ import { SYMBOLS } from '../../core/config/tracking-lists';
 import { AuthService } from '../../core/services/auth.service';
 import { ClientStore } from '../../core/services/client-store';
 import { SeoService } from '../../core/services/seo.service';
+import { REST, WEEK_DAYS, weekDayOf } from '../../core/types/training.model';
 import { dueLabel, formatDate, formatMoney, formatNumber, formatSigned } from '../../core/utils/format';
 import { PanelUiStyles } from '../panel/shared/panel-ui-styles';
 
@@ -27,7 +29,7 @@ const TABS: { key: Tab; label: string; icon: IconName }[] = [
 /** Portal del cliente: su plan completo y el registro de su avance, con su enlace privado. */
 @Component({
   selector: 'app-portal',
-  imports: [PanelUiStyles, Icon, SkeletonDashboard, TrainingOverview, TrainingReports, WeekSheet, NutritionPlanView, WeightTracker, CheckinForm, MeasurementsPanel],
+  imports: [PanelUiStyles, Btn, Icon, SkeletonDashboard, TrainingOverview, TrainingReports, WeekSheet, NutritionPlanView, WeightTracker, CheckinForm, MeasurementsPanel],
   providers: [ClientStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './portal.html',
@@ -54,6 +56,24 @@ export class Portal {
   protected readonly week = computed(() => {
     const weeks = this.store.training()?.weeks ?? [];
     return weeks.find((week) => week.id === this.selectedWeek()) ?? weeks.at(-1) ?? null;
+  });
+
+  /** La semana en curso es la más reciente que el cliente puede ver: en ella se marca el día de hoy. */
+  protected readonly isCurrentWeek = computed(() => this.week()?.id === this.store.training()?.weeks.at(-1)?.id);
+  protected readonly todayDay = computed(() => weekDayOf(this.store.today()));
+  /** Semana lista que sigue oculta hasta contestar el cuestionario de la anterior. */
+  protected readonly lockedWeek = computed(() => this.store.training()?.lockedWeek ?? null);
+
+  /** Lo que toca hoy: sesión (o descanso), cardio y calentamiento del día. */
+  protected readonly todayPlan = computed(() => {
+    const plan = this.store.training();
+    if (!plan) return null;
+    const day = this.todayDay();
+    const session = plan.split[day - 1] ?? REST;
+    const cardio = plan.cardio.find((c) => c.day === day);
+    const warmup = plan.warmup.find((w) => w.day === day);
+    const extras = [warmup?.protocol ? `Calentamiento: ${warmup.protocol}` : null, cardio?.protocol && cardio.type !== 'NEAT' ? `Cardio: ${cardio.protocol}` : null].filter(Boolean);
+    return { name: WEEK_DAYS[day - 1], session, rest: session === REST, extras: extras.join(' · ') };
   });
 
   protected readonly firstName = computed(() => this.store.client()?.fullName.split(' ')[0] ?? '');

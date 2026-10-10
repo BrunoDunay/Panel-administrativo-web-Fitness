@@ -111,6 +111,8 @@ export interface TrainingView {
   cardioSessions: number;
   warmup: WarmupDay[];
   weeks: TrainingWeek[];
+  /** Portal: semana ya lista que el cliente no ve hasta contestar el cuestionario de `requiresCheckin`. */
+  lockedWeek?: { number: number; requiresCheckin: number } | null;
   volume: { muscle: string; priority: string; weeks: { number: number; planned: number; done: number; frequency: number }[] }[];
   progress: {
     day: number;
@@ -136,3 +138,8 @@ export interface PrescriptionRow {
 
 export const WEEK_DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 export const REST = 'Descanso';
+
+/** Día de la semana de una fecha AAAA-MM-DD: 1 = lunes … 7 = domingo. */
+export function weekDayOf(iso: string): number {
+  return ((new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7) + 1;
+}

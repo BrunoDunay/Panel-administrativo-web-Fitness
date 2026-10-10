@@ -4,7 +4,7 @@ import { Checkin, Client, NutritionPlan, TrainingPlan, TrainingWeek, WeightLog }
 import { sequelize } from '../config/database.js';
 import { generateAccessCode } from '../utils/access-code.js';
 import { todayInAppTz } from '../utils/dates-mx.js';
-import { ageOn } from '../services/calculations/training.js';
+import { ageOn, lockedWeekNumber } from '../services/calculations/training.js';
 import { loadCatalog } from '../services/catalog.service.js';
 import { buildNutritionView, findActiveNutritionPlan } from '../services/nutrition.service.js';
 import { changeDueDate, clientPaymentStatus, deletePayment, listPayments, registerPayment, setOverdueAccess } from '../services/payments.service.js';
@@ -122,9 +122,17 @@ export async function overview(req, res) {
     isCoach ? listPayments(client.id) : null,
   ]);
 
+  // El cliente no ve su semana nueva hasta contestar el cuestionario de la anterior; el coach siempre ve todo.
+  const lockedWeek = isCoach
+    ? null
+    : lockedWeekNumber(
+        (trainingPlan?.weeks ?? []).map((week) => week.number),
+        tracking.checkins.map((checkin) => checkin.weekNumber),
+      );
+
   res.json({
     client: serializeClient(client, { forCoach: isCoach }),
-    training: buildTrainingView(trainingPlan, catalog),
+    training: buildTrainingView(trainingPlan, catalog, { lockedWeek }),
     nutrition,
     tracking,
     payment: clientPaymentStatus(client, today),
@@ -142,6 +150,12 @@ export async function update(req, res) {
   }
   await req.client.update(req.valid.body);
   res.json(serializeClient(req.client, { forCoach: true }));
+}
+
+/** Pausar, archivar o reactivar desde la lista, sin abrir el expediente. */
+export async function setStatus(req, res) {
+  await req.client.update({ status: req.valid.body.status });
+  res.status(204).end();
 }
 
 export async function remove(req, res) {

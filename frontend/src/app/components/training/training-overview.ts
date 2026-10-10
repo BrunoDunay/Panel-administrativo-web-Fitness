@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { REST, TrainingView, WEEK_DAYS } from '../../core/types/training.model';
 import { formatDate, formatNumber } from '../../core/utils/format';
 
-/** Resumen de lectura del plan: objetivo, bloque, split, prioridades, pasos, cardio y calentamiento. */
+/** Resumen de lectura del plan: objetivo, bloque, split, prioridades y pasos. El calentamiento y el cardio van en cada día de la semana. */
 @Component({
   selector: 'app-training-overview',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,8 +38,8 @@ import { formatDate, formatNumber } from '../../core/utils/format';
       <h3 class="card__title head">Split semanal</h3>
       <ol class="split">
         @for (session of plan().split; track $index) {
-          <li [class.is-rest]="session === rest">
-            <span>{{ days[$index].slice(0, 3) }}</span>
+          <li [class.is-rest]="session === rest" [class.is-today]="$index + 1 === today()">
+            <span>{{ days[$index].slice(0, 3) }}@if ($index + 1 === today()) { · hoy }</span>
             <strong>{{ session }}</strong>
           </li>
         }
@@ -76,31 +76,6 @@ import { formatDate, formatNumber } from '../../core/utils/format';
         </div>
       </section>
     </div>
-
-    @if (hasWarmup()) {
-      <section class="card">
-        <h3 class="card__title head">Calentamiento por día</h3>
-        <p class="card__hint head">Son pautas generales: individualiza según cómo llegues ese día. Las series de aproximación van solo donde las necesites.</p>
-        <div class="stack stack--sm">
-          @for (day of plan().warmup; track day.day) {
-            @if (day.protocol) {
-              <details class="details">
-                <summary>Día {{ day.day }} · {{ days[day.day - 1] }} · {{ day.session }} — {{ day.protocol }} @if (day.duration) { ({{ day.duration }}) }</summary>
-                <div class="details__body">
-                  <dl class="dl">
-                    @if (day.general) { <dt>General</dt><dd>{{ day.general }}</dd> }
-                    @if (day.mobility) { <dt>Movilidad</dt><dd>{{ day.mobility }}</dd> }
-                    @if (day.activation) { <dt>Activación</dt><dd>{{ day.activation }}</dd> }
-                    @if (day.rampUpSets) { <dt>Aproximación</dt><dd>{{ day.rampUpSets }}</dd> }
-                    @if (day.notes) { <dt>Ajustes</dt><dd>{{ day.notes }}</dd> }
-                  </dl>
-                </div>
-              </details>
-            }
-          }
-        </div>
-      </section>
-    }
 
     @if (plan().macroBlocks.length) {
       <section class="card">
@@ -141,6 +116,8 @@ import { formatDate, formatNumber } from '../../core/utils/format';
     .split span { font-size: var(--text-xs); opacity: 0.8; }
     .split strong { font-size: var(--text-sm); overflow-wrap: anywhere; }
     .split .is-rest { background: var(--color-surface-alt); color: var(--color-text-muted); }
+    .split .is-today { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .split .is-today span { font-weight: 700; opacity: 1; }
     .steps { font-size: var(--text-xl); }
     .note { display: block; font-size: var(--text-xs); font-weight: 400; color: var(--color-text-muted); }
     @media (max-width: 640px) {
@@ -150,6 +127,8 @@ import { formatDate, formatNumber } from '../../core/utils/format';
 })
 export class TrainingOverview {
   readonly plan = input.required<TrainingView>();
+  /** Día de hoy (1 = lunes) para marcarlo en el split; sin valor no se marca. */
+  readonly today = input<number | null>(null);
   protected readonly days = WEEK_DAYS;
   protected readonly rest = REST;
   protected readonly date = formatDate;
@@ -163,10 +142,6 @@ export class TrainingOverview {
 
   protected hasPriorities(): boolean {
     return this.levels.some((level) => this.plan().priorities[level.key]?.length);
-  }
-
-  protected hasWarmup(): boolean {
-    return this.plan().warmup.some((day) => day.protocol);
   }
 
   protected noteText(note: { sets?: string | null; frequency?: string | null; strategy?: string | null }): string {

@@ -211,7 +211,7 @@
                 @if (weekMode() === 'prescription') {
                   <app-week-prescription-editor [week]="current" [catalog]="catalog()!" />
                 } @else {
-                  <app-week-sheet [week]="current" [cardio]="plan.cardio" />
+                  <app-week-sheet [week]="current" [cardio]="plan.cardio" [warmup]="plan.warmup" [steps]="plan.steps" [current]="isLastWeek()" />
                 }
               } @else {
                 <section class="card empty">

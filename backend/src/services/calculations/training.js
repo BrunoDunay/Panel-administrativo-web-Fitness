@@ -90,6 +90,16 @@ export function cardioCompliance(plannedMinutes, doneMinutes) {
 }
 
 /** Cambio de una medida entre la medición inicial y la más reciente. */
+/**
+ * Semana que el cliente todavía no puede ver: la más reciente del plan, mientras no conteste
+ * el cuestionario de la anterior. Devuelve su número, o null si no hay ninguna bloqueada.
+ */
+export function lockedWeekNumber(weekNumbers, answeredWeeks) {
+  const last = Math.max(0, ...weekNumbers);
+  if (last <= 1 || !weekNumbers.includes(last - 1)) return null;
+  return answeredWeeks.includes(last - 1) ? null : last;
+}
+
 export function measurementDelta(values) {
   const taken = values.filter(isNumber);
   if (taken.length < 2 || !isNumber(values[0])) return { delta: null, pct: null };

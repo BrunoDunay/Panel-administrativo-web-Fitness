@@ -28,6 +28,11 @@ export class PanelApi {
     return this.http.post<Client>(`${this.api}/clients`, body);
   }
 
+  /** Pausar, archivar o reactivar a un cliente desde la lista. */
+  setClientStatus(clientId: string, status: ClientStatus) {
+    return this.http.put<void>(`${this.api}/clients/${clientId}/status`, { status });
+  }
+
   /** Registrar un pago desde el resumen, sin abrir el expediente. */
   registerPayment(clientId: string, body: PaymentDraft) {
     return this.http.post<Payment>(`${this.api}/clients/${clientId}/payments`, body);

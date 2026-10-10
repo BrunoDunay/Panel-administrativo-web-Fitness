@@ -693,10 +693,6 @@ form {
     padding-inline: var(--space-3);
   }
 
-  .meal {
-    padding: var(--space-3);
-  }
-
   .grp {
     grid-template-columns: minmax(0, 1fr) auto;
     padding-block: var(--space-2);
