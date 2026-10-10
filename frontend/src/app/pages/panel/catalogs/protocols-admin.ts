@@ -15,6 +15,8 @@ const CARDIO: Record<string, { icon: IconName; tone: Tone }> = {
 /** Íconos que el coach puede elegir para un protocolo. */
 const PROTOCOL_ICONS: { name: IconName; label: string }[] = [
   { name: 'run', label: 'Correr' },
+  { name: 'walk', label: 'Caminata' },
+  { name: 'bike', label: 'Bicicleta' },
   { name: 'steps', label: 'Pasos' },
   { name: 'heart', label: 'Corazón' },
   { name: 'scanHeart', label: 'Pulso' },

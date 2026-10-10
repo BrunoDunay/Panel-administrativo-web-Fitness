@@ -65,12 +65,24 @@ La animación se dispara sola, sin marcar nada en la plantilla:
 | `shake` | Sacudida | Eliminar, alertas |
 | `lift` | Sube y gira, como una repetición | Mancuerna |
 | `tilt` | Inclinación breve | Editar, báscula, pastilla |
+| `flicker` | Titila desde la base | Llama |
+| `beat` / `pulse` | Dos latidos (en `pulse` solo late el último trazo) | Corazón, pulso |
+| `stride` | Dos zancadas: piernas y brazos se balancean y el cuerpo rebota | Corredor, caminante |
+| `steps` | Un pie y luego el otro | Huellas |
+| `ride` | Las ruedas giran, el ciclista pedalea y la bici avanza | Bicicleta |
+| `reach` | El cuerpo se alarga y regresa | Estiramiento |
+| `tick` / `sweep` | Giran las manecillas / barre la aguja | Reloj, velocímetro |
+
+Las de cardio y calentamiento (de `flicker` en adelante) mueven **partes** del icono con
+`> :nth-child(n)`, así que dependen del orden de los trazos: `stride` espera cabeza, pierna de atrás,
+torso con pierna de adelante y brazos; `ride`, las dos ruedas primero. Si el icono es decorativo,
+al aparecer se dibuja y luego hace su movimiento una vez (lista `LIVELY` en `icon.ts`).
 
 Reglas que ya respeta el componente y hay que conservar:
 
 - No se apaga con "reducir movimiento": es un movimiento pequeño que el usuario provoca, y en Windows esa opción suele estar activa sin que la persona lo sepa.
 - El disparador se resuelve en el navegador (`afterNextRender`), así que el HTML del servidor no cambia.
-- Dura menos de 650 ms y usa curvas de salida fuertes; no se repite en bucle.
+- Dura menos de 650 ms y usa curvas de salida fuertes; no se repite en bucle (zancadas y latidos son dos ciclos dentro de esa misma duración).
 - La animación debe **decir algo del icono** (una flecha avanza, un bote se sacude). Si no hay un
   movimiento que venga al caso, se queda en `draw`.
 

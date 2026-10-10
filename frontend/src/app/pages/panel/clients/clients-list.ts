@@ -191,7 +191,7 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
       .table td { display: grid; align-content: start; justify-items: start; gap: 2px; min-width: 0; padding: 0; border: 0; text-align: left; }
       .table td::before { content: attr(data-label); font-size: 0.68rem; font-weight: 700; letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--color-text-muted); }
       .table td:first-child, .table td:last-child { grid-column: 1 / -1; }
-      .table td:first-child { font-size: var(--text-base); }
+      .table td:first-child { grid-template-columns: minmax(0, 1fr); justify-content: stretch; justify-items: stretch; font-size: var(--text-base); }
       .table td:first-child::before { content: none; }
       /* Plegado: solo el nombre. Al desplegar aparecen sus datos y sus acciones. */
       .table tr:not(.is-open) td:not(:first-child) { display: none; }

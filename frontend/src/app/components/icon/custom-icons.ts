@@ -25,6 +25,9 @@ export const CUSTOM_ICONS = {
   ruler: stroke('M5 4h14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-7a1 1 0 0 0-1 1v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1', 'M4 8h2', 'M4 12h3', 'M4 16h2', 'M8 4v2', 'M12 4v3', 'M16 4v2'),
   scale: stroke('M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z', 'M8.5 10.5a3.5 3.5 0 0 1 7 0z', 'M12 10.5l1.4-2'),
   run: stroke('M13 4m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M4 17l5 1l.75-1.5', 'M15 21v-4l-4-3l1-6', 'M7 12V9l5-1l3 3l3 1'),
+  // Caminata y bicicleta: trazos de Tabler Icons (licencia MIT), mismo orden de partes que `run`.
+  walk: stroke('M13 4m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M7 21l3-4', 'M16 21l-2-4l-3-3l1-6', 'M6 12l2-3l4-1l3 3l3 1'),
+  bike: stroke('M5 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0', 'M19 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0', 'M12 19v-4l-3-3l5-4l2 3l3 0', 'M17 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0'),
   stretch: stroke('M16 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0', 'M5 20l5-.5l1-2', 'M18 20v-5h-5.5l2.5-6.5l-5.5 1l1.5 2'),
   swap: stroke('M7 10h14l-4-4', 'M17 14H3l4 4'),
   apple: stroke('M12 8c-2.6-1.8-7-.6-7 4.4C5 17 8 21 10 21c.9 0 1.4-.5 2-.5s1.1.5 2 .5c2 0 5-4 5-8.6C19 7.4 14.6 6.2 12 8', 'M12 8c0-2.2 1-3.6 3-4.5'),
