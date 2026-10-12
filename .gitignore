@@ -16,3 +16,6 @@ Thumbs.db
 
 # Plantillas originales del coach (material de trabajo privado; el repositorio es público)
 Estructura y funcionalidad/
+
+# Archivos de clientes reales (datos personales y de salud): nunca van al repositorio
+clientes/
