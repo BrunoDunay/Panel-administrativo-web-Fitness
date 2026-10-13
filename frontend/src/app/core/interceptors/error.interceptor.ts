@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { API_URL } from '../config/api.config';
 import { AuthService } from '../services/auth.service';
+import { ConnectionService } from '../services/connection.service';
 import { ToastService } from '../services/toast.service';
 import { ApiError } from '../types/common.model';
 
@@ -31,6 +32,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const toast = inject(ToastService);
+  const connection = inject(ConnectionService);
   const isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   return next(req).pipe(
@@ -39,6 +41,15 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       const apiError = toApiError(error);
       const isLogin = req.url.endsWith('/auth/login');
+
+      // Sin red al cargar una pantalla: se muestra la página "Sin conexión" en lugar de un aviso suelto.
+      // La landing queda fuera (tiene contenido de respaldo), igual que la propia comprobación de salud.
+      const isBackground = req.url.endsWith('/settings') || req.url.endsWith('/health');
+      if (isBrowser && apiError.status === 0 && req.method === 'GET' && !isBackground) {
+        connection.report();
+        return throwError(() => apiError);
+      }
+      if (isBrowser && apiError.status === 0 && req.url.endsWith('/health')) return throwError(() => apiError);
 
       if (apiError.status === 401 && !isLogin && auth.token()) {
         auth.logout(false);

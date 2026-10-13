@@ -1,7 +1,10 @@
 // Fechas de pago: cuándo vence el siguiente y en qué estado está respecto a hoy.
 
-/** Meses que cubre cada tipo de plan. */
-export const PLAN_MONTHS = { Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
+/** Meses que cubre cada tipo de plan. La quincena vale medio mes: se cuenta como 15 días. */
+export const PLAN_MONTHS = { Quincenal: 0.5, Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
+
+/** Días que suma medio mes (plan quincenal). */
+export const HALF_MONTH_DAYS = 15;
 
 /** Plan con fechas acordadas a mano: no sigue el calendario de ningún periodo fijo. */
 export const CUSTOM_PLAN = 'Personalizado';
@@ -14,11 +17,16 @@ const toUtc = (iso) => Date.parse(`${iso}T00:00:00Z`);
 
 export const periodMonths = (planType) => PLAN_MONTHS[planType] ?? 1;
 
-/** Suma meses conservando el día; si el mes destino es más corto, usa su último día (31 ene → 28 feb). */
+/**
+ * Suma meses conservando el día; si el mes destino es más corto, usa su último día (31 ene → 28 feb).
+ * La fracción de mes (plan quincenal) se suma en días: medio mes son 15 días.
+ */
 export function addMonths(iso, months) {
+  const whole = Math.trunc(months);
+  const extraDays = Math.round((months - whole) * 2 * HALF_MONTH_DAYS);
   const [year, month, day] = iso.split('-').map(Number);
-  const lastDay = new Date(Date.UTC(year, month - 1 + months + 1, 0)).getUTCDate();
-  return new Date(Date.UTC(year, month - 1 + months, Math.min(day, lastDay))).toISOString().slice(0, 10);
+  const lastDay = new Date(Date.UTC(year, month - 1 + whole + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1 + whole, Math.min(day, lastDay) + extraDays)).toISOString().slice(0, 10);
 }
 
 /**

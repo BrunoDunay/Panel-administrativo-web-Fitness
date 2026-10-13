@@ -49,6 +49,8 @@ export type BtnVariant = 'solid' | 'outline' | 'ghost' | 'light' | 'danger' | 's
         background-color var(--duration-fast) ease,
         color var(--duration-fast) ease,
         border-color var(--duration-fast) ease,
+        box-shadow var(--duration) var(--ease-out),
+        filter var(--duration-fast) ease,
         transform 140ms var(--ease-out);
     }
     /* La interfaz responde al toque: el botón cede un poco al presionarlo. */
@@ -62,20 +64,22 @@ export type BtnVariant = 'solid' | 'outline' | 'ghost' | 'light' | 'danger' | 's
     }
     :host(.btn--block) { display: flex; width: 100%; }
 
-    :host(.btn--solid) { background: var(--color-primary); color: var(--color-text-inverse); }
+    /* Principal: degradado esmeralda con brillo; ya no es un color plano. */
+    :host(.btn--solid) { background: var(--gradient-emerald); color: #ffffff; box-shadow: 0 10px 22px -12px var(--color-primary), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
     :host(.btn--outline) { border-color: var(--color-border-strong); color: var(--color-text); background: var(--color-surface); }
     :host(.btn--ghost) { background: transparent; color: var(--color-text-muted); padding-inline: var(--space-3); }
-    :host(.btn--soft) { background: var(--color-primary-soft); color: var(--color-primary); }
+    /* Secundario: blanco con contorno esmeralda (antes, relleno pastel). */
+    :host(.btn--soft) { border-color: color-mix(in srgb, var(--color-primary) 55%, transparent); background: var(--color-surface); color: var(--color-primary); }
     :host(.btn--light) { background: var(--color-text-inverse); color: var(--color-secondary); }
-    :host(.btn--danger) { background: var(--color-danger); color: var(--color-text-inverse); }
+    :host(.btn--danger) { background: var(--gradient-coral); color: #ffffff; box-shadow: 0 10px 22px -12px var(--color-danger), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
 
     @media (hover: hover) and (pointer: fine) {
-      :host(.btn--solid:hover) { background: var(--color-primary-hover); }
+      :host(.btn--solid:hover) { filter: brightness(1.08) saturate(1.08); box-shadow: 0 14px 28px -12px var(--color-primary), inset 0 1px 0 rgba(255, 255, 255, 0.22); transform: translateY(-1px); }
       :host(.btn--outline:hover) { border-color: var(--color-primary); color: var(--color-primary); }
       :host(.btn--ghost:hover) { color: var(--color-primary); background: var(--color-primary-soft); }
-      :host(.btn--soft:hover) { background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface)); }
+      :host(.btn--soft:hover) { border-color: var(--color-primary); background: var(--color-primary); color: #ffffff; }
       :host(.btn--light:hover) { background: var(--color-surface); }
-      :host(.btn--danger:hover) { background: color-mix(in srgb, var(--color-danger) 88%, black); }
+      :host(.btn--danger:hover) { filter: brightness(1.08); transform: translateY(-1px); }
     }
 
     .spinner {

@@ -202,6 +202,21 @@ const STATUS_LABELS: Record<ClientStatus, string> = { active: 'Activo', paused: 
       .toggle[aria-expanded='true'] { background: var(--color-primary-soft); color: var(--color-primary); rotate: 180deg; }
     }
     .access.is-locked { border-color: var(--color-danger); background: var(--color-danger-soft); color: var(--color-danger); }
+    /* Rediseño: sin rellenos pastel */
+    .filter { border-color: color-mix(in srgb, var(--tone) 45%, var(--color-border)); background: var(--color-surface); }
+    .filter b { background: color-mix(in srgb, var(--tone) 14%, #ffffff); }
+    .filter[aria-selected='true'] { border-color: transparent; }
+    .filter[aria-selected='true'] b { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
+    .avatar.status--paused { background: var(--gradient-amber); color: #ffffff; }
+    .avatar.status--archived { background: var(--gradient-slate); color: #ffffff; }
+    .access, .access.is-locked, .act--pause, .act--resume { background: var(--color-surface); }
+    .toggle[aria-expanded='true'] { background: var(--color-primary); color: #ffffff; }
+    @media (hover: hover) and (pointer: fine) {
+      .access:hover { background: var(--color-success); color: #ffffff; }
+      .access.is-locked:hover { background: var(--color-danger); color: #ffffff; }
+      .act--pause:hover { background: var(--tone-amber); color: #ffffff; }
+      .act--resume:hover { background: var(--color-success); color: #ffffff; }
+    }
   `,
 })
 export class ClientsList {

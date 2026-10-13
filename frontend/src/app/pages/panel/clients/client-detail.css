@@ -109,12 +109,10 @@
   padding: var(--space-3) var(--space-4);
 }
 
+/* El selector decide cuántas semanas enseñar: aquí nunca hay desplazamiento lateral. */
 .weekbar__weeks {
-  display: flex;
-  gap: var(--space-2);
+  flex: 1;
   max-width: 100%;
-  padding: 2px;
-  overflow-x: auto;
 }
 
 .weekbar__week {
@@ -344,3 +342,121 @@
     color: var(--color-primary);
   }
 }
+
+/* ---------- Cuestionario: barras que crecen y discos que se llenan ---------- */
+/* Cada fila arranca un poco después de la anterior: el ojo las recorre de arriba abajo. */
+.checkin__row .meter > span {
+  animation: checkin-grow 1100ms var(--ease-out) calc(220ms + var(--i, 0) * 70ms) both;
+}
+
+@keyframes checkin-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.checkin__value small {
+  display: none;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.dial {
+  display: none;
+}
+
+/* Teléfono: la barra queda tan corta que no se lee; cada respuesta pasa a ser un disco. */
+@media (max-width: 720px) {
+  .checkin {
+    grid-template-columns: repeat(auto-fill, minmax(6.25rem, 1fr));
+    gap: var(--space-4) var(--space-2);
+  }
+
+  .checkin__row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'dial' 'label';
+    justify-items: center;
+    gap: var(--space-2);
+    text-align: center;
+  }
+
+  .checkin__row .meter {
+    display: none;
+  }
+
+  .dial {
+    --dial: var(--color-primary);
+    grid-area: dial;
+    display: block;
+    width: 4.5rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    /* El sector crece en el sentido del reloj desde las doce. */
+    background: conic-gradient(var(--dial) var(--fill), var(--color-surface-alt) 0);
+    animation: dial-fill 1200ms var(--ease-out) calc(200ms + var(--i, 0) * 80ms) both;
+  }
+
+  .is-low .dial {
+    --dial: var(--color-warning);
+  }
+
+  .checkin__label {
+    grid-area: label;
+    font-size: var(--text-xs);
+    line-height: 1.25;
+    color: var(--color-text-muted);
+  }
+
+  .checkin__row b.checkin__value {
+    grid-area: dial;
+    align-self: center;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: var(--color-surface);
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    text-align: center;
+  }
+
+}
+
+@keyframes dial-fill {
+  from {
+    --fill: 0%;
+  }
+  to {
+    --fill: var(--value);
+  }
+}
+
+/* Rediseño: pasos y semanas con color medio */
+.step[aria-selected='true'] {
+  background: var(--gradient-emerald);
+  box-shadow: 0 14px 30px -18px var(--color-primary);
+}
+
+.step:nth-child(2)[aria-selected='true'] {
+  background: var(--gradient-steel);
+  box-shadow: 0 14px 30px -18px var(--tone-steel);
+}
+
+.step:nth-child(3)[aria-selected='true'] {
+  background: var(--gradient-teal);
+  box-shadow: 0 14px 30px -18px var(--tone-teal);
+}
+
+.step__icon {
+  background: var(--gradient-slate);
+  color: #ffffff;
+}
+
+.weekbar__week--new {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+

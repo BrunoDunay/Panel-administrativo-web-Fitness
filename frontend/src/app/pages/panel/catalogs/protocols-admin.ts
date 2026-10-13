@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PageHeader } from '../shared/page-header';
 import { IconName } from '../../../components/icon/icon';
-import { BIKE_FIGURE, ELLIPTICAL_FIGURE, LISS_FIGURES, LOWER_WARMUP_FIGURES, ROPE_FIGURE, ROWER_FIGURE, SQUAT_FIGURE, TREADMILL_FIGURES } from '../../../components/visual/cardio-figures';
+import { BIKE_FIGURE, SQUAT_FIGURE, TREADMILL_FIGURES } from '../../../components/visual/cardio-figures';
+import { protocolFigureByName } from '../../../components/visual/protocol-figures';
 import { Tone } from '../../../core/utils/visuals';
 import { CatalogCrud, CrudColumn, CrudField, IconPicker, Row, RowVisual } from './catalog-crud';
 
@@ -44,26 +45,11 @@ type Figure = NonNullable<RowVisual['figure']>;
 
 /** Íconos que, al elegirlos, muestran un dibujo animado en vez del ícono. */
 const ICON_FIGURES: Partial<Record<IconName, Figure>> = { walk: TREADMILL_FIGURES, bike: BIKE_FIGURE, squat: SQUAT_FIGURE };
-/**
- * Protocolos que traen su dibujo por nombre. Van primero los que usan varias máquinas (el dibujo
- * las recorre) y después cada máquina: bicicleta fija, caminadora, elíptica, remo, cuerda y sentadilla.
- */
-const NAME_FIGURES: [RegExp, Figure][] = [
-  [/liss/i, LISS_FIGURES],
-  [/compuesto/i, LOWER_WARMUP_FIGURES],
-  [/bici|cicl|spinning|aislamiento/i, BIKE_FIGURE],
-  [/caminadora|caminata|caminar|marcha/i, TREADMILL_FIGURES],
-  [/el[ií]ptic/i, ELLIPTICAL_FIGURE],
-  [/remo|erg[oó]metro|tracci[oó]n|empuje/i, ROWER_FIGURE],
-  [/cuerda|express|expr[eé]s/i, ROPE_FIGURE],
-  [/sentadilla/i, SQUAT_FIGURE],
-];
-
 /** Dibujo del protocolo: el del ícono que eligió el coach o, si no eligió uno de esos, el que corresponde a su nombre. */
 function protocolFigure(row: Row): Figure | undefined {
   const chosen = chosenIcon(row);
   const name = String(row['name'] ?? '');
-  return (chosen && ICON_FIGURES[chosen]) || NAME_FIGURES.find(([pattern]) => pattern.test(name))?.[1];
+  return (chosen && ICON_FIGURES[chosen]) || protocolFigureByName(name);
 }
 import { CatalogPage } from './catalog-page';
 

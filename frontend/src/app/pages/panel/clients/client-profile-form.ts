@@ -25,7 +25,7 @@ export interface ClientFormValue {
 }
 
 const LISTS = {
-  planTypes: ['Mensual', 'Trimestral', 'Semestral', 'Anual', 'Personalizado'],
+  planTypes: ['Quincenal', 'Mensual', 'Trimestral', 'Semestral', 'Anual', 'Personalizado'],
   paymentMethods: PAYMENT_METHODS,
   trainingPlaces: ['Gym comercial', 'Gym privado', 'Casa', 'Mixto'],
   levels: ['Principiante', 'Intermedio', 'Avanzado'],
@@ -34,7 +34,7 @@ const LISTS = {
 };
 
 /** Meses que cubre cada plan; el personalizado y el indefinido sugieren un mes. */
-const PLAN_MONTHS: Record<string, number> = { Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
+const PLAN_MONTHS: Record<string, number> = { Quincenal: 0.5, Mensual: 1, Trimestral: 3, Semestral: 6, Anual: 12 };
 
 function localToday(): string {
   const now = new Date();

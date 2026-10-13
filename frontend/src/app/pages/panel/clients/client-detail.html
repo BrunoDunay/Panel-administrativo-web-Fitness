@@ -25,7 +25,7 @@
   @switch (tab()) {
     @case ('summary') {
       <div class="stack">
-        <section class="card card--vivid tone--slate link icon-hover">
+        <section class="card card--vivid tone--emerald link icon-hover">
           <span class="tile-icon"><app-icon name="link" [size]="22" /></span>
           <div class="link__text">
             <p class="link__eyebrow">Enlace privado del cliente</p>
@@ -107,12 +107,14 @@
               <span class="card__hint">{{ date(checkin.date) }}</span>
             </header>
             <div class="checkin">
-              @for (rating of ratings; track rating.key) {
+              @for (rating of ratings; track rating.key; let i = $index) {
                 @let value = checkin.ratings[rating.key];
-                <div class="checkin__row">
-                  <span>{{ rating.label }}</span>
+                <div class="checkin__row" [class.is-low]="(value ?? 5) <= 2" [style.--i]="i">
+                  <span class="checkin__label">{{ rating.label }}</span>
+                  <!-- Escritorio: barra que se alarga. Teléfono: disco que se llena como un reloj. -->
                   <div class="meter" [class.meter--warning]="(value ?? 5) <= 2"><span [style.width.%]="(value ?? 0) * 20"></span></div>
-                  <b>{{ value ?? '—' }}</b>
+                  <span class="dial" [style.--value.%]="(value ?? 0) * 20" aria-hidden="true"></span>
+                  <b class="checkin__value">{{ value ?? '—' }}<small> / 5</small></b>
                 </div>
               }
             </div>
@@ -184,16 +186,11 @@
             }
             @case ('weeks') {
               <section class="card weekbar">
-                <div class="weekbar__weeks" role="tablist" aria-label="Semana">
-                  @for (item of plan.weeks; track item.id) {
-                    <button type="button" class="weekbar__week" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">
-                      <small>Semana</small><b>{{ item.number }}</b>
-                    </button>
-                  }
+                <app-week-picker class="weekbar__weeks" [weeks]="plan.weeks" [selected]="week()?.id ?? null" (pick)="selectWeek($event)">
                   <button type="button" class="weekbar__week weekbar__week--new icon-hover" (click)="addWeek()" [attr.aria-label]="plan.weeks.length ? 'Crear la semana siguiente' : 'Crear la semana 1'">
                     <app-icon name="plus" [size]="18" /><small>{{ plan.weeks.length ? 'Nueva' : 'Crear semana 1' }}</small>
                   </button>
-                </div>
+                </app-week-picker>
                 @if (week(); as current) {
                   <div class="weekbar__tools">
                     <div class="tabs tabs--solid" role="tablist" aria-label="Modo">

@@ -19,3 +19,15 @@ Estructura y funcionalidad/
 
 # Archivos de clientes reales (datos personales y de salud): nunca van al repositorio
 clientes/
+
+# Video de la portada: salidas intermedias de HyperFrames
+video-flujo/renders/
+video-flujo/snapshots/
+video-flujo/node_modules/
+video-flujo/.hyperframes/
+video-flujo-vertical/renders/
+video-flujo-vertical/snapshots/
+video-flujo-vertical/assets/
+video-flujo-vertical/fonts/
+# Videos finales para compartir (se regeneran desde video-flujo)
+videos-para-compartir/

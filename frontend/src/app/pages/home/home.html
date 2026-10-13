@@ -1,9 +1,24 @@
 @let s = site();
 
-<header class="nav">
+<a class="skip" href="#contenido">Saltar al contenido</a>
+
+<!-- Destello que sigue al cursor (solo con ratón; en teléfono no existe). -->
+<div class="cursor" #cursor aria-hidden="true">
+  <span class="cursor__halo"></span>
+  <span class="cursor__spark"></span>
+  <!-- El puntero de la página: un punto verde que se vuelve mancuerna sobre botones y enlaces. -->
+  <span class="cursor__pointer">
+    <span class="cursor__dot"></span>
+    <svg class="cursor__bell" viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 12h14" /><rect x="11" y="4" width="6" height="16" rx="2" /><rect x="31" y="4" width="6" height="16" rx="2" /><rect x="5" y="7" width="6" height="10" rx="2" /><rect x="37" y="7" width="6" height="10" rx="2" /><path d="M2 12h3M43 12h3" />
+    </svg>
+  </span>
+</div>
+
+<header class="nav" [class.is-scrolled]="scrolled()">
   <div class="container nav__inner">
     <a class="nav__brand" href="#inicio" aria-label="Fitness by Evidence, inicio">
-      <img src="/brand/mark-light.png" alt="" width="640" height="356" />
+      <app-brand-mark tone="light" build="load" [replay]="true" />
       <span class="display">{{ s.brand.name }}</span>
     </a>
     <nav class="nav__links" aria-label="Secciones">
@@ -12,42 +27,80 @@
       <a href="#coach">Coach</a>
       <a href="#contacto">Contacto</a>
     </nav>
-    <a appBtn variant="light" size="sm" [href]="cta()" [attr.target]="ctaExternal() ? '_blank' : null" [attr.rel]="ctaExternal() ? 'noopener' : null">{{ s.hero.ctaLabel || 'Contacto' }}</a>
+    <a class="cta cta--sm" [href]="cta()" [attr.target]="ctaExternal() ? '_blank' : null" [attr.rel]="ctaExternal() ? 'noopener' : null">{{ s.hero.ctaLabel || 'Quiero mi plan' }}</a>
   </div>
 </header>
 
-<main>
+<main id="contenido">
   <section class="hero" id="inicio">
-    <div class="hero__mark" aria-hidden="true"><img src="/brand/mark-light.png" alt="" width="640" height="356" /></div>
-    <div class="container hero__content">
-      <p class="hero__eyebrow fade-up">{{ s.hero.eyebrow }}</p>
-      <h1 class="display hero__title fade-up">{{ s.hero.title }}</h1>
-      <p class="hero__subtitle fade-up" [innerHTML]="s.hero.subtitle | emphasis"></p>
-      <div class="hero__actions fade-up">
-        <a appBtn variant="light" size="lg" [href]="cta()" [attr.target]="ctaExternal() ? '_blank' : null" [attr.rel]="ctaExternal() ? 'noopener' : null">
-          {{ s.hero.ctaLabel || 'Quiero mi plan' }} <app-icon name="arrowRight" [size]="18" />
-        </a>
-        <a class="hero__link" href="#metodo">Cómo trabajo</a>
+    <div class="hero__grid-bg" aria-hidden="true"></div>
+    <div class="container hero__layout">
+      <div class="hero__copy">
+        <p class="hero__eyebrow mono rise" style="--i: 0">{{ s.hero.eyebrow }}</p>
+        <h1 class="display hero__title">
+          <!-- Cada palabra sube desde detrás de su propia máscara; el lector de pantalla recibe la frase entera. -->
+          <span class="visually-hidden">{{ s.hero.title }}</span>
+          @for (word of titleWords(); track $index) {
+            <span class="word" aria-hidden="true"><span class="word__in" [style.--i]="$index">{{ word }}</span></span>
+          }
+        </h1>
+        <p class="hero__subtitle rise" style="--i: 4" [innerHTML]="s.hero.subtitle | emphasis"></p>
+        <div class="hero__actions rise" style="--i: 5">
+          <a class="cta" [href]="cta()" [attr.target]="ctaExternal() ? '_blank' : null" [attr.rel]="ctaExternal() ? 'noopener' : null">
+            {{ s.hero.ctaLabel || 'Quiero mi plan' }} <span class="cta__arrow"><app-icon name="arrowRight" [size]="18" /></span>
+          </a>
+          <a class="hero__link" href="#metodo">Cómo trabajo</a>
+        </div>
       </div>
+
+      <!-- El video cuenta cómo se arma un programa nuevo: de la evaluación al plan en el teléfono del cliente. -->
+      <figure class="reel rise" style="--i: 3">
+        <div class="reel__frame">
+          <video
+            #reel
+            class="reel__video"
+            [class.is-vertical]="phone()"
+            [poster]="'/media/flujo-programa' + (phone() ? '-vertical' : '') + '.jpg'"
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            aria-label="Animación: cómo se diseña un programa nuevo, de la evaluación al plan en el teléfono del cliente"
+          ></video>
+          <button class="reel__sound" type="button" (click)="toggleSound(reel)" [attr.aria-pressed]="!muted()" [attr.aria-label]="muted() ? 'Activar la música del video' : 'Silenciar el video'">
+            <app-icon [name]="muted() ? 'volumeOff' : 'volume'" [size]="18" />
+            <span>{{ muted() ? 'Con sonido' : 'Silenciar' }}</span>
+          </button>
+        </div>
+        <figcaption class="reel__caption mono">Así se arma un programa nuevo · 28 s</figcaption>
+      </figure>
     </div>
-    <ul class="container hero__facts">
-      <li><span class="fact-icon"><app-icon name="dumbbell" [size]="20" /></span><span><strong>Entrenamiento</strong>Series, repeticiones y RIR pautados por semana</span></li>
-      <li><span class="fact-icon"><app-icon name="apple" [size]="20" /></span><span><strong>Nutrición</strong>Calorías y macros con gramos exactos por comida</span></li>
-      <li><span class="fact-icon"><app-icon name="chart" [size]="20" /></span><span><strong>Seguimiento</strong>Tu panel en línea, revisado cada semana</span></li>
+  </section>
+
+  <!-- Los tres pilares del servicio, justo bajo la portada. -->
+  <section class="facts" aria-label="Qué incluye">
+    <ul class="container facts__list">
+      <li class="hue--mint" appReveal><app-icon name="dumbbell" [size]="22" /><span><strong>Entrenamiento</strong>Series, repeticiones y RIR pautados por semana</span></li>
+      <li class="hue--amber" appReveal [revealDelay]="70"><app-icon name="apple" [size]="22" /><span><strong>Nutrición</strong>Calorías y macros con gramos exactos por comida</span></li>
+      <li class="hue--cyan" appReveal [revealDelay]="140"><app-icon name="chart" [size]="22" /><span><strong>Seguimiento</strong>Tu panel en línea, revisado cada semana</span></li>
     </ul>
   </section>
 
   @if (s.services.items.length) {
     <section class="section" id="servicios">
       <div class="container">
-        <p class="eyebrow" appReveal>Servicios</p>
         <h2 class="display section__title" appReveal>{{ s.services.title }}</h2>
-        <div class="services">
+        <div class="bento" [style.--rows]="s.services.items.length > 1 ? s.services.items.length - 1 : 1">
           @for (item of s.services.items; track item.title; let i = $index) {
-            <article [class]="'service icon-hover tone--' + tones[i % tones.length]" appReveal [revealDelay]="i * 60">
-              <span class="service__icon"><app-icon [name]="serviceIcons[i % serviceIcons.length]" [size]="26" /></span>
+            <article [class]="'cell icon-hover hue--' + hues[i % hues.length]" [class.cell--lead]="i === 0" appReveal [revealDelay]="i * 80" (pointermove)="spot($event)">
+              <span class="cell__index mono">{{ i + 1 | number: '2.0' }}</span>
+              <span class="cell__icon"><app-icon [name]="serviceIcons[i % serviceIcons.length]" [size]="i === 0 ? 34 : 26" /></span>
               <h3>{{ item.title }}</h3>
               <p [innerHTML]="item.description | emphasis"></p>
+              @if (i === 0) {
+                <app-brand-mark class="cell__mark" tone="light" build="none" />
+              }
             </article>
           }
         </div>
@@ -59,14 +112,15 @@
     <section class="section method" id="metodo">
       <div class="container method__grid">
         <div class="method__intro">
-          <p class="eyebrow eyebrow--mint" appReveal>Método</p>
+          <p class="eyebrow eyebrow--mint mono" appReveal>Método</p>
           <h2 class="display section__title" appReveal>{{ s.method.title }}</h2>
           <p class="method__text" appReveal [innerHTML]="s.method.intro | emphasis"></p>
         </div>
         <ol class="steps">
+          <span class="steps__rail" aria-hidden="true"><span class="steps__fill"></span></span>
           @for (step of s.method.steps; track step.title; let i = $index) {
-            <li appReveal [revealDelay]="i * 60">
-              <span class="steps__number display">{{ i + 1 }}</span>
+            <li appReveal="left" [revealDelay]="i * 60">
+              <span class="steps__number mono">{{ i + 1 | number: '2.0' }}</span>
               <div>
                 <h3>{{ step.title }}</h3>
                 <p [innerHTML]="step.description | emphasis"></p>
@@ -81,10 +135,10 @@
   <section class="section" id="coach">
     <div class="container about">
       <div class="about__badge" appReveal="fade">
-        <img src="/brand/mark.png" alt="Logotipo de Fitness by Evidence" width="640" height="356" loading="lazy" />
+        <app-brand-mark tone="light" [loop]="true" role="img" aria-label="Logotipo de Fitness by Evidence" />
+        <p class="display about__wordmark">{{ s.brand.name }}</p>
       </div>
-      <div>
-        <p class="eyebrow" appReveal>Tu coach</p>
+      <div class="about__copy">
         <h2 class="display section__title" appReveal>{{ s.about.title }}</h2>
         <p class="about__body" appReveal [innerHTML]="s.about.body | emphasis"></p>
         @if (s.about.credentials.length) {
@@ -99,21 +153,20 @@
   </section>
 
   <section class="section contact" id="contacto">
-    <div class="container contact__card" appReveal>
+    <div class="container contact__layout">
       <div>
-        <p class="eyebrow eyebrow--mint">Contacto</p>
-        <h2 class="display contact__title">Empecemos con tu plan</h2>
-        <p class="contact__text">Cuéntame tu objetivo y tu punto de partida. Te digo cómo trabajaríamos y resolvemos tus dudas.</p>
+        <h2 class="display contact__title" appReveal>Empecemos con tu plan</h2>
+        <p class="contact__text" appReveal>Cuéntame tu objetivo y tu punto de partida. Te digo cómo trabajaríamos y resolvemos tus dudas.</p>
       </div>
-      <ul class="contact__list">
+      <ul class="contact__list" appReveal="right">
         @if (whatsapp(); as link) {
-          <li><a [href]="link" target="_blank" rel="noopener"><app-icon name="whatsapp" /><span><b>WhatsApp</b>{{ s.contact.whatsapp }}</span></a></li>
+          <li><a [href]="link" target="_blank" rel="noopener"><app-icon name="whatsapp" /><span><b>WhatsApp</b>{{ s.contact.whatsapp }}</span><app-icon class="go" name="arrowRight" [size]="18" /></a></li>
         }
         @if (mailto(); as link) {
-          <li><a [href]="link"><app-icon name="mail" /><span><b>Correo</b>{{ s.contact.email }}</span></a></li>
+          <li><a [href]="link"><app-icon name="mail" /><span><b>Correo</b>{{ s.contact.email }}</span><app-icon class="go" name="arrowRight" [size]="18" /></a></li>
         }
         @for (social of socials(); track social.href) {
-          <li><a [href]="social.href" target="_blank" rel="noopener"><app-icon [name]="social.icon" /><span><b>{{ social.icon }}</b>{{ social.label }}</span></a></li>
+          <li><a [href]="social.href" target="_blank" rel="noopener"><app-icon [name]="social.icon" /><span><b>{{ social.icon }}</b>{{ social.label }}</span><app-icon class="go" name="arrowRight" [size]="18" /></a></li>
         }
         @if (s.contact.city) {
           <li><span class="contact__static"><app-icon name="location" /><span><b>Ubicación</b>{{ s.contact.city }}</span></span></li>
@@ -129,6 +182,11 @@
 <footer class="footer">
   <div class="container footer__inner">
     <p><span class="display">{{ s.brand.name }}</span> · {{ s.brand.coachName }}</p>
+    <nav class="footer__legal" aria-label="Legal">
+      <a routerLink="/privacidad">Aviso de privacidad</a>
+      <a routerLink="/terminos">Términos y condiciones</a>
+      <a routerLink="/cookies">Cookies</a>
+    </nav>
     <p>© {{ year }} · <a routerLink="/login">Acceso del coach</a></p>
   </div>
 </footer>

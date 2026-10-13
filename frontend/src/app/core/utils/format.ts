@@ -31,11 +31,16 @@ export function formatMoney(value: number | null | undefined): string {
   return value === null || value === undefined ? '—' : MONEY.format(value);
 }
 
-/** Suma meses conservando el día; si el mes destino es más corto, usa su último día. */
+/**
+ * Suma meses conservando el día; si el mes destino es más corto, usa su último día.
+ * La fracción de mes (plan quincenal) se suma en días: medio mes son 15 días. Igual que en el backend.
+ */
 export function addMonths(iso: string, months: number): string {
+  const whole = Math.trunc(months);
+  const extraDays = Math.round((months - whole) * 30);
   const [year = 0, month = 1, day = 1] = iso.split('-').map(Number);
-  const lastDay = new Date(Date.UTC(year, month - 1 + months + 1, 0)).getUTCDate();
-  return new Date(Date.UTC(year, month - 1 + months, Math.min(day, lastDay))).toISOString().slice(0, 10);
+  const lastDay = new Date(Date.UTC(year, month - 1 + whole + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1 + whole, Math.min(day, lastDay) + extraDays)).toISOString().slice(0, 10);
 }
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;

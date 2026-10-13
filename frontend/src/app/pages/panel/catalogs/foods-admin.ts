@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SkeletonTable } from '../../../components/skeletons/skeleton-table';
 import { PageHeader } from '../shared/page-header';
-import { FOOD_EMOJI_CHOICES, FoodFlags, foodEmoji, foodRole, foodTone } from '../../../core/utils/visuals';
+import { FOOD_EMOJI_CHOICES, FoodFlags, Tone, foodEmoji, foodRole, foodTone } from '../../../core/utils/visuals';
 import { CatalogCrud, CrudColumn, CrudField, IconPicker, Row, RowVisual } from './catalog-crud';
 import { CatalogPage } from './catalog-page';
 
@@ -22,7 +22,7 @@ const FOOD_GROUPS = [
     <app-page-header title="Alimentos" subtitle="Valores por porción (SMAE y USDA). Los gramos del plan son peso neto. Lo que agregues aparece solo en los planes." />
     <div class="top">
       @if (catalog(); as c) {
-        <app-catalog-crud resource="foods" addLabel="Agregar alimento" [items]="rows(c.foods)" [columns]="columns" [fields]="fields" [defaults]="defaults" [visual]="visual" [picker]="picker" filterKey="group" filterLabel="grupo" (changed)="reload()">
+        <app-catalog-crud resource="foods" addLabel="Agregar alimento" [items]="rows(c.foods)" [columns]="columns" [fields]="fields" [defaults]="defaults" [visual]="visual" [picker]="picker" filterKey="group" filterLabel="grupo" [filterTone]="groupTone" (changed)="reload()">
           <p legend class="legend">
             <span><b>Color del alimento = su papel en el plan:</b></span>
             <span><i class="dot tone--coral"></i>Proteína</span>
@@ -49,6 +49,15 @@ export class FoodsAdmin extends CatalogPage {
 
   protected readonly visual = (row: Row): RowVisual => ({ emoji: foodEmoji(String(row['name'] ?? ''), row['icon'] as string | null), tone: foodTone(row as FoodFlags) });
   protected readonly picker: IconPicker = { kind: 'emoji', groups: FOOD_EMOJI_CHOICES };
+  /** Color del grupo según su papel en el plan: el mismo código de la leyenda (proteína, carbohidrato, grasa, verdura). */
+  protected readonly groupTone = (group: string): Tone => {
+    const name = group.toLowerCase();
+    if (name.startsWith('verdura')) return 'emerald';
+    if (/aoa|leche|leguminosa|proteico/.test(name)) return 'coral';
+    if (/aceite|grasa/.test(name) && !/cereal|az[uú]car/.test(name)) return 'amber';
+    if (/cereal|fruta|az[uú]car|bebida/.test(name)) return 'steel';
+    return 'slate';
+  };
 
   protected readonly columns: CrudColumn[] = [
     { key: 'name', label: 'Alimento', sub: (row) => `${foodRole(row as FoodFlags)} · ${row['group'] ?? ''}` },

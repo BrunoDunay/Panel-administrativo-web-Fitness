@@ -174,6 +174,22 @@ const SCORE_TONES: Record<number, Tone> = { 5: 'emerald', 4: 'teal', 3: 'slate',
       .session { grid-template-columns: auto minmax(0, 1fr); }
       .session .mini { grid-column: span 2; }
     }
+    /* Rediseño: cuestionario sin pastel */
+    .week { background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+    .week.is-done { background: var(--color-surface); box-shadow: inset 0 0 0 1.5px var(--tone-emerald); color: var(--tone-emerald-ink); }
+    .week[aria-selected='true'] { box-shadow: 0 10px 22px -12px var(--tone-steel); }
+    .option b { background: color-mix(in srgb, var(--tone) 14%, #ffffff); }
+    .option[aria-pressed='true'] { background: var(--tone-gradient); color: #ffffff; box-shadow: 0 8px 18px -10px var(--tone); }
+    .option[aria-pressed='true'] b { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
+    @media (hover: hover) and (pointer: fine) {
+      .week:not([aria-selected='true']):hover { background: var(--color-surface); box-shadow: inset 0 0 0 1.5px var(--tone-steel); }
+    }
+    /* Respuestas: número con contorno, sin relleno pastel */
+    .option b { background: var(--color-surface); box-shadow: inset 0 0 0 1.5px var(--tone); color: var(--tone-ink); }
+    .option[aria-pressed='true'] { border-color: transparent; }
+    .option[aria-pressed='true'] b { background: #ffffff; box-shadow: none; color: var(--tone-ink); }
+    .rating.is-set { background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border); }
+    .session { background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border); }
   `,
 })
 export class CheckinForm {

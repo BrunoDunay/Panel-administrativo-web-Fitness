@@ -4,7 +4,7 @@
   <div class="topbar__inner">
     <!-- El logo no saca del plan: al coach (con sesión) lo regresa al panel; al cliente, a su resumen. -->
     <a class="brand" [attr.href]="isCoach ? '/panel' : null" [attr.aria-label]="isCoach ? 'Volver al panel' : 'Ir al resumen de mi plan'" role="link" tabindex="0" (click)="goHome()" (keydown.enter)="goHome()">
-      <img src="/brand/mark-light.png" alt="" width="640" height="356" />
+      <app-brand-mark tone="light" build="load" />
       <span class="display">Fitness by Evidence</span>
     </a>
     @if (store.saving()) {
@@ -65,6 +65,8 @@
     @switch (tab()) {
       @case ('summary') {
         <div class="stack">
+          <!-- Si el coach agendó una sesión, aquí está el recordatorio y el enlace para entrar. -->
+          <app-upcoming-sessions [base]="'portal/' + code()" />
           @if (!weighedToday() || checkinPending()) {
             <section class="todo">
               @if (!weighedToday()) {
@@ -82,7 +84,7 @@
 
           <div class="grid" style="--min: 230px">
             @if (todayPlan(); as plan) {
-              <button type="button" [class]="'card card--tint stat tile tone--' + (plan.rest ? 'slate' : 'amber')" (click)="tab.set('training')">
+              <button type="button" [class]="'card card--tint stat tile tone--' + (plan.rest ? 'slate' : sessionTone(plan.session))" (click)="tab.set('training')">
                 <span class="tile-icon tile-icon--solid"><app-icon [name]="plan.rest ? 'moon' : 'calendar'" [size]="22" /></span>
                 <span class="stat__label">Hoy · {{ plan.name }}</span>
                 <span class="stat__value today-session">{{ plan.session }}</span>
@@ -142,11 +144,7 @@
           <div class="stack">
             @if (plan.weeks.length) {
               <div class="row row--between">
-                <div class="tabs" role="tablist" aria-label="Semana">
-                  @for (item of plan.weeks; track item.id) {
-                    <button type="button" class="tab" role="tab" [attr.aria-selected]="week()?.id === item.id" (click)="selectWeek(item.id)">Semana {{ item.number }}</button>
-                  }
-                </div>
+                <app-week-picker [weeks]="plan.weeks" [selected]="week()?.id ?? null" (pick)="selectWeek($event)" />
               </div>
               <details class="details">
                 <summary>Simbología</summary>

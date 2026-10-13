@@ -103,6 +103,9 @@ const DAY_MS = 864e5;
     @media (max-width: 640px) {
       .days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
+    /* Rediseño: semana de peso sin pastel */
+    .day.is-filled { background: var(--color-surface); box-shadow: inset 0 0 0 1.5px var(--tone-emerald); }
+    .box { background: var(--color-surface); box-shadow: inset 0 4px 0 var(--tone), inset 0 0 0 1px color-mix(in srgb, var(--tone) 28%, var(--color-border)); }
   `,
 })
 export class WeightTracker {

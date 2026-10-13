@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
+import * as appointments from '../controllers/appointments.controller.js';
 import * as catalog from '../controllers/catalog.controller.js';
 import * as clients from '../controllers/clients.controller.js';
 import { loadClientByCode, loadClientForCoach } from '../middlewares/load-client.js';
 import { requireAuth } from '../middlewares/require-auth.js';
 import { validate } from '../middlewares/validate.js';
+import { appointmentBody, appointmentListQuery, appointmentParams } from '../validators/appointment.schemas.js';
 import { clientCreateBody, clientListQuery } from '../validators/client.schemas.js';
 import { catalogItemParams } from '../validators/common.schemas.js';
 import { authRoutes } from './auth.routes.js';
@@ -33,6 +35,14 @@ const clientsRoutes = Router()
   .post('/', validate({ body: clientCreateBody }), clients.create)
   .use('/:clientId', loadClientForCoach, clientDataRoutes());
 
+// Agenda del coach: sesiones (videollamadas) con sus clientes.
+const appointmentsRoutes = Router()
+  .use(requireAuth)
+  .get('/', validate({ query: appointmentListQuery }), appointments.list)
+  .post('/', validate({ body: appointmentBody }), appointments.create)
+  .put('/:id', validate({ params: appointmentParams, body: appointmentBody }), appointments.update)
+  .delete('/:id', validate({ params: appointmentParams }), appointments.remove);
+
 export const apiRoutes = Router()
   .get('/health', (_req, res) => res.json({ status: 'ok' }))
   .use('/auth', authRoutes)
@@ -41,4 +51,5 @@ export const apiRoutes = Router()
   .get('/dashboard', requireAuth, clients.dashboard)
   .use('/catalog', catalogRoutes)
   .use('/clients', clientsRoutes)
+  .use('/appointments', appointmentsRoutes)
   .use('/portal/:code', portalLimiter, loadClientByCode, clientDataRoutes());

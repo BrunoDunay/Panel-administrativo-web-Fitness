@@ -18,6 +18,7 @@ export const PANEL_NAV: PanelNavGroup[] = [
     items: [
       { label: 'Resumen', path: '/panel', icon: 'dashboard' },
       { label: 'Clientes', path: '/panel/clients', icon: 'users' },
+      { label: 'Agenda', path: '/panel/agenda', icon: 'calendar' },
     ],
   },
   {

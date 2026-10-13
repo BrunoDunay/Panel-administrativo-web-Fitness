@@ -15,6 +15,7 @@ import { Measurement } from './measurement.model.js';
 import { WeightLog } from './weight-log.model.js';
 import { NutritionPlan } from './nutrition-plan.model.js';
 import { Payment } from './payment.model.js';
+import { Appointment } from './appointment.model.js';
 
 // Catálogo de ejercicios
 Muscle.hasMany(Exercise, { as: 'exercises', foreignKey: 'muscleId', onDelete: 'CASCADE' });
@@ -40,6 +41,10 @@ NutritionPlan.belongsTo(Client, { as: 'client', foreignKey: 'clientId' });
 // Pagos
 Client.hasMany(Payment, { as: 'payments', foreignKey: 'clientId', onDelete: 'CASCADE' });
 
+// Agenda
+Client.hasMany(Appointment, { as: 'appointments', foreignKey: 'clientId', onDelete: 'CASCADE' });
+Appointment.belongsTo(Client, { as: 'client', foreignKey: 'clientId' });
+
 export {
   Admin,
   SiteSetting,
@@ -58,4 +63,5 @@ export {
   WeightLog,
   NutritionPlan,
   Payment,
+  Appointment,
 };

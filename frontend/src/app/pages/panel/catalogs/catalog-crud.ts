@@ -58,6 +58,7 @@ export type IconPicker = { kind: 'emoji'; groups: EmojiGroup[] } | { kind: 'icon
   selector: 'app-catalog-crud',
   imports: [FormsModule, Btn, Icon, ExerciseFigure],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[attr.data-resource]': 'resource()' },
   templateUrl: './catalog-crud.html',
   styleUrl: './catalog-crud.css',
 })
@@ -76,6 +77,8 @@ export class CatalogCrud {
   /** Columna por la que se puede filtrar con botones (por ejemplo, el grupo). */
   readonly filterKey = input<string | null>(null);
   readonly filterLabel = input('tipo');
+  /** Color característico de cada opción del filtro (por ejemplo, el del grupo de alimentos). */
+  readonly filterTone = input<((option: string) => Tone) | null>(null);
   /** Valores iniciales de un registro nuevo. */
   readonly defaults = input<Row>({});
   /** Se emite tras crear, editar o eliminar: la página vuelve a pedir el catálogo. */
@@ -101,6 +104,17 @@ export class CatalogCrud {
       (row) => (!selected || !key || row[key] === selected) && (!term || this.columns().some((column) => String(row[column.key] ?? '').toLowerCase().includes(term))),
     );
   });
+
+  protected chipClass(option: string): string {
+    const tone = this.filterTone()?.(option);
+    return tone ? `chip tone--${tone}` : 'chip';
+  }
+
+  /** Clase de la fila con el color de su tipo: lo usan los brillos al pasar el puntero. */
+  protected rowClass(row: Row): string {
+    const tone = this.visual()?.(row).tone;
+    return tone ? `icon-hover tone--${tone}` : 'icon-hover';
+  }
 
   protected display(value: unknown): string {
     if (value === null || value === undefined || value === '') return '—';

@@ -198,6 +198,11 @@ const UNNAMED = 'Entrenamiento';
       .ex__main { grid-template-columns: minmax(0, 1fr); }
       .ex__actions { flex-direction: column; }
     }
+    /* Rediseño: tira de días con filo de color */
+    .strip__day { border-top: 4px solid var(--tone); background: var(--color-surface); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 30%, var(--color-border)); }
+    .strip__day.is-rest { border-top-color: var(--tone-slate); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--color-border); }
+    .strip__day.is-active, .strip__day[aria-current='true'], .strip__day[aria-pressed='true'] { background: var(--tone-gradient); color: rgba(255, 255, 255, 0.82); box-shadow: 0 10px 22px -12px var(--tone); }
+    .strip__day.is-active b, .strip__day[aria-current='true'] b, .strip__day[aria-pressed='true'] b { color: #ffffff; }
   `,
 })
 export class WeekPrescriptionEditor {

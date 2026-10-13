@@ -747,3 +747,78 @@ form {
     clip: rect(0 0 0 0);
   }
 }
+
+/* Rediseño: nutrición sin pastel y con fondos menos oscuros */
+.signed__sign {
+  border-color: transparent;
+  background: var(--gradient-emerald);
+  color: #ffffff;
+  box-shadow: 0 8px 18px -10px var(--color-primary);
+}
+
+.signed__sign.is-deficit {
+  border-color: transparent;
+  background: var(--gradient-coral);
+  color: #ffffff;
+  box-shadow: 0 8px 18px -10px var(--color-danger);
+}
+
+/* "¿Cuadra el plan?": panel claro con filo de color en lugar del bloque oscuro. */
+.plan__fit {
+  border-top: 4px solid var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md), inset 0 0 0 1px var(--color-border);
+  color: var(--color-text);
+}
+
+.fit__item,
+.fit__item.is-ok,
+.fit__item.is-low,
+.fit__item.is-high {
+  background: var(--color-background);
+}
+
+/* Encabezado de cada comida: franja esmeralda media, no casi negra. */
+.meal__head {
+  background: var(--gradient-emerald);
+}
+
+/* "Agregar…": contorno del color de su zona. */
+.adder {
+  background: var(--color-surface);
+}
+
+.adder small {
+  background: color-mix(in srgb, var(--tone) 14%, #ffffff);
+}
+
+.left li.is-over b {
+  background: var(--color-danger);
+  color: #ffffff;
+}
+
+.diet tbody tr.is-used td,
+.diet tbody tr.is-used {
+  background: color-mix(in srgb, var(--color-primary) 7%, #ffffff);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .adder:not(:disabled):hover {
+    background: var(--tone-gradient);
+    color: #ffffff;
+  }
+}
+
+/* "¿Cuadra el plan?" recupera su fondo verde */
+.plan__fit {
+  border-top: 0;
+  background: linear-gradient(135deg, #0a1f1c 0%, #0f5745 100%);
+  box-shadow: 0 14px 30px -18px var(--color-secondary);
+  color: var(--color-text-inverse);
+}
+
+.plan__fit .fit__item {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+

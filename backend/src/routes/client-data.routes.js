@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import * as appointments from '../controllers/appointments.controller.js';
 import * as clients from '../controllers/clients.controller.js';
 import * as plans from '../controllers/plans.controller.js';
 import { coachOnly, portalUnlocked } from '../middlewares/load-client.js';
@@ -22,6 +23,9 @@ export function clientDataRoutes() {
       .put('/status', coachOnly, validate({ body: clientStatusBody }), clients.setStatus)
       .delete('/', coachOnly, clients.remove)
       .post('/access-code', coachOnly, clients.regenerateAccessCode)
+
+      // Agenda: las sesiones que el cliente tiene por delante con su coach.
+      .get('/appointments', appointments.upcomingForClient)
 
       // Pagos
       .put('/payments/access', coachOnly, validate({ body: overdueAccessBody }), clients.setPaymentAccess)

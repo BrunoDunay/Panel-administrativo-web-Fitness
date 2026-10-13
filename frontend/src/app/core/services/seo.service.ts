@@ -23,6 +23,8 @@ export class SeoService {
 
   setPage(seo: PageSeo): void {
     const url = `${this.siteUrl}${seo.path ?? ''}`;
+    // Sin imagen propia, se comparte la de la marca (el logo nuevo sobre tinta).
+    const image = seo.image ?? `${this.siteUrl}/brand/share.png`;
     this.title.setTitle(seo.title);
 
     this.setTag('name', 'description', seo.description);
@@ -31,12 +33,12 @@ export class SeoService {
     this.setTag('property', 'og:description', seo.description);
     this.setTag('property', 'og:type', seo.type ?? 'website');
     this.setTag('property', 'og:url', url);
-    this.setTag('property', 'og:image', seo.image);
+    this.setTag('property', 'og:image', image);
     this.setTag('property', 'og:locale', 'es_MX');
-    this.setTag('name', 'twitter:card', seo.image ? 'summary_large_image' : 'summary');
+    this.setTag('name', 'twitter:card', 'summary_large_image');
     this.setTag('name', 'twitter:title', seo.title);
     this.setTag('name', 'twitter:description', seo.description);
-    this.setTag('name', 'twitter:image', seo.image);
+    this.setTag('name', 'twitter:image', image);
 
     this.setCanonical(url);
     this.setJsonLd(seo.jsonLd ?? null);

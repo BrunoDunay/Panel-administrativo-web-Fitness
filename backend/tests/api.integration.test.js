@@ -413,4 +413,39 @@ describe.skipIf(!enabled)('API', () => {
     expect((await request(app).get(`/api/portal/${code}`)).status).toBe(404);
     expect((await request(app).get(`/api/portal/${res.body.portalUrl.split('/').pop()}`)).status).toBe(200);
   });
+
+  it('agenda: crea, lista por rango, evita empalmes y permite mover o borrar una sesión', async () => {
+    expect((await request(app).get('/api/appointments')).status).toBe(401);
+
+    const body = { clientId: client.id, startsAt: '2027-03-10T16:00:00.000Z', durationMinutes: 45, topic: 'Seguimiento', meetingUrl: 'https://meet.example.com/abc', notes: null };
+    const created = await auth(request(app).post('/api/appointments')).send(body);
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ durationMinutes: 45, topic: 'Seguimiento', endsAt: '2027-03-10T16:45:00.000Z', client: { id: client.id } });
+
+    // Otra llamada que empieza antes de que termine la primera se rechaza; la que empieza justo al terminar, no.
+    expect((await auth(request(app).post('/api/appointments')).send({ ...body, startsAt: '2027-03-10T16:30:00.000Z' })).status).toBe(409);
+    const next = await auth(request(app).post('/api/appointments')).send({ ...body, startsAt: '2027-03-10T16:45:00.000Z', durationMinutes: 30 });
+    expect(next.status).toBe(201);
+
+    const day = await auth(request(app).get('/api/appointments').query({ from: '2027-03-10T00:00:00.000Z', to: '2027-03-11T00:00:00.000Z' }));
+    expect(day.body.map((a) => a.id)).toEqual([created.body.id, next.body.id]);
+    expect((await auth(request(app).get('/api/appointments').query({ from: '2027-03-11T00:00:00.000Z' }))).body).toHaveLength(0);
+
+    // Moverla no choca consigo misma, y un enlace que no es http(s) no pasa.
+    const moved = await auth(request(app).put(`/api/appointments/${created.body.id}`)).send({ ...body, startsAt: '2027-03-10T15:50:00.000Z' });
+    expect(moved.body.endsAt).toBe('2027-03-10T16:35:00.000Z');
+    expect((await auth(request(app).post('/api/appointments')).send({ ...body, startsAt: '2027-04-01T16:00:00.000Z', meetingUrl: 'javascript:alert(1)' })).status).toBe(400);
+
+    // El cliente ve su cita (con el enlace) desde su portal, sin las notas del coach.
+    await auth(request(app).put(`/api/appointments/${created.body.id}`)).send({ ...body, startsAt: '2099-03-10T16:00:00.000Z', notes: 'Solo para el coach' });
+    // (El enlace del cliente se regeneró en una prueba anterior: se pide el vigente.)
+    const link = (await auth(request(app).post(`/api/clients/${client.id}/access-code`))).body.portalUrl.split('/').pop();
+    const mine = await request(app).get(`/api/portal/${link}/appointments`);
+    expect(mine.body).toHaveLength(2);
+    expect(mine.body.at(-1)).toMatchObject({ topic: 'Seguimiento', meetingUrl: 'https://meet.example.com/abc', endsAt: '2099-03-10T16:45:00.000Z' });
+    expect(mine.body.at(-1).notes).toBeUndefined();
+
+    expect((await auth(request(app).delete(`/api/appointments/${next.body.id}`))).status).toBe(204);
+    expect((await auth(request(app).get('/api/appointments').query({ clientId: client.id }))).body).toHaveLength(1);
+  });
 });

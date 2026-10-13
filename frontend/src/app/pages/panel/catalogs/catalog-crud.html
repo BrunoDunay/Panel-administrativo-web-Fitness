@@ -9,10 +9,20 @@
 </div>
 
 @if (filterOptions().length > 1) {
+  <!-- Teléfono: con muchos grupos, los botones empujan el listado hacia abajo; ahí van en un desplegable. -->
+  <label class="filter-select">
+    <span class="filter-select__label">Filtrar por {{ filterLabel() }}</span>
+    <select class="field__control" (change)="filter.set($any($event.target).value || null)">
+      <option value="" [selected]="filter() === null">Todos ({{ items().length }})</option>
+      @for (option of filterOptions(); track option) {
+        <option [value]="option" [selected]="filter() === option">{{ option }}</option>
+      }
+    </select>
+  </label>
   <div class="chips" role="group" [attr.aria-label]="'Filtrar por ' + filterLabel()">
     <button type="button" class="chip" [attr.aria-pressed]="filter() === null" (click)="filter.set(null)">Todos</button>
     @for (option of filterOptions(); track option) {
-      <button type="button" class="chip" [attr.aria-pressed]="filter() === option" (click)="filter.set(option)">{{ option }}</button>
+      <button type="button" [class]="chipClass(option)" [attr.aria-pressed]="filter() === option" (click)="filter.set(option)">{{ option }}</button>
     }
   </div>
 }
@@ -96,7 +106,53 @@
   </form>
 }
 
-<div class="card card--flush">
+<!-- Teléfono: cada registro plegado con su nombre; al tocarlo se despliega el resto de sus datos. -->
+<ul class="cards">
+  @for (row of filtered(); track row.id) {
+    <li>
+      <details [class]="'item ' + rowClass(row)" [attr.name]="'crud-' + resource()">
+        <summary class="item__head">
+          @if (visual(); as getVisual) {
+            @let v = getVisual(row);
+            <span [class]="'thumb tone--' + v.tone">@if (v.figure) { <app-exercise-figure class="figure" [def]="v.figure" [exercise]="display(row['name'])" [size]="36" /> } @else if (v.icon) { <app-icon [name]="v.icon" [size]="22" /> } @else { {{ v.emoji }} }</span>
+          }
+          <span class="item__name">{{ display(row[columns()[0]!.key]) }}</span>
+          <app-icon class="item__chevron" name="chevronDown" [size]="18" />
+        </summary>
+        <div class="item__body">
+          @if (columns()[0]!.sub; as sub) { <p class="item__sub">{{ sub(row) }}</p> }
+          <dl class="item__data">
+            @for (column of columns(); track column.key; let first = $first) {
+              @if (!first) {
+                <div [class.item__wide]="column.macros">
+                  <dt>{{ column.label }}</dt>
+                  <dd>
+                    @if (column.macros) {
+                      @let m = macroShares(row);
+                      <span class="macro-bar" [title]="m.title"><span class="is-protein" [style.flex]="m.protein"></span><span class="is-carbs" [style.flex]="m.carbs"></span><span class="is-fat" [style.flex]="m.fat"></span></span>
+                    } @else if (column.tone && row[column.key]) {
+                      <span [class]="'badge badge--tone tone--' + column.tone(row[column.key], row)">{{ display(row[column.key]) }}</span>
+                    } @else {
+                      {{ display(row[column.key]) }}
+                    }
+                  </dd>
+                </div>
+              }
+            }
+          </dl>
+          <div class="item__actions">
+            <button appBtn type="button" variant="soft" size="sm" (click)="edit(row)"><app-icon name="edit" [size]="16" />Editar</button>
+            <button appBtn type="button" variant="ghost" size="sm" (click)="remove(row)"><app-icon name="trash" [size]="16" />Eliminar</button>
+          </div>
+        </div>
+      </details>
+    </li>
+  } @empty {
+    <li class="card text-muted">Sin resultados.</li>
+  }
+</ul>
+
+<div class="card card--flush table-card">
   <div class="table-wrap">
     <table class="table table--hover">
       <thead>
@@ -107,7 +163,7 @@
       </thead>
       <tbody>
         @for (row of filtered(); track row.id) {
-          <tr class="icon-hover">
+          <tr [class]="rowClass(row)">
             @for (column of columns(); track column.key; let first = $first) {
               <td [class.num]="column.numeric">
                 @if (first && visual(); as getVisual) {

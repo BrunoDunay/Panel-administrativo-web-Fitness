@@ -273,6 +273,9 @@ const STORAGE_KEY = 'fbe.cambios';
     @media (hover: hover) and (pointer: fine) {
       button.item:not(:disabled):hover, .option:hover { background: var(--color-background); }
     }
+    /* Rediseño: intercambios sin relleno pastel */
+    .item.is-swapped { background: var(--color-surface); box-shadow: inset 3px 0 0 var(--tone-steel); }
+    .option.is-current { background: var(--color-surface); box-shadow: inset 0 0 0 1.5px var(--color-primary); }
   `,
 })
 export class NutritionPlanView {

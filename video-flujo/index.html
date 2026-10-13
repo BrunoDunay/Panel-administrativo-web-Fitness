@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Fitness by Evidence · Así se arma un programa</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: 'Archivo'; font-style: italic; font-weight: 100 900; font-stretch: 62% 125%; src: url('fonts/archivo-latin-wdth-italic.woff2') format('woff2'); }
+      @font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900; src: url('fonts/geist-latin-wght-normal.woff2') format('woff2'); }
+      @font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 100 900; src: url('fonts/geist-mono-latin-wght-normal.woff2') format('woff2'); }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #06110f; }
+      :root {
+        --ink0: #06110f; --ink1: #0a1f1c; --ink2: #102a26; --ink3: #17362f;
+        --line: rgba(238, 243, 239, 0.13); --bone: #eef3ef; --muted: rgba(238, 243, 239, 0.66);
+        --mint: #4fd6a4; --emerald: #0b6e4f; --amber: #e0a260; --steel: #7fb0dc; --coral: #e8927a;
+      }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; color: var(--bone); font-family: 'Geist', sans-serif; }
+      .mono { font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; }
+      .display { font-family: 'Archivo', sans-serif; font-style: italic; font-weight: 800; font-stretch: 118%; text-transform: uppercase; letter-spacing: -0.025em; line-height: 1; }
+
+      /* ---- Fondo fijo: tinta, papel milimétrico y un resplandor que viaja de escena en escena ---- */
+      .bg { position: absolute; inset: 0; background: var(--ink0); }
+      .grid { position: absolute; top: 0; left: 0; width: 2160px; height: 1080px;
+        background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 120px 120px, linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 120px 120px; opacity: 0.55; }
+      .glow { position: absolute; top: 140px; left: 760px; width: 1100px; height: 800px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(11, 110, 79, 0.75), rgba(11, 110, 79, 0)); }
+      .vignette { position: absolute; inset: 0; background: radial-gradient(ellipse 75% 75% at 50% 50%, transparent 55%, rgba(6, 17, 15, 0.92)); }
+
+      /* ---- Marca y avance, siempre visibles ---- */
+      .hud-top { position: absolute; top: 56px; left: 120px; right: 120px; display: flex; align-items: center; justify-content: space-between; }
+      .hud-brand { display: flex; align-items: center; gap: 22px; }
+      .hud-mark { width: 104px; height: 58px; }
+      .hud-brand .display { font-size: 27px; }
+      .hud-tag { font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+      .hud-bottom { position: absolute; left: 120px; right: 120px; bottom: 58px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+      .seg { display: grid; gap: 14px; }
+      .seg__bar { position: relative; width: 100%; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+      .seg__fill { display: block; width: 100%; height: 100%; border-radius: 3px; background: var(--mint); }
+      .seg__label { font-size: 18px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+      svg.mark { display: block; width: 100%; height: 100%; overflow: visible; }
+      .mark .dark { fill: var(--bone); } .mark .teal { fill: var(--mint); } .mark .slate { fill: #8aa39f; }
+      .mark .hex { stroke: var(--mint); stroke-width: 3; stroke-dasharray: 1 1; }
+      .mark .axis { stroke: var(--mint); stroke-width: 5; stroke-dasharray: 1 1; }
+
+      /* ---- Escenas ---- */
+      .scene { position: absolute; inset: 0; }
+      .scene__in { position: absolute; top: 168px; left: 120px; width: 1680px; height: 760px; }
+      .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 60px; height: 190px; }
+      .step { font-size: 24px; letter-spacing: 0.08em; color: var(--mint); margin-bottom: 18px; }
+      .title { font-size: 122px; white-space: nowrap; }
+      .wm { display: inline-block; overflow: hidden; padding: 8px 20px 12px 0; margin-right: 8px; vertical-align: top; }
+      .w { display: inline-block; }
+      .desc { width: 470px; padding-bottom: 20px; font-size: 30px; line-height: 1.32; color: var(--muted); text-align: right; }
+      .stage { position: absolute; left: 0; right: 0; top: 248px; height: 500px; }
+      .card { border: 1px solid var(--line); border-radius: 36px; background: linear-gradient(160deg, var(--ink2), var(--ink1)); }
+      .label { font-size: 21px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+
+      /* 0 · Apertura y cierre */
+      .center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 44px; }
+      .big-mark { width: 720px; height: 405px; }
+      .wordmark { font-size: 78px; }
+      .tagline { font-size: 36px; color: var(--muted); }
+
+      /* 1 · Evaluación */
+      .eval { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+      .field { position: relative; display: grid; align-content: space-between; padding: 40px 38px; }
+      .field__value { font-size: 66px; font-weight: 650; letter-spacing: -0.04em; line-height: 1.02; }
+      .field__value--long { font-size: 43px; letter-spacing: -0.035em; }
+      .field__unit { margin-top: 10px; font-size: 28px; color: var(--muted); }
+      .tick { position: absolute; top: 34px; right: 34px; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; background: var(--mint); }
+      .tick svg { width: 30px; height: 30px; }
+
+      /* 2 · Objetivo y split */
+      .split { display: grid; grid-template-rows: 1fr auto; gap: 26px; }
+      .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 16px; }
+      .day { display: grid; align-content: space-between; padding: 30px 28px; border: 1px solid var(--line); border-radius: 30px; background: var(--ink1); }
+      .day__name { font-size: 24px; letter-spacing: 0.08em; color: var(--muted); }
+      .day__what { font-size: 40px; font-weight: 650; letter-spacing: -0.03em; }
+      .day__sets { font-size: 23px; color: var(--muted); }
+      .day--leg { border-color: transparent; background: linear-gradient(160deg, #6b4a1f, #3d2c16); }
+      .day--leg .day__name, .day--leg .day__sets { color: #f1cf9f; }
+      .day--torso { border-color: transparent; background: linear-gradient(160deg, #24507a, #17334e); }
+      .day--torso .day__name, .day--torso .day__sets { color: #b9d6f0; }
+      .day--rest .day__what { color: var(--muted); font-weight: 500; }
+      .block { display: grid; grid-template-columns: 380px 1fr; align-items: center; gap: 36px; padding: 30px 40px; }
+      .block__name { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; }
+      .weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+      .week { position: relative; height: 54px; border-radius: 16px; background: var(--ink3); overflow: hidden; }
+      .week__fill { display: block; width: 100%; height: 100%; background: var(--mint); }
+      .week__n { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; letter-spacing: 0.06em; }
+
+      /* 3 · Entrenamiento */
+      .train { display: grid; grid-template-columns: 1.72fr 1fr; gap: 22px; }
+      .table { padding: 34px 40px; display: grid; grid-template-rows: auto repeat(4, 1fr); }
+      .row { display: grid; grid-template-columns: 1fr 150px 190px 130px; align-items: center; gap: 20px; }
+      .row + .row { border-top: 1px solid var(--line); }
+      .row--head { padding-bottom: 18px; }
+      .row__name { font-size: 36px; font-weight: 600; letter-spacing: -0.025em; }
+      .row__muscle { font-size: 22px; color: var(--muted); }
+      .row__num { font-size: 40px; font-weight: 500; text-align: right; }
+      .rir { justify-self: end; display: grid; place-items: center; width: 96px; height: 58px; border-radius: 29px; background: rgba(79, 214, 164, 0.16); color: var(--mint); font-size: 30px; }
+      .chart { padding: 34px 40px; display: grid; grid-template-rows: auto 1fr; gap: 26px; }
+      .bars { display: grid; align-content: space-around; }
+      .bar { display: grid; grid-template-columns: 170px 1fr 56px; align-items: center; gap: 18px; font-size: 25px; }
+      .bar__track { position: relative; height: 22px; border-radius: 11px; background: var(--ink3); overflow: hidden; }
+      .bar__fill { display: block; height: 100%; border-radius: 11px; background: var(--mint); }
+      .bar__n { text-align: right; font-size: 27px; }
+
+      /* 4 · Nutrición */
+      .food { display: grid; grid-template-columns: 0.9fr 1.3fr; gap: 22px; }
+      .kcal { padding: 40px 46px; display: grid; align-content: space-between; border-color: transparent; background: radial-gradient(ellipse 90% 80% at 100% 0%, rgba(79, 214, 164, 0.4), transparent 70%), linear-gradient(160deg, #0f5745, #0a3a30 60%, var(--ink1)); }
+      .kcal .label, .kcal__u { color: rgba(238, 243, 239, 0.9); }
+      #s5 .title { font-size: 98px; }
+      .kcal__n { font-size: 190px; font-weight: 600; letter-spacing: -0.06em; line-height: 0.9; }
+      .kcal__u { font-size: 34px; color: var(--muted); }
+      .macros { padding: 36px 44px; display: grid; grid-template-rows: 1fr auto; gap: 28px; }
+      .macro-list { display: grid; align-content: space-around; }
+      .macro { display: grid; grid-template-columns: 250px 1fr 130px; align-items: center; gap: 22px; font-size: 30px; font-weight: 500; }
+      .macro__track { position: relative; height: 26px; border-radius: 13px; background: var(--ink3); overflow: hidden; }
+      .macro__fill { display: block; height: 100%; border-radius: 13px; }
+      .macro__g { text-align: right; font-size: 34px; }
+      .meals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+      .meal { padding: 18px 22px; border-radius: 22px; background: var(--ink3); }
+      .meal__name { font-size: 22px; color: var(--muted); }
+      .meal__kcal { font-size: 30px; margin-top: 4px; }
+
+      /* 5 · En tu teléfono */
+      .mobile { position: absolute; }
+      .chat { position: absolute; left: 0; top: 40px; width: 760px; display: grid; gap: 22px; justify-items: start; }
+      .bubble { padding: 30px 36px; border-radius: 34px 34px 34px 10px; background: var(--ink2); border: 1px solid var(--line); font-size: 34px; line-height: 1.3; }
+      .link { display: flex; align-items: center; gap: 20px; padding: 22px 34px 22px 26px; border-radius: 60px; background: var(--mint); color: var(--ink0); font-size: 32px; font-weight: 650; }
+      .link__dot { display: block; width: 46px; height: 46px; border-radius: 50%; background: var(--ink0); }
+      .phone { position: absolute; right: 150px; top: -232px; width: 420px; height: 716px; padding: 16px; border-radius: 64px; background: #02090a; border: 2px solid rgba(238, 243, 239, 0.22); box-shadow: 0 60px 120px -40px rgba(79, 214, 164, 0.5); }
+      .screen { width: 100%; height: 100%; border-radius: 50px; background: #f0f3f1; color: #0a1f1c; padding: 32px 24px; display: grid; align-content: start; gap: 15px; overflow: hidden; }
+      .screen__hi { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
+      .screen__sub { font-size: 20px; color: #47605c; }
+      .today { padding: 22px 24px; border-radius: 26px; background: linear-gradient(140deg, #0b6e4f, #12906a); color: #eef3ef; }
+      .today__k { font-size: 17px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+      .today__v { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; margin-top: 4px; }
+      .todo { display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 20px; background: #fff; font-size: 21px; font-weight: 600; }
+      .todo__box { position: relative; display: block; width: 32px; height: 32px; border-radius: 50%; border: 2px solid #b4c4be; }
+      .todo__ok { position: absolute; inset: -2px; display: grid; place-items: center; border-radius: 50%; background: #0b6e4f; }
+      .todo__ok svg { width: 18px; height: 18px; }
+      .todo__n { font-size: 18px; color: #47605c; font-weight: 500; }
+      .spark { padding: 18px 20px 12px; border-radius: 22px; background: #fff; }
+      .spark__k { font-size: 17px; color: #47605c; }
+      .spark svg { display: block; width: 100%; height: 76px; margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="28" data-width="1920" data-height="1080">
+      <div class="bg">
+        <div class="grid" id="grid"></div>
+        <div class="glow" id="glow"></div>
+        <div class="vignette"></div>
+      </div>
+
+      <!-- Marca y avance: aparecen al terminar la apertura y se retiran antes del cierre -->
+      <div class="hud-top clip" id="hud-top" data-start="2" data-duration="24" data-track-index="6">
+        <div class="hud-brand" id="hud-brand">
+          <div class="hud-mark" id="hud-mark"><svg class="mark" id="hud-svg" viewBox="0 0 955 537" aria-hidden="true"><path class="teal" d="M 38 213 L 38 251 21 251 L 3.9 251 4.2 264.3 L 4.5 277.5 23.2 277.8 L 42 278 42.2 314.3 L 42.5 350.5 61.8 350.8 L 81 351 81 263 L 81 175 59.5 175 L 38 175 38 213" /><path class="dark" d="M 95 163 L 95 187 118 187 L 141 187 141 163 L 141 139 118 139 L 95 139 95 163" /><path class="dark" d="M 95 296.4 L 95 388 118 388 L 141 388 141 297 L 141 206 127.2 206 C 119.5 206, 109.2 205.7, 104.2 205.4 L 95 204.7 95 296.4" /><path class="slate" d="M 153.2 263.3 L 153.5 387.5 175.8 387.8 L 198 388 198 346.5 L 198 305 208.5 305 L 219 305 219 292 L 219 279.1 230.8 278.8 L 242.5 278.5 242.8 265.8 L 243.1 253 231 253 L 219 253 219 239 L 219 225 211 225 L 203 225 203 182 L 203 139 178 139 L 153 139 153.2 263.3" /><path class="teal" d="M 267.7 131.1 L 252 139 252.2 269.2 L 252.5 399.5 363.5 465.3 C 424.6 501.5, 475.5 531.6, 476.6 532.2 L 478.7 533.2 505.5 515 L 532.2 496.7 530.8 495.9 C 530.1 495.4, 481.2 466.4, 422.3 431.3 L 315 367.6 315 347.8 L 315 327.9 317.3 329.1 C 318.5 329.8, 376.4 362, 445.8 400.7 L 572.2 471.1 573.6 470.6 C 575.5 469.9, 621.1 440.2, 622.8 438.6 L 624.1 437.4 469.5 348.5 L 315 259.7 315 200.6 L 315 141.5 303.8 135 C 297.7 131.4, 290.6 127.3, 288.1 125.8 L 283.5 123.2 267.7 131.1" /><path class="dark" d="M 386.7 58.8 C 337.4 88.9, 297 113.8, 297 114.2 C 297 114.8, 345.8 143.2, 349 144.4 L 350.5 145 365.3 135.5 C 373.4 130.3, 380.5 126, 381 126 C 381.5 126, 404.9 139.3, 433 155.5 C 461.1 171.7, 484.3 185, 484.6 185 C 484.8 185, 484.9 171, 484.8 153.9 L 484.5 122.8 460.3 109.2 C 446.9 101.6, 436.1 95.2, 436.3 94.8 C 436.4 94.3, 445.7 88.4, 456.9 81.5 L 477.3 69 588.4 131.9 C 649.6 166.6, 700.4 195.2, 701.3 195.6 L 703 196.2 703 167.7 L 703 139.2 590.6 71.6 C 528.8 34.4, 477.8 4, 477.3 4 C 476.8 4, 436 28.6, 386.7 58.8" /><path class="teal" d="M 368 207.3 L 368 241.8 425.6 275.7 C 457.4 294.3, 483.7 309.7, 484.1 309.8 L 485 310.2 485 275.8 L 485 241.4 429.8 209 C 399.4 191.2, 373 175.7, 371.3 174.7 L 368 172.8 368 207.3" /><path class="dark" d="M 538.2 184.6 L 538.5 216.4 619.5 263.2 C 664.1 288.9, 701.1 310, 701.8 310 L 703 310 702.8 277.8 L 702.5 245.5 624 201.3 C 580.8 177, 543.8 156.2, 541.7 155 L 538 152.9 538.2 184.6" /><path class="teal" d="M 538 307.2 L 538 341.6 575.8 363.7 C 596.5 375.9, 624.6 392.3, 638.2 400.3 L 662.9 414.8 681.2 402.4 C 691.3 395.5, 700.3 389.3, 701.3 388.5 L 703 387 703 378.2 L 703 369.3 621.4 321.4 C 576.5 295.1, 539.4 273.4, 538.9 273.2 L 538 272.8 538 307.2" /><path class="slate" d="M 757 182.5 L 757 226 749 226 L 741 226 741 239 L 741 252 727.5 252 L 713.9 252 714.2 265.3 L 714.5 278.5 727.8 278.8 L 741 279.1 741 286.3 C 741 290.3, 741.3 295.2, 741.6 297.3 L 742.3 301 749.6 301 L 757 301 757.2 344.3 L 757.5 387.5 781.5 387.5 L 805.5 387.5 805.8 263.3 L 806 139 781.5 139 L 757 139 757 182.5" /><path class="dark" d="M 817 263.5 L 817 388 840 388 L 863 388 863 263.5 L 863 139 840 139 L 817 139 817 263.5" /><path class="teal" d="M 876 238 L 876 301 890.3 301 C 898.2 301, 908.1 301.3, 912.3 301.6 L 920 302.3 920 289.6 L 920 277 935.5 277 L 951 277 951 264 L 951 251 936 251 L 921 251 921 213 L 921 175 898.5 175 L 876 175 876 238" /><path class="teal" d="M 876.2 335.3 L 876.5 350.5 898.4 350.8 L 920.4 351 921.1 350.3 L 921.8 349.5 921.3 334.8 L 920.7 320 898.3 320 L 875.9 320 876.2 335.3" /></svg></div>
+          <span class="display">Fitness by Evidence</span>
+        </div>
+        <span class="hud-tag mono" id="hud-tag">Así se arma un programa</span>
+      </div>
+      <div class="hud-bottom clip" id="hud-bottom" data-start="2" data-duration="24" data-track-index="7">
+        <div class="seg" id="seg1"><span class="seg__bar"><span class="seg__fill"></span></span><span class="seg__label mono">01 Evaluación</span></div>
+        <div class="seg" id="seg2"><span class="seg__bar"><span class="seg__fill"></span></span><span class="seg__label mono">02 Objetivo</span></div>
+        <div class="seg" id="seg3"><span class="seg__bar"><span class="seg__fill"></span></span><span class="seg__label mono">03 Entrenamiento</span></div>
+        <div class="seg" id="seg4"><span class="seg__bar"><span class="seg__fill"></span></span><span class="seg__label mono">04 Nutrición</span></div>
+        <div class="seg" id="seg5"><span class="seg__bar"><span class="seg__fill"></span></span><span class="seg__label mono">05 En tu teléfono</span></div>
+      </div>
+
+      <!-- 0 · Apertura: el logotipo se construye -->
+      <section id="s0" class="scene clip" data-start="0" data-duration="2" data-track-index="0">
+        <div class="center" id="s0-in">
+          <div class="big-mark"><svg class="mark" id="s0m-svg" viewBox="0 0 955 537" aria-hidden="true"><line class="axis" x1="0" y1="263" x2="955" y2="263" pathLength="1" /><path class="plate teal" pathLength="1" data-d="560" data-dx="-70" data-dy="0" d="M 38 213 L 38 251 21 251 L 3.9 251 4.2 264.3 L 4.5 277.5 23.2 277.8 L 42 278 42.2 314.3 L 42.5 350.5 61.8 350.8 L 81 351 81 263 L 81 175 59.5 175 L 38 175 38 213" /><path class="plate dark" pathLength="1" data-d="470" data-dx="-70" data-dy="0" d="M 95 163 L 95 187 118 187 L 141 187 141 163 L 141 139 118 139 L 95 139 95 163" /><path class="plate dark" pathLength="1" data-d="470" data-dx="-70" data-dy="0" d="M 95 296.4 L 95 388 118 388 L 141 388 141 297 L 141 206 127.2 206 C 119.5 206, 109.2 205.7, 104.2 205.4 L 95 204.7 95 296.4" /><path class="plate slate" pathLength="1" data-d="380" data-dx="-70" data-dy="0" d="M 153.2 263.3 L 153.5 387.5 175.8 387.8 L 198 388 198 346.5 L 198 305 208.5 305 L 219 305 219 292 L 219 279.1 230.8 278.8 L 242.5 278.5 242.8 265.8 L 243.1 253 231 253 L 219 253 219 239 L 219 225 211 225 L 203 225 203 182 L 203 139 178 139 L 153 139 153.2 263.3" /><path class="hex teal" pathLength="1" data-d="720" data-dx="0" data-dy="0" d="M 267.7 131.1 L 252 139 252.2 269.2 L 252.5 399.5 363.5 465.3 C 424.6 501.5, 475.5 531.6, 476.6 532.2 L 478.7 533.2 505.5 515 L 532.2 496.7 530.8 495.9 C 530.1 495.4, 481.2 466.4, 422.3 431.3 L 315 367.6 315 347.8 L 315 327.9 317.3 329.1 C 318.5 329.8, 376.4 362, 445.8 400.7 L 572.2 471.1 573.6 470.6 C 575.5 469.9, 621.1 440.2, 622.8 438.6 L 624.1 437.4 469.5 348.5 L 315 259.7 315 200.6 L 315 141.5 303.8 135 C 297.7 131.4, 290.6 127.3, 288.1 125.8 L 283.5 123.2 267.7 131.1" /><path class="hex dark" pathLength="1" data-d="860" data-dx="0" data-dy="0" d="M 386.7 58.8 C 337.4 88.9, 297 113.8, 297 114.2 C 297 114.8, 345.8 143.2, 349 144.4 L 350.5 145 365.3 135.5 C 373.4 130.3, 380.5 126, 381 126 C 381.5 126, 404.9 139.3, 433 155.5 C 461.1 171.7, 484.3 185, 484.6 185 C 484.8 185, 484.9 171, 484.8 153.9 L 484.5 122.8 460.3 109.2 C 446.9 101.6, 436.1 95.2, 436.3 94.8 C 436.4 94.3, 445.7 88.4, 456.9 81.5 L 477.3 69 588.4 131.9 C 649.6 166.6, 700.4 195.2, 701.3 195.6 L 703 196.2 703 167.7 L 703 139.2 590.6 71.6 C 528.8 34.4, 477.8 4, 477.3 4 C 476.8 4, 436 28.6, 386.7 58.8" /><path class="hex teal" pathLength="1" data-d="1040" data-dx="-30" data-dy="-17" d="M 368 207.3 L 368 241.8 425.6 275.7 C 457.4 294.3, 483.7 309.7, 484.1 309.8 L 485 310.2 485 275.8 L 485 241.4 429.8 209 C 399.4 191.2, 373 175.7, 371.3 174.7 L 368 172.8 368 207.3" /><path class="hex dark" pathLength="1" data-d="1120" data-dx="-30" data-dy="-17" d="M 538.2 184.6 L 538.5 216.4 619.5 263.2 C 664.1 288.9, 701.1 310, 701.8 310 L 703 310 702.8 277.8 L 702.5 245.5 624 201.3 C 580.8 177, 543.8 156.2, 541.7 155 L 538 152.9 538.2 184.6" /><path class="hex teal" pathLength="1" data-d="1200" data-dx="-30" data-dy="-17" d="M 538 307.2 L 538 341.6 575.8 363.7 C 596.5 375.9, 624.6 392.3, 638.2 400.3 L 662.9 414.8 681.2 402.4 C 691.3 395.5, 700.3 389.3, 701.3 388.5 L 703 387 703 378.2 L 703 369.3 621.4 321.4 C 576.5 295.1, 539.4 273.4, 538.9 273.2 L 538 272.8 538 307.2" /><path class="plate slate" pathLength="1" data-d="380" data-dx="70" data-dy="0" d="M 757 182.5 L 757 226 749 226 L 741 226 741 239 L 741 252 727.5 252 L 713.9 252 714.2 265.3 L 714.5 278.5 727.8 278.8 L 741 279.1 741 286.3 C 741 290.3, 741.3 295.2, 741.6 297.3 L 742.3 301 749.6 301 L 757 301 757.2 344.3 L 757.5 387.5 781.5 387.5 L 805.5 387.5 805.8 263.3 L 806 139 781.5 139 L 757 139 757 182.5" /><path class="plate dark" pathLength="1" data-d="470" data-dx="70" data-dy="0" d="M 817 263.5 L 817 388 840 388 L 863 388 863 263.5 L 863 139 840 139 L 817 139 817 263.5" /><path class="plate teal" pathLength="1" data-d="560" data-dx="70" data-dy="0" d="M 876 238 L 876 301 890.3 301 C 898.2 301, 908.1 301.3, 912.3 301.6 L 920 302.3 920 289.6 L 920 277 935.5 277 L 951 277 951 264 L 951 251 936 251 L 921 251 921 213 L 921 175 898.5 175 L 876 175 876 238" /><path class="plate teal" pathLength="1" data-d="640" data-dx="70" data-dy="0" d="M 876.2 335.3 L 876.5 350.5 898.4 350.8 L 920.4 351 921.1 350.3 L 921.8 349.5 921.3 334.8 L 920.7 320 898.3 320 L 875.9 320 876.2 335.3" /></svg></div>
+          <p class="display wordmark"><span class="wm"><span class="w" id="s0-word">Fitness by Evidence</span></span></p>
+        </div>
+      </section>
+
+      <!-- 1 · Evaluación -->
+      <section id="s1" class="scene clip" data-start="2" data-duration="4" data-track-index="1">
+        <div class="scene__in">
+          <div class="head">
+            <div>
+              <p class="step mono">01 / 05</p>
+              <h2 class="display title"><span class="wm"><span class="w">Evaluación</span></span></h2>
+            </div>
+            <p class="desc">Partimos de dónde estás realmente.</p>
+          </div>
+          <div class="stage eval">
+            <div class="card field"><span class="label mono">Edad</span><div><p class="field__value">31</p><p class="field__unit">años</p></div><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#06110f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></div>
+            <div class="card field"><span class="label mono">Experiencia</span><div><p class="field__value">2 años</p><p class="field__unit">entrenando</p></div><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#06110f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></div>
+            <div class="card field"><span class="label mono">Disponibilidad</span><div><p class="field__value">4 días</p><p class="field__unit">por semana</p></div><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#06110f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></div>
+            <div class="card field"><span class="label mono">Objetivo</span><div><p class="field__value field__value--long">Recomposición</p><p class="field__unit">glúteo y cuádriceps</p></div><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#06110f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 · Objetivo y split -->
+      <section id="s2" class="scene clip" data-start="6" data-duration="4" data-track-index="2">
+        <div class="scene__in">
+          <div class="head">
+            <div>
+              <p class="step mono">02 / 05</p>
+              <h2 class="display title"><span class="wm"><span class="w">Objetivo</span></span><span class="wm"><span class="w">y split</span></span></h2>
+            </div>
+            <p class="desc">La semana se reparte según tu objetivo.</p>
+          </div>
+          <div class="stage split">
+            <div class="days">
+              <div class="day day--leg"><span class="day__name mono">LUN</span><div><p class="day__what">Pierna</p><p class="day__sets mono">10 series</p></div></div>
+              <div class="day day--torso"><span class="day__name mono">MAR</span><div><p class="day__what">Torso</p><p class="day__sets mono">10 series</p></div></div>
+              <div class="day day--rest"><span class="day__name mono">MIÉ</span><div><p class="day__what">Descanso</p><p class="day__sets mono">—</p></div></div>
+              <div class="day day--leg"><span class="day__name mono">JUE</span><div><p class="day__what">Pierna</p><p class="day__sets mono">9 series</p></div></div>
+              <div class="day day--torso"><span class="day__name mono">VIE</span><div><p class="day__what">Torso</p><p class="day__sets mono">7 series</p></div></div>
+              <div class="day day--rest"><span class="day__name mono">SÁB</span><div><p class="day__what">Descanso</p><p class="day__sets mono">—</p></div></div>
+              <div class="day day--rest"><span class="day__name mono">DOM</span><div><p class="day__what">Descanso</p><p class="day__sets mono">—</p></div></div>
+            </div>
+            <div class="card block">
+              <p class="block__name">Bloque 1 · Adaptación</p>
+              <div class="weeks">
+                <div class="week"><span class="week__fill"></span><span class="week__n mono">SEM 1</span></div>
+                <div class="week"><span class="week__fill"></span><span class="week__n mono">SEM 2</span></div>
+                <div class="week"><span class="week__fill"></span><span class="week__n mono">SEM 3</span></div>
+                <div class="week"><span class="week__fill"></span><span class="week__n mono">SEM 4</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3 · Entrenamiento -->
+      <section id="s3" class="scene clip" data-start="10" data-duration="6" data-track-index="3">
+        <div class="scene__in">
+          <div class="head">
+            <div>
+              <p class="step mono">03 / 05</p>
+              <h2 class="display title"><span class="wm"><span class="w">Entrenamiento</span></span></h2>
+            </div>
+            <p class="desc">Cada serie tiene una razón.</p>
+          </div>
+          <div class="stage train">
+            <div class="card table">
+              <div class="row row--head"><span class="label mono">Lunes · Pierna</span><span class="label mono" style="text-align:right">Series</span><span class="label mono" style="text-align:right">Reps</span><span class="label mono" style="text-align:right">RIR</span></div>
+              <div class="row row--item"><div><p class="row__name">Sentadilla hack</p><p class="row__muscle">Cuádriceps</p></div><span class="row__num mono">3</span><span class="row__num mono">7 a 9</span><span class="rir mono">3</span></div>
+              <div class="row row--item"><div><p class="row__name">Hip thrust con barra</p><p class="row__muscle">Glúteo</p></div><span class="row__num mono">3</span><span class="row__num mono">8 a 10</span><span class="rir mono">3</span></div>
+              <div class="row row--item"><div><p class="row__name">Curl femoral sentado</p><p class="row__muscle">Femoral</p></div><span class="row__num mono">2</span><span class="row__num mono">10 a 12</span><span class="rir mono">2</span></div>
+              <div class="row row--item"><div><p class="row__name">Extensión de cuádriceps</p><p class="row__muscle">Cuádriceps</p></div><span class="row__num mono">2</span><span class="row__num mono">12 a 15</span><span class="rir mono">2</span></div>
+            </div>
+            <div class="card chart">
+              <span class="label mono">Series por semana</span>
+              <div class="bars">
+                <div class="bar"><span>Cuádriceps</span><span class="bar__track"><span class="bar__fill" style="width:100%"></span></span><span class="bar__n mono">12</span></div>
+                <div class="bar"><span>Glúteo</span><span class="bar__track"><span class="bar__fill" style="width:83%"></span></span><span class="bar__n mono">10</span></div>
+                <div class="bar"><span>Espalda</span><span class="bar__track"><span class="bar__fill" style="width:75%"></span></span><span class="bar__n mono">9</span></div>
+                <div class="bar"><span>Femoral</span><span class="bar__track"><span class="bar__fill" style="width:58%"></span></span><span class="bar__n mono">7</span></div>
+                <div class="bar"><span>Hombro</span><span class="bar__track"><span class="bar__fill" style="width:50%"></span></span><span class="bar__n mono">6</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 · Nutrición -->
+      <section id="s4" class="scene clip" data-start="16" data-duration="6" data-track-index="4">
+        <div class="scene__in">
+          <div class="head">
+            <div>
+              <p class="step mono">04 / 05</p>
+              <h2 class="display title"><span class="wm"><span class="w">Nutrición</span></span></h2>
+            </div>
+            <p class="desc">Y cada gramo, también.</p>
+          </div>
+          <div class="stage food">
+            <div class="card kcal">
+              <span class="label mono">Objetivo diario</span>
+              <div><p class="kcal__n mono" id="kcal">2150</p><p class="kcal__u">kilocalorías</p></div>
+            </div>
+            <div class="card macros">
+              <div class="macro-list">
+                <div class="macro"><span>Proteína</span><span class="macro__track"><span class="macro__fill" style="width:62%;background:var(--mint)"></span></span><span class="macro__g mono">150 g</span></div>
+                <div class="macro"><span>Carbohidratos</span><span class="macro__track"><span class="macro__fill" style="width:92%;background:var(--amber)"></span></span><span class="macro__g mono">230 g</span></div>
+                <div class="macro"><span>Grasa</span><span class="macro__track"><span class="macro__fill" style="width:36%;background:var(--steel)"></span></span><span class="macro__g mono">70 g</span></div>
+              </div>
+              <div class="meals">
+                <div class="meal"><p class="meal__name">Desayuno</p><p class="meal__kcal mono">520</p></div>
+                <div class="meal"><p class="meal__name">Comida</p><p class="meal__kcal mono">760</p></div>
+                <div class="meal"><p class="meal__name">Colación</p><p class="meal__kcal mono">260</p></div>
+                <div class="meal"><p class="meal__name">Cena</p><p class="meal__kcal mono">610</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 · En tu teléfono -->
+      <section id="s5" class="scene clip" data-start="22" data-duration="4" data-track-index="5">
+        <div class="scene__in">
+          <div class="head">
+            <div>
+              <p class="step mono">05 / 05</p>
+              <h2 class="display title"><span class="wm"><span class="w">En tu</span></span><span class="wm"><span class="w">teléfono</span></span></h2>
+            </div>
+          </div>
+          <div class="stage mobile">
+            <div class="chat">
+              <p class="bubble" id="bubble">Mariana, tu plan de la semana 1 ya está listo.</p>
+              <div class="link" id="link"><span class="link__dot"></span><span>Abrir mi plan</span></div>
+            </div>
+            <div class="phone" id="phone">
+              <div class="screen">
+                <div><p class="screen__hi">Hola, Mariana</p><p class="screen__sub">Semana 1 · Lunes</p></div>
+                <div class="today"><p class="today__k mono">Hoy</p><p class="today__v">Pierna</p></div>
+                <div class="todo"><span class="todo__box"><span class="todo__ok"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></span><span>Sentadilla hack</span><span class="todo__n mono">3 × 7 a 9</span></div>
+                <div class="todo"><span class="todo__box"><span class="todo__ok"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></span><span>Hip thrust</span><span class="todo__n mono">3 × 8 a 10</span></div>
+                <div class="todo"><span class="todo__box"><span class="todo__ok"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span></span><span>Curl femoral</span><span class="todo__n mono">2 × 10 a 12</span></div>
+                <div class="spark"><p class="spark__k">Tu peso · 8 semanas</p>
+                  <svg viewBox="0 0 320 76" preserveAspectRatio="none"><path id="spark" d="M4 18 C 40 22, 60 30, 92 30 S 150 44, 184 46 S 250 58, 316 62" fill="none" stroke="#0b6e4f" stroke-width="5" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1" /></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6 · Cierre -->
+      <section id="s6" class="scene clip" data-start="26" data-duration="2" data-track-index="0">
+        <div class="center" id="s6-in">
+          <div class="big-mark" id="s6-mark"><svg class="mark" id="s6m-svg" viewBox="0 0 955 537" aria-hidden="true"><line class="axis" x1="0" y1="263" x2="955" y2="263" pathLength="1" /><path class="plate teal" pathLength="1" data-d="560" data-dx="-70" data-dy="0" d="M 38 213 L 38 251 21 251 L 3.9 251 4.2 264.3 L 4.5 277.5 23.2 277.8 L 42 278 42.2 314.3 L 42.5 350.5 61.8 350.8 L 81 351 81 263 L 81 175 59.5 175 L 38 175 38 213" /><path class="plate dark" pathLength="1" data-d="470" data-dx="-70" data-dy="0" d="M 95 163 L 95 187 118 187 L 141 187 141 163 L 141 139 118 139 L 95 139 95 163" /><path class="plate dark" pathLength="1" data-d="470" data-dx="-70" data-dy="0" d="M 95 296.4 L 95 388 118 388 L 141 388 141 297 L 141 206 127.2 206 C 119.5 206, 109.2 205.7, 104.2 205.4 L 95 204.7 95 296.4" /><path class="plate slate" pathLength="1" data-d="380" data-dx="-70" data-dy="0" d="M 153.2 263.3 L 153.5 387.5 175.8 387.8 L 198 388 198 346.5 L 198 305 208.5 305 L 219 305 219 292 L 219 279.1 230.8 278.8 L 242.5 278.5 242.8 265.8 L 243.1 253 231 253 L 219 253 219 239 L 219 225 211 225 L 203 225 203 182 L 203 139 178 139 L 153 139 153.2 263.3" /><path class="hex teal" pathLength="1" data-d="720" data-dx="0" data-dy="0" d="M 267.7 131.1 L 252 139 252.2 269.2 L 252.5 399.5 363.5 465.3 C 424.6 501.5, 475.5 531.6, 476.6 532.2 L 478.7 533.2 505.5 515 L 532.2 496.7 530.8 495.9 C 530.1 495.4, 481.2 466.4, 422.3 431.3 L 315 367.6 315 347.8 L 315 327.9 317.3 329.1 C 318.5 329.8, 376.4 362, 445.8 400.7 L 572.2 471.1 573.6 470.6 C 575.5 469.9, 621.1 440.2, 622.8 438.6 L 624.1 437.4 469.5 348.5 L 315 259.7 315 200.6 L 315 141.5 303.8 135 C 297.7 131.4, 290.6 127.3, 288.1 125.8 L 283.5 123.2 267.7 131.1" /><path class="hex dark" pathLength="1" data-d="860" data-dx="0" data-dy="0" d="M 386.7 58.8 C 337.4 88.9, 297 113.8, 297 114.2 C 297 114.8, 345.8 143.2, 349 144.4 L 350.5 145 365.3 135.5 C 373.4 130.3, 380.5 126, 381 126 C 381.5 126, 404.9 139.3, 433 155.5 C 461.1 171.7, 484.3 185, 484.6 185 C 484.8 185, 484.9 171, 484.8 153.9 L 484.5 122.8 460.3 109.2 C 446.9 101.6, 436.1 95.2, 436.3 94.8 C 436.4 94.3, 445.7 88.4, 456.9 81.5 L 477.3 69 588.4 131.9 C 649.6 166.6, 700.4 195.2, 701.3 195.6 L 703 196.2 703 167.7 L 703 139.2 590.6 71.6 C 528.8 34.4, 477.8 4, 477.3 4 C 476.8 4, 436 28.6, 386.7 58.8" /><path class="hex teal" pathLength="1" data-d="1040" data-dx="-30" data-dy="-17" d="M 368 207.3 L 368 241.8 425.6 275.7 C 457.4 294.3, 483.7 309.7, 484.1 309.8 L 485 310.2 485 275.8 L 485 241.4 429.8 209 C 399.4 191.2, 373 175.7, 371.3 174.7 L 368 172.8 368 207.3" /><path class="hex dark" pathLength="1" data-d="1120" data-dx="-30" data-dy="-17" d="M 538.2 184.6 L 538.5 216.4 619.5 263.2 C 664.1 288.9, 701.1 310, 701.8 310 L 703 310 702.8 277.8 L 702.5 245.5 624 201.3 C 580.8 177, 543.8 156.2, 541.7 155 L 538 152.9 538.2 184.6" /><path class="hex teal" pathLength="1" data-d="1200" data-dx="-30" data-dy="-17" d="M 538 307.2 L 538 341.6 575.8 363.7 C 596.5 375.9, 624.6 392.3, 638.2 400.3 L 662.9 414.8 681.2 402.4 C 691.3 395.5, 700.3 389.3, 701.3 388.5 L 703 387 703 378.2 L 703 369.3 621.4 321.4 C 576.5 295.1, 539.4 273.4, 538.9 273.2 L 538 272.8 538 307.2" /><path class="plate slate" pathLength="1" data-d="380" data-dx="70" data-dy="0" d="M 757 182.5 L 757 226 749 226 L 741 226 741 239 L 741 252 727.5 252 L 713.9 252 714.2 265.3 L 714.5 278.5 727.8 278.8 L 741 279.1 741 286.3 C 741 290.3, 741.3 295.2, 741.6 297.3 L 742.3 301 749.6 301 L 757 301 757.2 344.3 L 757.5 387.5 781.5 387.5 L 805.5 387.5 805.8 263.3 L 806 139 781.5 139 L 757 139 757 182.5" /><path class="plate dark" pathLength="1" data-d="470" data-dx="70" data-dy="0" d="M 817 263.5 L 817 388 840 388 L 863 388 863 263.5 L 863 139 840 139 L 817 139 817 263.5" /><path class="plate teal" pathLength="1" data-d="560" data-dx="70" data-dy="0" d="M 876 238 L 876 301 890.3 301 C 898.2 301, 908.1 301.3, 912.3 301.6 L 920 302.3 920 289.6 L 920 277 935.5 277 L 951 277 951 264 L 951 251 936 251 L 921 251 921 213 L 921 175 898.5 175 L 876 175 876 238" /><path class="plate teal" pathLength="1" data-d="640" data-dx="70" data-dy="0" d="M 876.2 335.3 L 876.5 350.5 898.4 350.8 L 920.4 351 921.1 350.3 L 921.8 349.5 921.3 334.8 L 920.7 320 898.3 320 L 875.9 320 876.2 335.3" /></svg></div>
+          <p class="display wordmark"><span class="wm"><span class="w" id="s6-word">Tu plan, calculado para ti.</span></span></p>
+          <p class="tagline" id="s6-tag">Fitness by Evidence · Germain Camarillo</p>
+        </div>
+      </section>
+
+      <audio id="bgm" src="assets/music.wav" data-start="0" data-duration="28" data-track-index="9" data-volume="0.9"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true, defaults: { ease: 'expo.out' } });
+      const BEAT = 0.5;
+
+      // Fondo: el papel milimétrico se desliza despacio y el resplandor cambia de lado en cada escena.
+      tl.fromTo('#grid', { x: 0 }, { x: -240, duration: 28, ease: 'none' }, 0);
+      const glowAt = [[0, 0, 0], [2, 300, 60], [6, -520, 120], [10, 240, -40], [16, -600, 40], [22, 360, 0], [26, 0, 0]];
+      glowAt.forEach(([t, x, y], i) => { if (i) tl.to('#glow', { x, y, duration: 1.4, ease: 'power2.inOut' }, t - 0.5); });
+
+      // Construcción del logotipo: guía, discos por la barra y hexágono a línea.
+      function buildMark(id, t, speed = 1) {
+        const q = (sel) => '#' + id + ' ' + sel;
+        tl.fromTo(q('.axis'), { strokeDashoffset: 1, opacity: 1 }, { strokeDashoffset: 0, duration: 0.4 * speed, ease: 'power2.out' }, t);
+        tl.to(q('.axis'), { opacity: 0, duration: 0.4 * speed, ease: 'power1.in' }, t + 1.0 * speed);
+        document.querySelectorAll(q('.plate')).forEach((el) => {
+          tl.fromTo(el, { x: Number(el.dataset.dx), opacity: 0 }, { x: 0, opacity: 1, duration: 0.5 * speed, ease: 'back.out(1.6)' }, t + (Number(el.dataset.d) / 1000 - 0.2) * speed);
+        });
+        document.querySelectorAll(q('.hex')).forEach((el) => {
+          const at = t + (Number(el.dataset.d) / 1000 - 0.3) * speed;
+          tl.fromTo(el, { strokeDashoffset: 1, fillOpacity: 0, strokeOpacity: 1, x: Number(el.dataset.dx), y: Number(el.dataset.dy) }, { strokeDashoffset: 0, x: 0, y: 0, duration: 0.6 * speed, ease: 'power2.inOut' }, at);
+          tl.to(el, { fillOpacity: 1, strokeOpacity: 0, duration: 0.3 * speed, ease: 'power2.out' }, at + 0.45 * speed);
+        });
+      }
+
+      // Entrada y salida comunes de cada escena.
+      function sceneIn(id, t) {
+        tl.fromTo('#' + id + ' .step', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5 }, t + 0.02);
+        tl.fromTo('#' + id + ' .title .w', { yPercent: 115 }, { yPercent: 0, duration: 0.75, stagger: 0.08 }, t + 0.05);
+        if (document.querySelector('#' + id + ' .desc')) tl.fromTo('#' + id + ' .desc', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6 }, t + 0.3);
+      }
+      function sceneOut(id, end) {
+        tl.to('#' + id + ' .scene__in', { opacity: 0, y: -40, duration: 0.3, ease: 'power2.in' }, end - 0.3);
+      }
+      function segment(n, start, dur) {
+        tl.fromTo('#seg' + n + ' .seg__fill', { scaleX: 0, transformOrigin: 'left center' }, { scaleX: 1, duration: dur, ease: 'none' }, start);
+        tl.fromTo('#seg' + n + ' .seg__label', { color: 'rgba(238,243,239,0.66)' }, { color: '#eef3ef', duration: 0.3 }, start);
+      }
+
+      // 0 · Apertura
+      buildMark('s0', 0.05, 0.86);
+      tl.fromTo('#s0-word', { yPercent: 115 }, { yPercent: 0, duration: 0.7 }, 0.9);
+      tl.to('#s0-in', { opacity: 0, scale: 0.94, duration: 0.3, ease: 'power2.in' }, 1.7);
+
+      // Marca y avance
+      tl.fromTo('#hud-brand', { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.6 }, 2.0);
+      tl.fromTo('#hud-tag', { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.6 }, 2.1);
+      tl.fromTo('#hud-bottom .seg', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.05 }, 2.0);
+      tl.to(['#hud-brand', '#hud-tag', '#hud-bottom'], { opacity: 0, duration: 0.3, ease: 'power2.in' }, 25.7);
+      // El isotipo late con el bombo.
+      for (let t = 2.5; t < 25.5; t += BEAT) tl.fromTo('#hud-mark', { scale: 1.1 }, { scale: 1, duration: 0.4, ease: 'power2.out', immediateRender: false }, t);
+      segment(1, 2, 4); segment(2, 6, 4); segment(3, 10, 6); segment(4, 16, 6); segment(5, 22, 3.7);
+
+      // 1 · Evaluación: una ficha por tiempo, y su palomita al tiempo siguiente
+      sceneIn('s1', 2);
+      document.querySelectorAll('#s1 .field').forEach((el, i) => {
+        const t = 2.5 + i * BEAT;
+        tl.fromTo(el, { opacity: 0, y: 70, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.7 }, t);
+        tl.fromTo(el.querySelector('.tick'), { scale: 0, rotate: -40 }, { scale: 1, rotate: 0, duration: 0.45, ease: 'back.out(2.2)' }, t + BEAT);
+      });
+      sceneOut('s1', 6);
+
+      // 2 · Objetivo y split: los días caen en corcheas
+      sceneIn('s2', 6);
+      document.querySelectorAll('#s2 .day').forEach((el, i) => {
+        tl.fromTo(el, { opacity: 0, y: 80, rotate: i % 2 ? 4 : -4 }, { opacity: 1, y: 0, rotate: 0, duration: 0.65, ease: 'back.out(1.4)' }, 6.5 + i * (BEAT / 2));
+      });
+      tl.fromTo('#s2 .block', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6 }, 8.0);
+      document.querySelectorAll('#s2 .week__fill').forEach((el, i) => {
+        tl.fromTo(el, { scaleX: 0, transformOrigin: 'left center' }, { scaleX: 1, duration: 0.4, ease: 'power2.out' }, 8.5 + i * (BEAT / 2));
+        tl.fromTo(el.parentElement.querySelector('.week__n'), { color: '#eef3ef' }, { color: '#06110f', duration: 0.2 }, 8.6 + i * (BEAT / 2));
+      });
+      sceneOut('s2', 10);
+
+      // 3 · Entrenamiento: una fila por tiempo; luego las barras de volumen
+      sceneIn('s3', 10);
+      tl.fromTo('#s3 .table', { opacity: 0, x: -70 }, { opacity: 1, x: 0, duration: 0.7 }, 10.4);
+      tl.fromTo('#s3 .chart', { opacity: 0, x: 70 }, { opacity: 1, x: 0, duration: 0.7 }, 10.5);
+      document.querySelectorAll('#s3 .row--item').forEach((el, i) => {
+        const t = 11 + i * BEAT;
+        tl.fromTo(el, { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.55 }, t);
+        tl.fromTo(el.querySelector('.rir'), { scale: 0 }, { scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, t + 0.2);
+      });
+      document.querySelectorAll('#s3 .bar').forEach((el, i) => {
+        const t = 13 + i * (BEAT / 2);
+        tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.3 }, t);
+        tl.fromTo(el.querySelector('.bar__fill'), { scaleX: 0, transformOrigin: 'left center' }, { scaleX: 1, duration: 0.8 }, t);
+      });
+      // Repaso final de la tabla: cada RIR vuelve a marcar el pulso.
+      document.querySelectorAll('#s3 .rir').forEach((el, i) => tl.fromTo(el, { scale: 1.25 }, { scale: 1, duration: 0.4, ease: 'power2.out' }, 14.5 + i * (BEAT / 2)));
+      sceneOut('s3', 16);
+
+      // 4 · Nutrición: las calorías suben contando y los macros se llenan
+      sceneIn('s4', 16);
+      tl.fromTo('#s4 .kcal', { opacity: 0, scale: 0.9, y: 50 }, { opacity: 1, scale: 1, y: 0, duration: 0.8 }, 16.4);
+      const kcal = { v: 0 };
+      const kcalEl = document.getElementById('kcal');
+      tl.fromTo(kcal, { v: 0 }, { v: 2150, duration: 1.6, ease: 'power3.out', onUpdate: () => { kcalEl.textContent = String(Math.round(kcal.v / 10) * 10); } }, 16.5);
+      tl.fromTo('#s4 .macros', { opacity: 0, x: 70 }, { opacity: 1, x: 0, duration: 0.7 }, 16.6);
+      document.querySelectorAll('#s4 .macro').forEach((el, i) => {
+        const t = 17.5 + i * BEAT;
+        tl.fromTo(el, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, t);
+        tl.fromTo(el.querySelector('.macro__fill'), { scaleX: 0, transformOrigin: 'left center' }, { scaleX: 1, duration: 0.9 }, t);
+      });
+      document.querySelectorAll('#s4 .meal').forEach((el, i) => {
+        tl.fromTo(el, { opacity: 0, y: 40, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: 'back.out(1.8)' }, 19.5 + i * (BEAT / 2));
+      });
+      sceneOut('s4', 22);
+
+      // 5 · En tu teléfono: llega el mensaje, sube el teléfono y se van marcando las series
+      sceneIn('s5', 22);
+      tl.fromTo('#phone', { y: 620, rotate: 8 }, { y: 0, rotate: 0, duration: 1.0, ease: 'expo.out' }, 22.2);
+      tl.fromTo('#bubble', { opacity: 0, scale: 0.8, transformOrigin: 'left bottom' }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.8)' }, 22.6);
+      tl.fromTo('#link', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 }, 23.0);
+      tl.to('#link', { scale: 0.94, duration: 0.12, ease: 'power2.in', yoyo: true, repeat: 1 }, 23.5);
+      document.querySelectorAll('#s5 .todo__ok').forEach((el, i) => tl.fromTo(el, { scale: 0 }, { scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, 24 + i * BEAT));
+      tl.fromTo('#spark', { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut' }, 23.6);
+      sceneOut('s5', 26);
+
+      // 6 · Cierre: el logotipo completo y la promesa
+      buildMark('s6', 26.0, 0.6);
+      tl.fromTo('#s6-word', { yPercent: 115 }, { yPercent: 0, duration: 0.7 }, 26.5);
+      tl.fromTo('#s6-tag', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 }, 26.8);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,72 @@
+/* Versión vertical (1080 × 1920) para historias y estados: mismas escenas, reacomodadas en columna.
+   Se deja libre la franja de arriba y la de abajo, donde las apps ponen su propia interfaz. */
+html, body { width: 1080px; height: 1920px; }
+.grid { height: 1920px; }
+.glow { top: 560px; left: -10px; }
+.hud-top { top: 170px; left: 80px; right: 80px; }
+.hud-tag { display: none; }
+.hud-mark { width: 124px; height: 70px; }
+.hud-brand .display { font-size: 32px; }
+.hud-bottom { left: 80px; right: 80px; bottom: 230px; gap: 14px; }
+.seg__label { display: none; }
+.seg__bar { height: 8px; border-radius: 4px; }
+
+.scene__in { top: 330px; left: 80px; width: 920px; height: 1300px; }
+.head { display: block; height: auto; }
+.step { font-size: 30px; margin-bottom: 14px; }
+.title { font-size: 84px; white-space: normal; }
+#s5 .title { font-size: 84px; }
+.wm { padding: 6px 16px 10px 0; margin-right: 4px; }
+.desc { width: auto; padding: 14px 0 0; font-size: 36px; text-align: left; }
+.stage { top: 410px; height: 900px; }
+.label { font-size: 24px; }
+
+.big-mark { width: 780px; height: 439px; }
+.wordmark { font-size: 60px; text-align: center; }
+#s6-word { max-width: 920px; text-align: center; line-height: 1.08; }
+.center .wm { padding-right: 0; margin-right: 0; }
+.tagline { font-size: 34px; text-align: center; }
+
+.eval { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 20px; }
+.field { padding: 44px 40px; }
+.field__value { font-size: 84px; }
+.field__value--long { font-size: 50px; }
+.field__unit { font-size: 32px; }
+.tick { width: 68px; height: 68px; }
+
+.split { gap: 20px; }
+.days { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.day { grid-template-columns: 1fr auto; align-items: center; align-content: center; padding: 22px 30px; border-radius: 28px; }
+.day > div { text-align: right; }
+.day:last-child { grid-column: 1 / -1; }
+.day__name { font-size: 28px; }
+.day__what { font-size: 40px; }
+.day__sets { font-size: 24px; }
+.block { grid-template-columns: 1fr; gap: 18px; padding: 28px 34px; }
+.block__name { font-size: 34px; }
+
+.train { grid-template-columns: 1fr; grid-template-rows: 1.3fr 1fr; gap: 20px; }
+.table { padding: 30px 34px; }
+.row { grid-template-columns: 1fr 70px 170px 96px; gap: 14px; }
+.row__name { font-size: 34px; }
+.row__muscle { font-size: 24px; }
+.row__num { font-size: 36px; }
+.rir { width: 84px; height: 54px; font-size: 28px; }
+.chart { padding: 30px 34px; gap: 14px; }
+.bar { grid-template-columns: 190px 1fr 56px; font-size: 28px; }
+.bar__n { font-size: 30px; }
+
+.food { grid-template-columns: 1fr; grid-template-rows: 0.72fr 1.28fr; gap: 20px; }
+.kcal { padding: 34px 40px; }
+.kcal__n { font-size: 170px; }
+.macros { padding: 32px 36px; gap: 22px; }
+.macro { grid-template-columns: 230px 1fr 120px; gap: 18px; font-size: 32px; }
+.macro__g { font-size: 34px; }
+.meals { grid-template-columns: repeat(2, 1fr); }
+.meal__name { font-size: 24px; }
+.meal__kcal { font-size: 32px; }
+
+.chat { top: 0; width: 920px; }
+.bubble { font-size: 38px; }
+.link { font-size: 36px; }
+.phone { right: 250px; top: 222px; }

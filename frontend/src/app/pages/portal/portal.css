@@ -30,13 +30,12 @@
   gap: var(--space-3);
 }
 
-.brand img {
+.brand app-brand-mark {
   width: 62px;
-  height: auto;
 }
 
 .brand span {
-  font-size: 1.3rem;
+  font-size: 0.98rem;
 }
 
 .saving {

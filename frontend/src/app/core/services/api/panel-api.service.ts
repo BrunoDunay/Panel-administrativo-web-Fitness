@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay, tap } from 'rxjs';
 import { API_URL } from '../../config/api.config';
+import { Appointment, AppointmentDraft } from '../../types/appointment.model';
 import { Catalog, CatalogResource } from '../../types/catalog.model';
 import { Client, ClientListItem, ClientStatus, Dashboard, Payment, PaymentDraft } from '../../types/client.model';
 import { SettingsSection, SiteSettings } from '../../types/settings.model';
@@ -61,6 +62,25 @@ export class PanelApi {
 
   deleteCatalogItem(resource: CatalogResource, id: number) {
     return this.http.delete<void>(`${this.api}/catalog/${resource}/${id}`).pipe(tap(this.invalidate));
+  }
+
+  /** Agenda: sesiones cuyo inicio cae en el rango (ISO); sin rango, todas. */
+  appointments(range: { from?: string; to?: string; clientId?: string } = {}) {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(range)) if (value) params = params.set(key, value);
+    return this.http.get<Appointment[]>(`${this.api}/appointments`, { params });
+  }
+
+  createAppointment(body: AppointmentDraft) {
+    return this.http.post<Appointment>(`${this.api}/appointments`, body);
+  }
+
+  updateAppointment(id: string, body: AppointmentDraft) {
+    return this.http.put<Appointment>(`${this.api}/appointments/${id}`, body);
+  }
+
+  deleteAppointment(id: string) {
+    return this.http.delete<void>(`${this.api}/appointments/${id}`);
   }
 
   settings() {

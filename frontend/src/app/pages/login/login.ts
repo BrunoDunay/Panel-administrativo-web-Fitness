@@ -4,11 +4,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { SeoService } from '../../core/services/seo.service';
 import { ApiError } from '../../core/types/common.model';
+import { BrandMark } from '../../components/brand/brand-mark';
 import { Btn } from '../../components/buttons/btn';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, Btn],
+  imports: [ReactiveFormsModule, RouterLink, Btn, BrandMark],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.html',
   styleUrl: './login.css',

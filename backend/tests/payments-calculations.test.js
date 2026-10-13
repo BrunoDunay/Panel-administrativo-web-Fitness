@@ -24,6 +24,11 @@ describe('siguiente vencimiento', () => {
     expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
     expect(addMonths('2026-08-31', 6)).toBe('2027-02-28');
     expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
+    // Quincenal: medio mes son 15 días, también al cruzar de mes o de año.
+    expect(addMonths('2026-10-01', 0.5)).toBe('2026-10-16');
+    expect(addMonths('2026-10-20', 0.5)).toBe('2026-11-04');
+    expect(addMonths('2026-12-25', 0.5)).toBe('2027-01-09');
+    expect(nextDueDate({ dueDate: '2026-10-07', paidOn: '2026-10-09', planType: 'Quincenal' })).toBe('2026-10-22');
   });
 });
 

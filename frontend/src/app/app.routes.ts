@@ -27,5 +27,11 @@ export const routes: Routes = [
     pathMatch: 'full',
     loadComponent: () => import('./pages/home/home').then((m) => m.Home),
   },
+  // ---- Legales ----
+  ...(['privacidad', 'terminos', 'cookies'] as const).map((slug) => ({
+    path: slug,
+    data: { slug },
+    loadComponent: () => import('./pages/legal/legal').then((m) => m.Legal),
+  })),
   { path: '**', loadComponent: () => import('./pages/not-found/not-found').then((m) => m.NotFound) },
 ];

@@ -10,6 +10,7 @@ export const PANEL_ROUTES: Routes = [
       { path: 'clients', loadComponent: () => import('./clients/clients-list').then((m) => m.ClientsList) },
       { path: 'clients/new', loadComponent: () => import('./clients/client-create').then((m) => m.ClientCreate) },
       { path: 'clients/:id', loadComponent: () => import('./clients/client-detail').then((m) => m.ClientDetail) },
+      { path: 'agenda', loadComponent: () => import('./agenda/agenda').then((m) => m.Agenda) },
       { path: 'exercises', loadComponent: () => import('./catalogs/exercises-admin').then((m) => m.ExercisesAdmin) },
       { path: 'foods', loadComponent: () => import('./catalogs/foods-admin').then((m) => m.FoodsAdmin) },
       { path: 'supplements', loadComponent: () => import('./catalogs/supplements-admin').then((m) => m.SupplementsAdmin) },

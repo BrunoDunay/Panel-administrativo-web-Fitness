@@ -3,7 +3,7 @@
 <div class="shell" [class.menu-open]="menuOpen()">
   <aside class="aside" aria-label="Menú del panel">
     <a class="brand" routerLink="/panel" aria-label="Inicio del panel">
-      <img src="/brand/mark-light.png" alt="" width="640" height="356" />
+      <app-brand-mark tone="light" build="load" [replay]="true" />
       <span class="brand__name display">Fitness by Evidence</span>
     </a>
 
@@ -45,7 +45,7 @@
       <button type="button" class="menu-btn" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()" aria-label="Abrir menú">
         <app-icon name="menu" [size]="22" />
       </button>
-      <a routerLink="/panel" aria-label="Inicio del panel"><img src="/brand/mark.png" alt="Fitness by Evidence" width="640" height="356" /></a>
+      <a routerLink="/panel" aria-label="Inicio del panel"><app-brand-mark role="img" aria-label="Fitness by Evidence" /></a>
     </header>
 
     <main class="content">

@@ -10,6 +10,7 @@ import { MeasurementsPanel } from '../../../components/tracking/measurements-pan
 import { WeightTracker } from '../../../components/tracking/weight-tracker';
 import { TrainingOverview } from '../../../components/training/training-overview';
 import { TrainingReports } from '../../../components/training/training-reports';
+import { WeekPicker } from '../../../components/training/week-picker';
 import { WeekSheet } from '../../../components/training/week-sheet';
 import { CHECKIN_QUESTIONS, CHECKIN_RATINGS } from '../../../core/config/tracking-lists';
 import { PanelApi } from '../../../core/services/api/panel-api.service';
@@ -61,6 +62,7 @@ const PAYMENT_TONE: Record<PaymentState, Tone> = { ok: 'emerald', soon: 'steel',
     TrainingPlanEditor,
     WeekPrescriptionEditor,
     WeekSheet,
+    WeekPicker,
     TrainingReports,
     NutritionEditor,
     NutritionPlanView,

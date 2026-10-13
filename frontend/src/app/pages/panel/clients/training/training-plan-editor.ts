@@ -83,6 +83,11 @@ function emptyDraft(): Draft {
     .icon-btn { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); }
     @media (hover: hover) and (pointer: fine) { .icon-btn:hover { background: var(--color-danger-soft); color: var(--color-danger); } }
     @media (max-width: 640px) { .level__notes { grid-template-columns: 1fr 1fr; } .level__notes > :last-child { grid-column: 1 / -1; } }
+    /* Rediseño: días y prioridades sin relleno pastel */
+    .split__day { background: var(--color-surface); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 30%, var(--color-border)); }
+    .split__day.is-rest { border-top-color: var(--tone-slate); background: var(--color-surface); }
+    .level { background: var(--color-surface); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 26%, var(--color-border)); }
+    .computed--tone { background: var(--tone-gradient); color: #ffffff; }
   `,
 })
 export class TrainingPlanEditor {
