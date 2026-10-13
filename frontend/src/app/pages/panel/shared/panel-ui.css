@@ -1323,8 +1323,7 @@
 
 /* Avisos: superficie blanca con filo del color del aviso. */
 .alert,
-.notice,
-.pending {
+.notice {
   border: 1px solid color-mix(in srgb, currentColor 22%, var(--color-border));
   border-left-width: 4px;
   background: var(--color-surface);

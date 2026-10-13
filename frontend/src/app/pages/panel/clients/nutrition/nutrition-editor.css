@@ -822,3 +822,28 @@ form {
   color: var(--color-text);
 }
 
+/* "¿Cuadra el plan?": el fondo dice cómo va cada renglón */
+.plan__fit .fit__item.is-ok {
+  background: #d3f3e2;
+}
+
+.plan__fit .fit__item.is-low {
+  background: #fdebbf;
+}
+
+.plan__fit .fit__item.is-high {
+  background: #fbd3ca;
+}
+
+.plan__fit .fit__item.is-ok em {
+  color: #086244;
+}
+
+.plan__fit .fit__item.is-low em {
+  color: #7a4d05;
+}
+
+.plan__fit .fit__item.is-high em {
+  color: #972f1d;
+}
+
