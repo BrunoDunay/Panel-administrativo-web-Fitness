@@ -20,6 +20,19 @@ async function start() {
   if (init.supportCreated) console.log(`Cuenta de soporte creada: ${env.SUPPORT_ADMIN_EMAIL}`);
   if (init.catalogs.length) console.log('Catálogos cargados:', init.catalogs.join(', '));
 
+  if (env.DEMO_MODE) {
+    console.log('Modo demostración: solo lectura, con datos de ejemplo.');
+    // Se carga solo aquí: la instalación real nunca importa el sembrador de ejemplo.
+    const { refreshDemoData, startDemoRefresh } = await import('./config/demo-data.js');
+    try {
+      await refreshDemoData();
+    } catch (error) {
+      console.error(`Demostración: ${error.message}`);
+      process.exit(1);
+    }
+    startDemoRefresh();
+  }
+
   const server = createApp().listen(env.PORT, () => {
     console.log(`API lista en http://localhost:${env.PORT}/api (${env.NODE_ENV})`);
   });

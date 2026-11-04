@@ -3,7 +3,8 @@
 
 [build]
   base = "frontend"
-  command = "npm run build"
+  # El sitio de demostración define NG_BUILD_CONFIGURATION=demo en sus variables; el real no la define.
+  command = "npm run build -- --configuration ${NG_BUILD_CONFIGURATION:-production}"
   publish = "dist/frontend/browser"
 
 [build.environment]

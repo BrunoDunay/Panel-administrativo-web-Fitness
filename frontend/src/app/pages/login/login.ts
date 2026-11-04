@@ -6,6 +6,7 @@ import { SeoService } from '../../core/services/seo.service';
 import { ApiError } from '../../core/types/common.model';
 import { BrandMark } from '../../components/brand/brand-mark';
 import { Btn } from '../../components/buttons/btn';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -26,6 +27,8 @@ export class Login {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showPassword = signal(false);
+  /** Demostración: solo hay acceso de invitado. */
+  protected readonly demo = environment.demo;
 
   constructor() {
     inject(SeoService).setPage({ title: 'Iniciar sesión | Panel', noindex: true, path: '/login' });
@@ -49,6 +52,19 @@ export class Login {
       error: (err: ApiError) => {
         this.loading.set(false);
         this.error.set(err.message);
+      },
+    });
+  }
+
+  /** Demostración: entra como invitado, sin contraseña. */
+  protected enterAsGuest(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.auth.loginAsGuest().subscribe({
+      next: () => void this.router.navigateByUrl('/panel'),
+      error: (err: ApiError) => {
+        this.loading.set(false);
+        this.error.set(err.status === 0 ? 'La demostración está despertando. Espera unos segundos e inténtalo de nuevo.' : err.message);
       },
     });
   }

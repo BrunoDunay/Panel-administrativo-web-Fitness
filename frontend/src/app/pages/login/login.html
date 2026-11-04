@@ -7,6 +7,16 @@
 
     <h1 class="title">Panel del coach</h1>
 
+    @if (demo) {
+      <div class="guest">
+        <p class="guest__lead">Recorre el panel del coach como invitado.</p>
+        <p class="guest__note">Todos los clientes, planes, pagos y la agenda son <strong>inventados</strong>. Puedes abrir y revisar todo; los cambios no se guardan.</p>
+        @if (error()) {
+          <p class="alert" role="alert">{{ error() }}</p>
+        }
+        <button appBtn type="button" size="lg" [block]="true" [loading]="loading()" [disabled]="loading()" (click)="enterAsGuest()">Entrar como invitado</button>
+      </div>
+    } @else {
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
         <label class="field__label" for="email">Email</label>
@@ -43,6 +53,7 @@
 
       <button appBtn type="submit" size="lg" [block]="true" [loading]="loading()" [disabled]="loading()">Entrar</button>
     </form>
+    }
 
     <a class="back" routerLink="/">← Volver al sitio</a>
   </div>

@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { env } from './config/env.js';
 import { apiRoutes } from './routes/index.js';
+import { demoReadOnly } from './middlewares/demo-read-only.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 
 export function createApp() {
@@ -20,6 +21,9 @@ export function createApp() {
     }),
   );
   app.use(express.json({ limit: '1mb' }));
+
+  // Demostración: nada se guarda. Va antes de las rutas para que ninguna escritura llegue a la base.
+  if (env.DEMO_MODE) app.use(demoReadOnly);
 
   app.use('/api', apiRoutes);
 

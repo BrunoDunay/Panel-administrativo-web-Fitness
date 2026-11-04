@@ -5,9 +5,12 @@
 //   npm run seed:demo -- --reset borra los de ejemplo y los vuelve a crear
 //   npm run seed:demo -- --only=Diego   crea solo el cliente cuyo nombre contiene ese texto
 //   npm run seed:demo -- --nutrition=Diego   vuelve a poner el plan de alimentación a uno que ya existe
+//   npm run seed:demo -- --showcase  juego completo de la demostración (más clientes, todos con plan, y agenda)
 import { Op } from 'sequelize';
 import { sequelize } from '../src/config/database.js';
-import { Client, Food, Payment, Supplement, WeekExercise } from '../src/models/index.js';
+import { env } from '../src/config/env.js';
+import { pathToFileURL } from 'node:url';
+import { Appointment, Client, Food, Payment, Supplement, WeekExercise } from '../src/models/index.js';
 import { loadCatalog } from '../src/services/catalog.service.js';
 import { buildNutritionView, saveNutritionPlan } from '../src/services/nutrition.service.js';
 import { saveCheckin, saveMeasurement, saveWeight } from '../src/services/tracking.service.js';
@@ -16,7 +19,8 @@ import { generateAccessCode } from '../src/utils/access-code.js';
 import { addDays, mondayOf, todayInAppTz } from '../src/utils/dates-mx.js';
 
 const DOMAIN = '@demo.fbe';
-const today = todayInAppTz();
+// "Hoy" se vuelve a leer en cada carga: el servidor de demostración regenera los datos a diario.
+let today = todayInAppTz();
 const daysAgo = (n) => addDays(today, -n);
 const REST = 'Descanso';
 
@@ -102,7 +106,8 @@ const ROUTINES = {
   ],
 };
 
-const DEMO = [
+/** Se arma en cada carga para que las fechas salgan relativas al día de hoy. */
+const demoSpecs = () => [
   {
     client: {
       fullName: 'Mariana López Herrera', birthDate: '1995-03-12', sex: 'female', heightCm: 165, initialWeightKg: 64, city: 'Aguascalientes', occupation: 'Diseñadora', phone: '4491234567',
@@ -271,6 +276,76 @@ const DEMO = [
   },
 ];
 
+/**
+ * Juego de la cuenta de demostración: casi todos los clientes con su plan completo y avance,
+ * más uno recién dado de alta y uno en pausa para que se vean todos los estados.
+ * Ana Paula y Roberto toman como base los planes de Sofía y Carlos.
+ */
+function showcaseSpecs() {
+  const specs = demoSpecs();
+  const of = (name) => specs.find((spec) => spec.client.fullName.startsWith(name));
+  const [carlos, sofia, ana, roberto] = ['Carlos', 'Sofía', 'Ana Paula', 'Roberto'].map(of);
+
+  ana.client.profile.health.medicalClearance = 'Sí';
+  ana.client.profile.logistics = { ...ana.client.profile.logistics, startDate: daysAgo(23), paymentDate: addDays(today, 8) };
+  ana.client.coachNotes = 'Entrena en casa con mancuernas y bandas. Prioridad: constancia y pérdida de grasa sin descuidar el suelo pélvico.';
+  Object.assign(ana, {
+    training: { ...sofia.training, objective: { primary: 'Pérdida de grasa: bajar cintura', secondary: 'Recuperar fuerza general', startingPoint: '71 kg, un año entrenando de forma irregular.', trajectory: 'Bajar a 66 kg en 12 semanas.' } },
+    routine: sofia.routine, routineDays: sofia.routineDays, weeks: 4, doneDaysLastWeek: 1, progression: 0.04, loadFactor: 0.9,
+    nutrition: { ...sofia.nutrition, inputs: { ...sofia.nutrition.inputs, dietType: 'omnivore', weightKg: 69.8, goal: 'Déficit', adjustmentKcal: -350 } },
+    weight: { start: 71, perWeek: -0.4, days: 22 },
+    checkins: [
+      { week: 1, ratings: [3, 3, 3, 4, 4, 3, 5], rpe: 7, comment: 'Me costó organizarme con los horarios.' },
+      { week: 2, ratings: [4, 3, 4, 3, 4, 4, 5], rpe: 7.5 },
+      { week: 3, ratings: [4, 4, 4, 3, 5, 4, 5], rpe: 8, comment: 'Ya me siento con más energía en las tardes.' },
+    ],
+    measurements: [[23, { weight: 71, waist: 84, hips: 102, thighRight: 58 }], [2, { weight: 69.8, waist: 82, hips: 100.5, thighRight: 57.4 }]],
+  });
+
+  roberto.client.status = 'active';
+  roberto.client.profile = { ...carlos.client.profile, health: { medicalClearance: 'Sí', injuries: 'Hernia lumbar L4-L5 (2019)' }, logistics: { planType: 'Trimestral', startDate: daysAgo(41), paymentDate: addDays(today, 49), daysPerWeek: 6, sessionMinutes: 60, trainingPlace: 'Gym comercial' }, experience: { yearsTraining: 4, level: 'Intermedio' } };
+  roberto.client.coachNotes = 'Hernia lumbar controlada: nada de peso muerto convencional; bisagra con apoyo y core antes de cada sesión.';
+  Object.assign(roberto, {
+    training: { ...carlos.training, objective: { primary: 'Recomposición: bajar grasa y cuidar la espalda', secondary: 'Fortalecer el core', startingPoint: '92 kg, con antecedente de hernia lumbar.', trajectory: 'Llegar a 86 kg en 16 semanas sin molestias.' } },
+    routine: carlos.routine, routineDays: carlos.routineDays, weeks: 6, doneDaysLastWeek: 3, progression: 0.02, loadFactor: 0.85,
+    nutrition: { ...carlos.nutrition, inputs: { ...carlos.nutrition.inputs, weightKg: 89.6 } },
+    weight: { start: 92, perWeek: -0.45, days: 40 },
+    checkins: [
+      { week: 1, ratings: [4, 4, 3, 3, 4, 4, 4], rpe: 7 },
+      { week: 2, ratings: [4, 3, 3, 3, 4, 4, 4], rpe: 7.5 },
+      { week: 3, ratings: [3, 3, 3, 2, 3, 3, 4], rpe: 8, comment: 'Semana de mucho trabajo, dormí poco.', discomfort: 'Ligera tensión lumbar el jueves, se quitó con movilidad.' },
+      { week: 4, ratings: [4, 4, 4, 3, 4, 4, 5], rpe: 8 },
+      { week: 5, ratings: [5, 4, 4, 4, 5, 4, 5], rpe: 8, comment: 'La mejor semana hasta ahora.' },
+    ],
+    measurements: [[41, { weight: 92, waist: 101, abdomen: 104, chest: 108, armRight: 37 }], [20, { weight: 90.6, waist: 99, abdomen: 101.5, chest: 107.5, armRight: 37 }], [3, { weight: 89.6, waist: 97.5, abdomen: 99.5, chest: 107, armRight: 37.2 }]],
+  });
+
+  specs.push(
+    {
+      client: {
+        fullName: 'Valeria Ortiz Navarro', birthDate: '1993-06-04', sex: 'female', heightCm: 168, initialWeightKg: 60, city: 'Aguascalientes', occupation: 'Odontóloga', phone: '4490001122',
+        profile: {
+          health: { medicalClearance: 'No requiere' },
+          logistics: { planType: 'Quincenal', startDate: today, paymentDate: addDays(today, 15), daysPerWeek: 4, sessionMinutes: 60, trainingPlace: 'Gym comercial' },
+          lifestyle: { sleepHours: 7, stressLevel: 3, dailySteps: 8000, workActivity: 'Ligera' },
+          experience: { yearsTraining: 1, level: 'Principiante' },
+          nutrition: { mealsPerDay: 4, tracksNutrition: false },
+        },
+        coachNotes: 'Recién dada de alta: falta armar los planes después de la sesión de bienvenida.',
+      },
+      fee: 800,
+    },
+    {
+      client: {
+        fullName: 'Jorge Castillo Peña', birthDate: '1985-12-15', sex: 'male', heightCm: 175, initialWeightKg: 84, city: 'Calvillo', occupation: 'Ingeniero civil', phone: '4493334455', status: 'paused',
+        profile: { health: { medicalClearance: 'Sí' }, logistics: { planType: 'Mensual', startDate: daysAgo(150), daysPerWeek: 4 }, experience: { yearsTraining: 5, level: 'Intermedio' } },
+        coachNotes: 'En pausa por viaje de trabajo. Retoma el próximo mes.',
+      },
+    },
+  );
+  return specs;
+}
+
 const RATING_KEYS = ['energy', 'sleep', 'soreness', 'stress', 'mood', 'nutrition', 'injury'];
 /** Variación fija (no al azar) para que los datos se vean naturales y siempre salgan igual. */
 const wobble = (i) => [0, 0.3, -0.1, 0.2, 0.4, 0.1, 0.3][i % 7];
@@ -394,12 +469,64 @@ async function createDemo(spec, foods, supplements, catalog) {
   return true;
 }
 
-async function main() {
-  const reset = process.argv.includes('--reset');
-  await sequelize.authenticate();
+// Sesiones de la agenda: [días desde hoy, hora, cliente, tema, minutos, notas?]. Las del sábado pasan al viernes y las del domingo, al lunes.
+const SESSIONS = [
+  [-9, '10:00', 'Mariana', 'Seguimiento', 30, 'Revisamos técnica de sentadilla Hack con su video.'],
+  [-6, '17:00', 'Carlos', 'Ajuste del plan', 45, 'Bajamos 150 kcal en días de descanso; vigilar hambre nocturna.'],
+  [-3, '12:00', 'Ana Paula', 'Seguimiento', 30],
+  [-1, '19:00', 'Roberto', 'Resolver dudas', 30, 'Dudas sobre la bisagra de cadera con apoyo.'],
+  [0, '18:30', 'Diego', 'Seguimiento', 30, 'Revisar si ya completa la cena todos los días.'],
+  [1, '09:30', 'Sofía', 'Seguimiento', 30],
+  [2, '11:00', 'Roberto', 'Ajuste del plan', 45],
+  [3, '16:00', 'Mariana', 'Seguimiento', 30],
+  [4, '10:00', 'Valeria', 'Bienvenida', 60, 'Primera sesión: historia clínica y objetivos antes de armar los planes.'],
+  [7, '13:00', 'Carlos', 'Seguimiento', 30],
+  [9, '17:30', 'Ana Paula', 'Ajuste del plan', 45],
+  [13, '10:00', 'Diego', 'Seguimiento', 30],
+  [16, '12:30', 'Roberto', 'Seguimiento', 30],
+  [20, '09:00', 'Sofía', 'Ajuste del plan', 45, 'Cierra la fase de adaptación: subir cargas.'],
+];
+const MEET_CODES = ['qwe-rtyu-iop', 'asd-fghj-klz', 'zxc-vbnm-qaz', 'wsx-edcr-fvt', 'gby-hnuj-mik', 'olp-qazw-sxe'];
+
+/** Sesiones de ejemplo en la agenda del coach, pasadas y por venir. */
+async function seedDemoAppointments() {
+  const clients = await Client.findAll({ where: { email: { [Op.like]: `%${DOMAIN}` } }, attributes: ['id', 'fullName'] });
+  const byName = (name) => clients.find((c) => c.fullName.startsWith(name));
+  const rows = SESSIONS.map(([offset, time, name, topic, durationMinutes, notes], i) => {
+    let date = addDays(today, offset);
+    const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+    if (weekday === 6) date = addDays(date, -1);
+    if (weekday === 0) date = addDays(date, 1);
+    // México centro no tiene horario de verano desde 2022: UTC−6 todo el año.
+    return { clientId: byName(name)?.id, startsAt: new Date(`${date}T${time}:00-06:00`), durationMinutes, topic, notes: notes ?? null, meetingUrl: `https://meet.google.com/${MEET_CODES[i % MEET_CODES.length]}` };
+  });
+  await Appointment.bulkCreate(rows.filter((row) => row.clientId));
+}
+
+/**
+ * Fechas de registro creíbles: al crearse, todo queda con la hora del sembrado y el panel
+ * mostraría la actividad y las altas como si fueran de hoy. Cada fila toma la fecha que representa.
+ */
+async function backdateDemoRecords() {
+  const tz = env.APP_TIMEZONE;
+  const demo = `SELECT id FROM clients WHERE email LIKE '%${DOMAIN}'`;
+  const at = (date, time) => `LEAST((${date} + time '${time}') AT TIME ZONE '${tz}', now())`;
+  await sequelize.query(`UPDATE clients SET created_at = ${at("(profile->'logistics'->>'startDate')::date", '10:00')}, updated_at = now() WHERE id IN (${demo}) AND profile->'logistics'->>'startDate' IS NOT NULL`);
+  await sequelize.query(`UPDATE weight_logs SET created_at = ${at('date', '07:30')} + (extract(day FROM date)::int % 5) * interval '7 minutes', updated_at = ${at('date', '07:30')} + (extract(day FROM date)::int % 5) * interval '7 minutes' WHERE client_id IN (${demo})`);
+  await sequelize.query(`UPDATE checkins SET created_at = ${at('date', '20:15')}, updated_at = ${at('date', '20:15')} WHERE client_id IN (${demo}) AND date IS NOT NULL`);
+  await sequelize.query(`UPDATE measurements SET created_at = ${at('date', '08:00')}, updated_at = ${at('date', '08:00')} WHERE client_id IN (${demo})`);
+  await sequelize.query(`UPDATE payments SET created_at = ${at('paid_on', '12:00')}, updated_at = ${at('paid_on', '12:00')} WHERE client_id IN (${demo})`);
+}
+
+/**
+ * Carga los clientes de ejemplo. Con `showcase` usa el juego completo de la demostración
+ * (todos los estados, planes completos y agenda).
+ */
+export async function seedDemoClients({ reset = false, showcase = false, only, log = () => {} } = {}) {
+  today = todayInAppTz();
   if (reset) {
     const removed = await Client.destroy({ where: { email: { [Op.like]: `%${DOMAIN}` } } });
-    console.log(`Clientes de ejemplo eliminados: ${removed}`);
+    log(`Clientes de ejemplo eliminados: ${removed}`);
   }
   const foods = new Map((await Food.findAll()).map((f) => [f.name, f]));
   const supplements = new Map((await Supplement.findAll()).map((s) => [s.name, s]));
@@ -407,9 +534,28 @@ async function main() {
 
   const catalog = await loadCatalog();
   let created = 0;
+  for (const spec of showcase ? showcaseSpecs() : demoSpecs()) {
+    if (only && !spec.client.fullName.toLowerCase().includes(only)) continue;
+    if (await createDemo(spec, foods, supplements, catalog)) {
+      created++;
+      log(`  + ${spec.client.fullName}`);
+    }
+  }
+  if (showcase && created) {
+    await seedDemoAppointments();
+    await backdateDemoRecords();
+  }
+  return created;
+}
+
+async function main() {
+  await sequelize.authenticate();
   const nutrition = process.argv.find((arg) => arg.startsWith('--nutrition='))?.slice(12).toLowerCase();
   if (nutrition) {
-    for (const spec of DEMO.filter((demo) => demo.nutrition && demo.client.fullName.toLowerCase().includes(nutrition))) {
+    const foods = new Map((await Food.findAll()).map((f) => [f.name, f]));
+    const supplements = new Map((await Supplement.findAll()).map((s) => [s.name, s]));
+    const catalog = await loadCatalog();
+    for (const spec of demoSpecs().filter((demo) => demo.nutrition && demo.client.fullName.toLowerCase().includes(nutrition))) {
       const client = await Client.findOne({ where: { email: emailOf(spec) } });
       if (!client) continue;
       await seedNutrition(client, spec, foods, supplements, catalog);
@@ -417,20 +563,21 @@ async function main() {
     }
     return;
   }
-  const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).toLowerCase();
-  for (const spec of DEMO) {
-    if (only && !spec.client.fullName.toLowerCase().includes(only)) continue;
-    if (await createDemo(spec, foods, supplements, catalog)) {
-      created++;
-      console.log(`  + ${spec.client.fullName}`);
-    }
-  }
+  const created = await seedDemoClients({
+    reset: process.argv.includes('--reset'),
+    showcase: process.argv.includes('--showcase'),
+    only: process.argv.find((arg) => arg.startsWith('--only='))?.slice(7).toLowerCase(),
+    log: console.log,
+  });
   console.log(created ? `Listo: ${created} clientes de ejemplo creados.` : 'Los clientes de ejemplo ya existían (usa --reset para recrearlos).');
 }
 
-main()
-  .catch((error) => {
-    console.error('No se pudieron cargar los ejemplos:', error.message);
-    process.exitCode = 1;
-  })
-  .finally(() => sequelize.close());
+// Solo corre como comando (npm run seed:demo); el servidor de demostración importa `seedDemoClients`.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  main()
+    .catch((error) => {
+      console.error('No se pudieron cargar los ejemplos:', error.message);
+      process.exitCode = 1;
+    })
+    .finally(() => sequelize.close());
+}

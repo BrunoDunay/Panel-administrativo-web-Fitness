@@ -22,10 +22,13 @@ const SECURITY_HEADERS: Record<string, string> = {
   'X-Frame-Options': 'SAMEORIGIN',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   ...(environment.production ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' } : {}),
+  ...(environment.demo ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
 };
 
 /** robots.txt: el panel, el login y los planes de los clientes no se indexan. */
 function robots(origin: string): Response {
+  // La demostración no se indexa: es una copia con datos inventados.
+  if (environment.demo) return new Response(['User-agent: *', 'Disallow: /', ''].join('\n'), { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   const body = ['User-agent: *', 'Allow: /', 'Disallow: /panel', 'Disallow: /login', 'Disallow: /mi-plan/', '', `Sitemap: ${origin}/sitemap.xml`, ''].join('\n');
   return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' } });
 }

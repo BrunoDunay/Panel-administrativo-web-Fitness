@@ -4,15 +4,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { BrandLoader } from './components/brand/brand-loader';
 import { ConnectionLost } from './components/brand/connection-lost';
+import { DemoBanner } from './components/demo/demo-banner';
 import { ToastOutlet } from './components/toast/toast-outlet';
 import { ConnectionService } from './core/services/connection.service';
+import { environment } from '../environments/environment';
 
 /** Una navegación más rápida que esto no enseña cargador: evitaría un parpadeo. */
 const LOADER_DELAY_MS = 220;
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastOutlet, BrandLoader, ConnectionLost],
+  imports: [RouterOutlet, ToastOutlet, BrandLoader, ConnectionLost, DemoBanner],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Van antes que la página: si una pantalla falla al pintarse sin datos, estas capas ya se actualizaron. -->
@@ -22,12 +24,16 @@ const LOADER_DELAY_MS = 220;
     @if (navigating()) {
       <app-brand-loader [overlay]="true" [dark]="true" />
     }
+    @if (demo) {
+      <app-demo-banner />
+    }
     <router-outlet />
     <app-toast-outlet />
   `,
 })
 export class App {
   protected readonly connection = inject(ConnectionService);
+  protected readonly demo = environment.demo;
   /** Se está descargando la siguiente sección (las pantallas se cargan bajo demanda). */
   protected readonly navigating = signal(false);
 

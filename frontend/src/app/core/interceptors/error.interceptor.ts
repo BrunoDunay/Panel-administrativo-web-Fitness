@@ -40,7 +40,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (!(error instanceof HttpErrorResponse) || !req.url.startsWith(apiUrl)) return throwError(() => error);
 
       const apiError = toApiError(error);
-      const isLogin = req.url.endsWith('/auth/login');
+      const isLogin = req.url.endsWith('/auth/login') || req.url.endsWith('/auth/demo');
 
       // Sin red al cargar una pantalla: se muestra la página "Sin conexión" en lugar de un aviso suelto.
       // La landing queda fuera (tiene contenido de respaldo), igual que la propia comprobación de salud.
@@ -57,6 +57,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           toast.info(apiError.message);
           void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
         }
+      } else if (isBrowser && apiError.code === 'DEMO_READ_ONLY') {
+        // Demostración: no es un error, es el aviso de que nada se guarda.
+        toast.info(apiError.message);
       } else if (isBrowser && !isLogin && apiError.status !== 401) {
         const isMutation = req.method !== 'GET';
         const isServerProblem = apiError.status === 0 || apiError.status >= 500;

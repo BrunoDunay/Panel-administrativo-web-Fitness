@@ -90,3 +90,20 @@ form {
     color: var(--color-primary);
   }
 }
+
+/* Demostración: acceso de invitado */
+.guest {
+  display: grid;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.guest__lead {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.guest__note {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

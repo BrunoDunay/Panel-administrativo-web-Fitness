@@ -43,6 +43,13 @@ export class AuthService {
       .pipe(tap((res) => this.persist({ token: res.token, expiresAt: res.expiresAt, admin: res.admin })));
   }
 
+  /** Demostración: entra como invitado, sin contraseña. */
+  loginAsGuest(): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}/auth/demo`, {})
+      .pipe(tap((res) => this.persist({ token: res.token, expiresAt: res.expiresAt, admin: res.admin })));
+  }
+
   changePassword(currentPassword: string, newPassword: string) {
     return this.http.put<{ message: string }>(`${this.apiUrl}/auth/password`, { currentPassword, newPassword });
   }

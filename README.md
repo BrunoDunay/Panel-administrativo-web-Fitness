@@ -105,6 +105,26 @@ Cada ejercicio del catálogo tiene un dibujo animado propio que muestra el movim
 
 Los textos de la landing son provisionales hasta que se guarden desde **Panel → Contenido**; mientras tanto aparecen en el resumen del panel como "Pendiente de confirmar". Faltan por capturar: teléfono, correo, redes sociales, estudios y certificaciones del coach. El contenido inicial está en `backend/seeders/initial-content.js`.
 
+## Demostración
+
+Para mostrar el sistema por dentro sin dar acceso al real existe una **instalación de demostración**: el mismo código, desplegado aparte, con su propia base de datos y solo clientes inventados. No comparte nada con la instalación real: ni base, ni API, ni sitio.
+
+- **Solo lectura.** Con `DEMO_MODE=true` la API rechaza cualquier cambio (crear, guardar, borrar, registrar avance, cambiar contraseña). El visitante ve el aviso "Esto es una demostración".
+- **Acceso de invitado.** El login de la demo muestra un solo botón, "Entrar como invitado", sin contraseña.
+- **Datos siempre al día.** Al arrancar y cada noche se borran y se vuelven a crear 8 clientes de ejemplo (`npm run seed:demo -- --showcase`) con planes, avance, pagos y agenda relativos a hoy.
+- **Candado.** Si la base tiene un solo cliente que no sea de ejemplo (`@demo.fbe`), el servidor de demo se niega a arrancar y no borra nada.
+- La demo no se indexa en buscadores.
+
+**Publicada en:** https://fbe-demo.vercel.app (sitio) y https://fbe-demo-api.vercel.app/api (API), ambos en Vercel, con la base en Neon (proyecto `fbe-demo`). La API corre como función de Vercel desde `backend/api/index.js` (`backend/vercel.json`); el sitio es el build `demo` servido como archivos estáticos (`dist/frontend/browser`, con todas las rutas a `index.html`, `robots.txt` que bloquea todo y `X-Robots-Tag: noindex`).
+
+Despliegue en otro proveedor (por ejemplo Render + Netlify):
+
+1. **Base de datos** nueva y vacía (no la de producción).
+2. **Backend**: otro servicio con este repo (carpeta `backend`) y las variables de `.env.example`, con `DEMO_MODE=true`, `DATABASE_URL` de la base nueva, un `JWT_SECRET` distinto al real, `ADMIN_EMAIL=invitado@demo.fbe`, `ADMIN_NAME=Invitado`, una `ADMIN_PASSWORD` cualquiera (no se usa) y `CORS_ORIGINS` / `PUBLIC_SITE_URL` con el dominio del sitio de demo.
+3. **Frontend**: `apiUrl` de `frontend/src/environments/environment.demo.ts` con la URL de ese backend, y otro sitio de Netlify con este repo y la variable `NG_BUILD_CONFIGURATION=demo`.
+
+Para probarla en local: backend con `DEMO_MODE=true` contra una base desechable y `npx ng serve --configuration demo` (con `apiUrl` apuntando al backend local).
+
 ## Producción
 
 **Backend** (`backend/.env`):

@@ -5,4 +5,6 @@ export const environment = {
   apiUrl: 'https://panel-administrativo-web-fitness.onrender.com/api',
   /** Vacío = se usa el dominio con el que se visita el sitio (sirve igual con el dominio propio). */
   siteUrl: '',
+  /** Instalación de demostración (solo lectura, datos inventados). */
+  demo: false,
 };

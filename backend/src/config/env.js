@@ -20,6 +20,12 @@ const schema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:4200'),
   PUBLIC_SITE_URL: z.string().default('http://localhost:4200'),
   APP_TIMEZONE: z.string().default('America/Mexico_City'),
+  // Instalación de demostración: solo lectura, acceso de invitado y datos inventados que se regeneran a diario.
+  // Nunca se activa en la instalación real.
+  DEMO_MODE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 const parsed = schema

@@ -33,6 +33,15 @@ export async function login(req, res) {
   res.json({ token, expiresAt: new Date(exp * 1000).toISOString(), admin: publicAdmin(admin) });
 }
 
+/** Demostración: sesión de invitado sin contraseña (la instalación es de solo lectura). */
+export async function demoLogin(_req, res) {
+  const admin = await Admin.findOne({ where: { email: env.ADMIN_EMAIL.toLowerCase() } });
+  if (!admin) throw new AppError(503, 'La demostración se está preparando. Intenta en un momento.', 'DEMO_NOT_READY');
+  const token = signToken(admin);
+  const { exp } = jwt.decode(token);
+  res.json({ token, expiresAt: new Date(exp * 1000).toISOString(), admin: publicAdmin(admin) });
+}
+
 export async function me(req, res) {
   const admin = await Admin.findByPk(req.admin.id);
   if (!admin) throw new AppError(401, 'La cuenta ya no existe.', 'UNAUTHENTICATED');
