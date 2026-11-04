@@ -22,7 +22,7 @@ entrenamiento y nutrición con los mismos cálculos. Detalle de funciones, cálc
 
 ## Estado (4 nov 2026)
 
-- Último trabajo: modo demostración. Quedó guardado el 4 nov 2026 (commit local, **falta subirlo**: push a `main` publica el sitio real).
+- Último trabajo: modo demostración. Guardado y subido el 4 nov 2026. La demo (fbe-demo) se sigue usando.
 - El 4 nov 2026 se borró la copia `Germain-rediseno` (no se usaba). Sus dos videos pasaron a `videos-para-compartir/`.
-  Esa copia usaba su propio PostgreSQL en `%USERPROFILE%\.fbe-rediseno-pg` (puerto 5546), que ya se puede borrar.
+  Su PostgreSQL de prueba (`%USERPROFILE%\.fbe-rediseno-pg`) se mandó a la Papelera.
 - `figure-rig.ts` (figuras de ejercicios) se copió a la demo Forja de `2-Demos/Gimnasio`.
