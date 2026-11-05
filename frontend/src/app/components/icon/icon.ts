@@ -11,6 +11,7 @@ type Motion = 'draw' | 'spin' | 'right' | 'left' | 'down' | 'up' | 'pop' | 'shak
 
 const MOTION: Partial<Record<IconName, Motion>> = {
   settings: 'spin',
+  info: 'pop',
   refresh: 'spin',
   arrowRight: 'right',
   chevronRight: 'right',

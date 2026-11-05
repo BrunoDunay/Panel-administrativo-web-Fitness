@@ -35,6 +35,7 @@ export const PANEL_NAV: PanelNavGroup[] = [
     items: [
       { label: 'Contenido', path: '/panel/content', icon: 'edit' },
       { label: 'Cuenta', path: '/panel/settings', icon: 'settings' },
+      { label: 'Acerca del sistema', path: '/panel/system', icon: 'info' },
     ],
   },
 ];

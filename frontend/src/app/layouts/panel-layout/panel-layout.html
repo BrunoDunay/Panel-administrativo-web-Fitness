@@ -28,6 +28,7 @@
         <span class="nav__icon"><app-icon name="external" [size]="18" /></span>
         Ver sitio
       </a>
+      <a class="version" routerLink="/panel/system" title="Acerca del sistema">Versión {{ version }}</a>
       <div class="account">
         <span class="account__avatar">{{ initials(auth.admin()?.name ?? '') }}</span>
         <span class="account__name">{{ auth.admin()?.name }}</span>

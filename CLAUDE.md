@@ -20,7 +20,16 @@ entrenamiento y nutrición con los mismos cálculos. Detalle de funciones, cálc
 - `video-flujo/`, `video-flujo-vertical/`: videos HyperFrames del flujo. `videos-para-compartir/`: los MP4 finales (fuera de git).
 - `Identidad visual/`, `Estructura y funcionalidad/`: material del cliente.
 
-## Estado (4 nov 2026)
+## Reglas
+
+- **Acerca del sistema** (`/panel/system`): ficha técnica, conexión con la API e historial de versiones. Cada cambio que se
+  publique agrega su entrada en `frontend/src/app/core/system/system-info.ts` (`RELEASES`, la más nueva primero) y sube
+  `version` en `frontend/package.json`: corrección = último número, mejora = el de en medio. `scripts/build-info.mjs`
+  guarda el commit y la fecha al compilar en Netlify/Vercel.
+
+## Estado (5 nov 2026)
+
+- 5 nov 2026 en producción: página "Acerca del sistema", versión 1.5.0 con el historial desde el 8 oct. La demo (fbe-demo) la tendrá al volver a publicarla a mano.
 
 - Último trabajo: modo demostración. Guardado y subido el 4 nov 2026. La demo (fbe-demo) se sigue usando.
 - El 4 nov 2026 se borró la copia `Germain-rediseno` (no se usaba). Sus dos videos pasaron a `videos-para-compartir/`.

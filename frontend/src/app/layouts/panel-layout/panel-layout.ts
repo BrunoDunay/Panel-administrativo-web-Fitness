@@ -7,6 +7,7 @@ import { Icon } from '../../components/icon/icon';
 import { AuthService } from '../../core/services/auth.service';
 import { initials } from '../../core/utils/format';
 import { PANEL_NAV } from './panel-nav';
+import { RELEASES } from '../../core/system/system-info';
 import { PanelUiStyles } from '../../pages/panel/shared/panel-ui-styles';
 import { ConfirmDialog } from '../../pages/panel/shared/confirm-dialog';
 
@@ -23,6 +24,7 @@ export class PanelLayout {
   protected readonly nav = PANEL_NAV;
   protected readonly menuOpen = signal(false);
   protected readonly initials = initials;
+  protected readonly version = RELEASES[0].version;
 
   constructor() {
     // En móvil, cerrar el menú al navegar.

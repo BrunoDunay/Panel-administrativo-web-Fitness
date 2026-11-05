@@ -142,6 +142,20 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Versión del sistema: lleva a "Acerca del sistema". */
+.version {
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 0.2s;
+}
+
+.version:hover,
+.version:focus-visible {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .account {
   display: flex;
   align-items: center;

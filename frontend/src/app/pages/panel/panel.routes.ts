@@ -17,6 +17,7 @@ export const PANEL_ROUTES: Routes = [
       { path: 'protocols', loadComponent: () => import('./catalogs/protocols-admin').then((m) => m.ProtocolsAdmin) },
       { path: 'content', loadComponent: () => import('./content/content').then((m) => m.Content) },
       { path: 'settings', loadComponent: () => import('./settings/settings-admin').then((m) => m.SettingsAdmin) },
+      { path: 'system', loadComponent: () => import('./system/system-about').then((m) => m.SystemAbout) },
     ],
   },
 ];
