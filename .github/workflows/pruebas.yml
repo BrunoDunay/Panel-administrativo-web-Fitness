@@ -1,0 +1,40 @@
+# Corre las pruebas del backend y revisa vulnerabilidades conocidas en cada push y pull request.
+# No publica nada: Netlify y Render siguen publicando como siempre.
+name: Pruebas y seguridad
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Pruebas del backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: Dependencias de producción sin vulnerabilidades altas
+        run: npm audit --omit=dev --audit-level=high
+
+  frontend:
+    name: Dependencias del frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Dependencias de producción sin vulnerabilidades altas
+        run: npm audit --omit=dev --audit-level=high
