@@ -44,6 +44,15 @@ export const SYSTEM = {
 
 export const RELEASES: Release[] = [
   {
+    version: '1.5.1',
+    date: '2026-11-13',
+    title: 'Seguridad de dependencias',
+    changes: [
+      { kind: 'correccion', text: 'Se actualizaron librerías con fallas de seguridad conocidas; ninguna queda pendiente.' },
+      { kind: 'mejora', text: 'Cada cambio pasa por pruebas automáticas y una revisión de seguridad antes de publicarse.' },
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-11-05',
     title: 'Acerca del sistema',
